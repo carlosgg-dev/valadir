@@ -1,0 +1,25 @@
+CREATE TYPE user_role AS ENUM ('ROLE_USER', 'ROLE_ADMIN');
+
+-- 1. Accounts: Authentication Data
+CREATE TABLE IF NOT EXISTS accounts (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(120) NOT NULL,
+    role user_role DEFAULT 'ROLE_USER',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Users: Profile Data
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    account_id BIGINT UNIQUE NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    full_name VARCHAR(255) NOT NULL,
+    given_name VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX index_accounts_email ON accounts(email);
+CREATE INDEX index_users_account_id ON users(account_id);

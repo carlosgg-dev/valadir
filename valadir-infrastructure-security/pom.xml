@@ -25,6 +25,27 @@
             <artifactId>valadir-common</artifactId>
         </dependency>
         <!-- -->
+
+        <!-- JUnit 5: Standard testing framework -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers JUnit 5 support: Manages container lifecycle in tests -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers Core: Allows launching and managing any Docker container for tests -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

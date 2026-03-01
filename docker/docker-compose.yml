@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: valadir_postgres
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - valadir_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: valadir_redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: >
+      sh -c "redis-server --requirepass $$REDIS_PASSWORD"
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - valadir_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  valadir_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

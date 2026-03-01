@@ -36,6 +36,15 @@
         <project.reporting.outputEncoding>${project.encoding}</project.reporting.outputEncoding>
     </properties>
 
+    <dependencies>
+        <!-- AssertJ: Fluent assertions for testing -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <!-- Project modules -->
@@ -81,6 +90,15 @@
                 <version>${project.version}</version>
             </dependency>
             <!-- -->
+
+            <!-- Testcontainers: Library for using Docker containers in tests -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
