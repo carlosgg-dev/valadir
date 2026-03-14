@@ -1,4 +1,6 @@
-# Valadir - Modular Auth System
+<div style="text-align: center;">
+    <img src="assets/logo.svg" alt="Valadir Auth System logo" width="600">
+</div>
 
 A production-ready base for modern applications built with Spring Boot, following Hexagonal Architecture principles.
 This project is designed to be highly decoupled, maintainable, and easily pluggable into different environments.
@@ -30,9 +32,10 @@ The project uses Docker to manage its external dependencies for local developmen
 
 1. Configure environment: Create a .env file in the root (use .env.example as a template).
 2. Start services:
-   ```bash
-   docker compose -f docker/docker-compose.yml --env-file .env up -d
-   ```
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file .env up -d
+```
 
 ### Build and Test
 

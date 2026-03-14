@@ -18,7 +18,13 @@ target/
 
 ### Local environment ###
 *.env
-*.local
+*.env.local
+
+# AI Agents & IDE configs
+.gemini/
+.anthropic/
+.cursor/
+*.log
 
 ### Operating System ###
 .DS_Store
