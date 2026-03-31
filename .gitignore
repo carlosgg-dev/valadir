@@ -20,11 +20,12 @@ target/
 *.env
 *.env.local
 
-# AI Agents & IDE configs
-.gemini/
-.anthropic/
-.cursor/
+# AI Agents
+.claude/*.local.json
+
+### Logs and temporary files ###
 *.log
+.cache/
 
 ### Operating System ###
 .DS_Store

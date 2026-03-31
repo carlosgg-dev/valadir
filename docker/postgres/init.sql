@@ -1,19 +1,19 @@
-CREATE TYPE user_role AS ENUM ('ROLE_USER', 'ROLE_ADMIN');
+CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
 
--- 1. Accounts: Authentication Data
+-- Accounts: Authentication Data
 CREATE TABLE IF NOT EXISTS accounts (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id UUID PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(120) NOT NULL,
-    role user_role DEFAULT 'ROLE_USER',
+    rawPassword VARCHAR(255) NOT NULL,
+    role user_role DEFAULT 'USER',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Users: Profile Data
+-- Users: Profile Data
 CREATE TABLE IF NOT EXISTS users (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    account_id BIGINT UNIQUE NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
+    account_id UUID UNIQUE NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     full_name VARCHAR(255) NOT NULL,
     given_name VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

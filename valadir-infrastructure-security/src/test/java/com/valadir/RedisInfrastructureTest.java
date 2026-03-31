@@ -10,7 +10,7 @@ import org.testcontainers.utility.DockerImageName;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
-class RedisInfrastructureTests {
+class RedisInfrastructureTest {
 
     private static final String REDIS_PASSWORD = "test_redis_pass";
 

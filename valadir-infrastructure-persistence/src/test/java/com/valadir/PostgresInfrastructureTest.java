@@ -15,7 +15,7 @@ import java.sql.Statement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
-class PostgresInfrastructureTests {
+class PostgresInfrastructureTest {
 
     private static Connection connection;
 
