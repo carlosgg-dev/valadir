@@ -1,4 +1,4 @@
-package com.valadir;
+package com.valadir.security;
 
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Container.ExecResult;
@@ -15,6 +15,7 @@ class RedisInfrastructureTest {
     private static final String REDIS_PASSWORD = "test_redis_pass";
 
     @Container
+    @SuppressWarnings("resource")
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.4-alpine"))
         .withExposedPorts(6379)
         .withCommand("redis-server --requirepass %s".formatted(REDIS_PASSWORD));
