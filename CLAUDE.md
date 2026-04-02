@@ -87,10 +87,14 @@ These ADRs are enforced throughout the codebase:
 
 ## Error Handling
 
-All domain violations throw `DomainException(ErrorCode)`. Error codes are namespaced:
+- Domain violations throw `DomainException(ErrorCode)`.
+- Application rule violations throw `ApplicationException(ErrorCode)`.
+
+Error codes are namespaced:
 
 - `VAL-xxx` — Validation errors (`INVALID_FIELD`, `INVALID_PASSWORD`, `REQUIRED_FIELD_MISSING`)
-- `BIZ-xxx` — Business rule violations (`INSECURE_PASSWORD`, `EMAIL_ALREADY_EXISTS`, `CREDENTIAL_INTEGRITY_ERROR`)
+- `BIZ-xxx` — Business rule violations (`INSECURE_PASSWORD`, `EMAIL_ALREADY_EXISTS`)
+- `SEC-xxx` — Security violations (`CREDENTIAL_INTEGRITY_ERROR`, `TOKEN_REUSE_DETECTED`)
 - `SYS-xxx` — System errors (`INTERNAL_SERVER_ERROR`)
 
 **Do not use generic exceptions or HTTP status codes in `valadir-domain` or `valadir-application`.** HTTP semantics
@@ -98,8 +102,11 @@ belong exclusively to the web adapter.
 
 ## Test Conventions
 
+General testing and Mockito rules are in `.claude/rules/testing.md` and `.claude/rules/mockito.md`.
+
+Project-specific conventions:
+
 - Domain tests are pure unit tests with no Spring context.
 - Infrastructure tests use `@Testcontainers` + `@Container` annotations for automatic container lifecycle.
-- Test class naming: `[Subject]Test` (e.g., `AccountTest`, `EmailTest`).
 - Parameterized tests use `@CsvSource`, `@ValueSource`, or `@MethodSource` for edge case coverage.
 - The `ValadirApplicationTest` in `valadir-boot` is an integration test that loads the full Spring context.

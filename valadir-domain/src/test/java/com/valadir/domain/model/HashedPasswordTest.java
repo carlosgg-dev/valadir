@@ -14,8 +14,10 @@ class HashedPasswordTest {
     @Test
     void shouldCreateHashedPassword_WhenValueIsValid() {
 
-        HashedPassword hashed = new HashedPassword("$2a$10$someHashValue");
-        assertThat(hashed.value()).isEqualTo("$2a$10$someHashValue");
+        var password = "$2a$10$someHashValue";
+        var hashed = new HashedPassword(password);
+
+        assertThat(hashed.value()).isEqualTo(password);
     }
 
     @ParameterizedTest
@@ -24,7 +26,7 @@ class HashedPasswordTest {
 
         assertThatThrownBy(() -> new HashedPassword(blankHash))
             .isInstanceOf(DomainException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
     private static String[] provideBlankHashedPasswords() {

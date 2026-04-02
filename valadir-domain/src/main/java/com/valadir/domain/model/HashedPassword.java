@@ -8,7 +8,7 @@ public record HashedPassword(String value) {
     public HashedPassword {
 
         if (value == null || value.isBlank()) {
-            throw new DomainException("Hashed password cannot be empty", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            throw new DomainException("Hashed password cannot be empty", ErrorCode.REQUIRED_FIELD_MISSING);
         }
     }
 }
