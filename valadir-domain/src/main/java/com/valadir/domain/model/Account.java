@@ -1,7 +1,5 @@
 package com.valadir.domain.model;
 
-import com.valadir.domain.service.PasswordSecurityService;
-
 public class Account {
 
     private final AccountId id;
@@ -18,20 +16,11 @@ public class Account {
     }
 
     /**
-     * Factory method for creating a NEW account with security checks.
+     * Factory method for creating a NEW account.
      */
-    public static Account createWithProfileSafety(
-        AccountId id,
-        Email email,
-        RawPassword rawPassword,
-        HashedPassword hashedPassword,
-        Role role,
-        UserProfileData profileData,
-        PasswordSecurityService securityService
-    ) {
+    public static Account create(AccountId id, Email email, HashedPassword password, Role role) {
 
-        securityService.validatePassword(rawPassword, email, profileData);
-        return new Account(id, email, hashedPassword, role);
+        return new Account(id, email, password, role);
     }
 
     /**

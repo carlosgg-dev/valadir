@@ -60,10 +60,10 @@ public class RegisterService implements RegisterUseCase {
         var accountId = AccountId.generate();
         HashedPassword hashedPassword = passwordHasher.hash(rawPassword);
         var profileData = new UserProfileData(fullName, givenName);
+        passwordSecurityService.validatePassword(rawPassword, email, profileData);
 
-        Account account = Account.createWithProfileSafety(accountId, email, rawPassword, hashedPassword, Role.USER, profileData, passwordSecurityService);
+        Account account = Account.create(accountId, email, hashedPassword, Role.USER);
         User user = User.createNewProfile(UserId.generate(), accountId, fullName, givenName);
-
         registerPersistence.save(account, user);
 
         return authTokenIssuer.issue(accountId, Role.USER);

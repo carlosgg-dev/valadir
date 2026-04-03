@@ -10,14 +10,19 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.FullName;
+import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
+import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,7 +45,6 @@ class RegisterServiceTest {
     @Mock
     private PasswordHasher passwordHasher;
     @Mock
-    @SuppressWarnings("unused") // Required for constructor injection — passed to Account.createWithProfileSafety()
     private PasswordSecurityService passwordSecurityService;
     @Mock
     private RegisterPersistence registerPersistence;
@@ -48,24 +52,50 @@ class RegisterServiceTest {
     private AuthTokenIssuer authTokenIssuer;
     @InjectMocks
     private RegisterService service;
+    @Captor
+    private ArgumentCaptor<Account> accountCaptor;
+    @Captor
+    private ArgumentCaptor<User> userCaptor;
 
     @Test
     void shouldRegisterUser_WhenDataIsValid() {
 
         var email = "bruce.wayne@email.com";
         var password = "SecureP@ss123";
+        var hashedPassword = new HashedPassword("$2a$12$hashed");
+        var fullNameValue = "Bruce Wayne";
+        var givenNameValue = "Bruce Wayne";
+        var fullName = new FullName(fullNameValue);
+        var givenName = new GivenName(givenNameValue);
         var accessToken = "access-token";
         var refreshToken = "refresh-token";
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
-        given(passwordHasher.hash(new RawPassword(password))).willReturn(new HashedPassword("$2a$12$hashed"));
+        given(passwordHasher.hash(new RawPassword(password))).willReturn(hashedPassword);
         given(authTokenIssuer.issue(any(AccountId.class), eq(Role.USER))).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
-        var result = service.register(new RegisterCommand(email, password, "Bruce Wayne", "Bruce"));
+        var result = service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
 
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
-        then(registerPersistence).should().save(any(Account.class), any(User.class));
+
+        then(passwordSecurityService).should().validatePassword(
+            new RawPassword(password),
+            new Email(email),
+            new UserProfileData(fullName, givenName)
+        );
+
+        then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
+
+        var savedAccount = accountCaptor.getValue();
+        assertThat(savedAccount.getEmail()).isEqualTo(new Email(email));
+        assertThat(savedAccount.getPassword()).isEqualTo(hashedPassword);
+        assertThat(savedAccount.getRole()).isEqualTo(Role.USER);
+
+        var savedUser = userCaptor.getValue();
+        assertThat(savedUser.getFullName()).isEqualTo(fullName);
+        assertThat(savedUser.getGivenName()).isEqualTo(givenName);
+        assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
     }
 
     @Test
