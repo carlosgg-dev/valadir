@@ -15,17 +15,11 @@ public class User {
         this.givenName = givenName;
     }
 
-    /**
-     * Factory method for creating a NEW user profile.
-     */
-    public static User createNewProfile(UserId id, AccountId accountId, FullName fullName, GivenName givenName) {
+    public static User newProfile(UserId id, AccountId accountId, FullName fullName, GivenName givenName) {
 
         return new User(id, accountId, fullName, givenName);
     }
 
-    /**
-     * Factory method for RECONSTITUTING a user profile from persistence.
-     */
     public static User reconstitute(UserId id, AccountId accountId, FullName fullName, GivenName givenName) {
 
         return new User(id, accountId, fullName, givenName);

@@ -15,17 +15,11 @@ public class Account {
         this.role = role;
     }
 
-    /**
-     * Factory method for creating a NEW account.
-     */
-    public static Account create(AccountId id, Email email, HashedPassword password, Role role) {
+    public static Account from(AccountId id, Email email, HashedPassword password, Role role) {
 
         return new Account(id, email, password, role);
     }
 
-    /**
-     * Factory method for RECONSTITUTING an account from persistence.
-     */
     public static Account reconstitute(AccountId id, Email email, HashedPassword hashedPassword, Role role) {
 
         return new Account(id, email, hashedPassword, role);

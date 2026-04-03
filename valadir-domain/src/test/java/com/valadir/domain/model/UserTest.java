@@ -7,14 +7,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserTest {
 
     @Test
-    void createNewProfile_validData_createsUser() {
+    void newProfile_validData_createsUser() {
 
         UserId id = UserId.generate();
         AccountId accountId = AccountId.generate();
         FullName fullName = new FullName("Bruce Wayne");
         GivenName givenName = new GivenName("Batman");
 
-        User user = User.createNewProfile(id, accountId, fullName, givenName);
+        User user = User.newProfile(id, accountId, fullName, givenName);
 
         assertThat(user.getId()).isEqualTo(id);
         assertThat(user.getAccountId()).isEqualTo(accountId);
