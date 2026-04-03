@@ -1,8 +1,5 @@
 # JPA Standards — Spring Data JPA & Hibernate
 
-> **Architectural constraint:** JPA is strictly confined to the `valadir-infrastructure-persistence` module.
-> Never introduce JPA annotations, `EntityManager`, or Spring Data interfaces in `valadir-domain` or `valadir-application`.
-
 ## N+1 prevention
 - Proactively identify and prevent N+1 query problems before they reach production.
 - Use Join Fetch or Entity Graphs for associations that are always needed together.

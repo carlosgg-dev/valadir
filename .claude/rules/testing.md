@@ -46,6 +46,10 @@ that gives meaningful coverage.
 ## General rules
 
 - Tests are production code: apply the same Clean Code standards.
+- Extract repeated primitive values to local variables when the same data appears multiple
+  times in a test. Two objects with the same primitive value are not the same data
+  (e.g. `new Id("5")` and `new Year("5")` are unrelated despite sharing `"5"`).
+  Extracting to a variable makes the intent clear and reduces the cost of changing the value.
 - No commented-out tests. If a test is skipped, document why explicitly.
 - Avoid `Thread.sleep` for async assertions — use the project's waiting mechanism.
 - Each test must be independent and idempotent — no shared mutable state between tests.
