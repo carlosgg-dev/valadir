@@ -17,7 +17,7 @@ class PasswordSecurityServiceTest {
     private final PasswordSecurityService securityService = new PasswordSecurityService();
 
     @Test
-    void shouldPass_WhenPasswordIsSecure() {
+    void validatePassword_securePassword_passes() {
 
         RawPassword password = new RawPassword("Secure_P@ss_2026");
         Email email = new Email("bruce.wayne@email.com");
@@ -29,7 +29,7 @@ class PasswordSecurityServiceTest {
     }
 
     @Test
-    void shouldPass_WhenNameTermsAreBelowMinLength() {
+    void validatePassword_nameTermsBelowMinLength_passes() {
 
         // Terms "jo", "li", "ann" are all < MIN_TERM_LENGTH (4) — they are ignored during validation
         RawPassword password = new RawPassword("Xk9@Secure1");
@@ -42,13 +42,13 @@ class PasswordSecurityServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenPasswordContainsTheEmail() {
+    void validatePassword_passwordContainsEmail_throwsDomainException() {
 
         assertInsecurePassword("bruce.wayne@email.com1A", "bruce.wayne@email.com", "Bruce Wayne", "Batman");
     }
 
     @Test
-    void shouldThrowException_WhenPasswordContainsFullNameWithDotSeparator() {
+    void validatePassword_passwordContainsFullNameWithDotSeparator_throwsDomainException() {
 
         assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce.Wayne", "Batman");
         assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce.Wayne", "Batman");
@@ -56,7 +56,7 @@ class PasswordSecurityServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenPasswordContainsFullNameWithDashSeparator() {
+    void validatePassword_passwordContainsFullNameWithDashSeparator_throwsDomainException() {
 
         assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce-Wayne", "Batman");
         assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce-Wayne", "Batman");
@@ -64,7 +64,7 @@ class PasswordSecurityServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenPasswordContainsFullNameWithUnderscoreSeparator() {
+    void validatePassword_passwordContainsFullNameWithUnderscoreSeparator_throwsDomainException() {
 
         assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce_Wayne", "Batman");
         assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce_Wayne", "Batman");
@@ -72,7 +72,7 @@ class PasswordSecurityServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenPasswordContainsGivenName() {
+    void validatePassword_passwordContainsGivenName_throwsDomainException() {
 
         assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Batman", "Bruce Wayne");
         assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Batman", "Bruce Wayne");

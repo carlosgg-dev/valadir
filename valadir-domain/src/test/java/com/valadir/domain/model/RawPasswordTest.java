@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RawPasswordTest {
 
     @Test
-    void shouldCreateRawPassword_WhenComplexityIsMet() {
+    void new_complexityRequirementsMet_createsRawPassword() {
 
         RawPassword password = new RawPassword("SecureP@ss123");
         assertThat(password.value()).isEqualTo("SecureP@ss123");
@@ -28,7 +28,7 @@ class RawPasswordTest {
         "NoDigit_Letters",
         "No_Numbers"
     })
-    void shouldThrowException_WhenComplexityIsNotMet(String invalidPassword) {
+    void new_complexityRequirementsNotMet_throwsDomainException(String invalidPassword) {
 
         assertThatThrownBy(() -> new RawPassword(invalidPassword))
             .as("Password '%s' should be considered invalid", invalidPassword)
@@ -38,7 +38,7 @@ class RawPasswordTest {
 
     @ParameterizedTest
     @MethodSource("provideNullAndBlankPasswords")
-    void shouldThrowException_WhenValueIsNullOrBlank(String invalidPassword) {
+    void new_nullOrBlankValue_throwsDomainException(String invalidPassword) {
 
         assertThatThrownBy(() -> new RawPassword(invalidPassword))
             .isInstanceOf(DomainException.class)

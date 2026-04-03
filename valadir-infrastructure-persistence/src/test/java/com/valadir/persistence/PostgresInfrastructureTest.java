@@ -46,7 +46,7 @@ class PostgresInfrastructureTest {
     @ParameterizedTest(name = "{1} should be created by init.sql")
     @MethodSource("schemaObjectQueries")
     @DisplayName("init.sql should create all schema objects")
-    void should_create_schema_objects(String query, String description) throws Exception {
+    void initSql_allExpectedSchemaObjects_exist(String query, String description) throws Exception {
 
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(query);

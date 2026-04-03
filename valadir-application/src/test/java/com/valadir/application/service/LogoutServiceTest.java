@@ -27,7 +27,7 @@ class LogoutServiceTest {
     private LogoutService service;
 
     @Test
-    void shouldLogout_WhenBothOperationsSucceed() {
+    void logout_bothOperationsSucceed_revokesAccessTokenAndDeletesRefreshToken() {
 
         var accessTokenJti = "access-jti";
         var refreshToken = "refresh-token";
@@ -39,7 +39,7 @@ class LogoutServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenAccessTokenRevocationFails() {
+    void logout_accessTokenRevocationFails_throwsApplicationException() {
 
         var accessTokenJti = "access-jti";
         var refreshToken = "refresh-token";
@@ -55,7 +55,7 @@ class LogoutServiceTest {
     }
 
     @Test
-    void shouldSucceed_WhenRefreshTokenDeletionFails() {
+    void logout_refreshTokenDeletionFails_doesNotThrow() {
 
         var accessTokenJti = "access-jti";
         var refreshToken = "refresh-token";

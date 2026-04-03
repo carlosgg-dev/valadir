@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GivenNameTest {
 
     @Test
-    void shouldCreateGivenName_WhenValueIsProvided() {
+    void new_valueProvided_createsGivenName() {
 
         GivenName givenName = new GivenName("Bruce");
         assertThat(givenName.value()).isEqualTo("Bruce");
@@ -17,14 +17,14 @@ class GivenNameTest {
 
     @ParameterizedTest
     @MethodSource("provideBlankGivenNames")
-    void shouldCreateGivenName_WithNull_WhenValueIsBlank(String blankGivenName) {
+    void new_blankValue_storesNull(String blankGivenName) {
 
         GivenName givenName = new GivenName(blankGivenName);
         assertThat(givenName.value()).isNull();
     }
 
     @Test
-    void shouldCreateGivenName_WithNull_WhenUsingEmptyFactory() {
+    void empty_createsGivenNameWithNullValue() {
 
         GivenName givenName = GivenName.empty();
         assertThat(givenName.value()).isNull();

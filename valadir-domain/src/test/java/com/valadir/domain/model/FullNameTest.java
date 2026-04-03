@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class FullNameTest {
 
     @Test
-    void shouldCreateFullName_WhenValueIsValid() {
+    void new_validValue_createsFullName() {
 
         FullName fullName = new FullName("Bruce Wayne");
         assertThat(fullName.value()).isEqualTo("Bruce Wayne");
@@ -20,7 +20,7 @@ class FullNameTest {
 
     @ParameterizedTest
     @MethodSource("provideBlankFullNames")
-    void shouldThrowException_WhenValueIsBlank(String blankFullName) {
+    void new_blankValue_throwsDomainException(String blankFullName) {
 
         assertThatThrownBy(() -> new FullName(blankFullName))
             .isInstanceOf(DomainException.class)
@@ -28,14 +28,14 @@ class FullNameTest {
     }
 
     @Test
-    void shouldCreateFullName_WhenValueIsExactlyMinLength() {
+    void new_valueAtMinLength_createsFullName() {
 
         FullName fullName = new FullName("Wa");
         assertThat(fullName.value()).isEqualTo("Wa");
     }
 
     @Test
-    void shouldThrowException_WhenValueItsShort() {
+    void new_valueTooShort_throwsDomainException() {
 
         assertThatThrownBy(() -> new FullName("W"))
             .isInstanceOf(DomainException.class)

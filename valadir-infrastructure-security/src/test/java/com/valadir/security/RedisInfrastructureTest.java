@@ -21,7 +21,7 @@ class RedisInfrastructureTest {
         .withCommand("redis-server --requirepass %s".formatted(REDIS_PASSWORD));
 
     @Test
-    void should_fail_when_pinging_without_password() throws Exception {
+    void ping_withoutPassword_returnsNoauthError() throws Exception {
 
         ExecResult result = redis.execInContainer("redis-cli", "ping");
 
@@ -31,7 +31,7 @@ class RedisInfrastructureTest {
     }
 
     @Test
-    void should_succeed_when_pinging_with_password() throws Exception {
+    void ping_withValidPassword_returnsPong() throws Exception {
 
         ExecResult result = redis.execInContainer("redis-cli", "-a", REDIS_PASSWORD, "ping");
 

@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class UserProfileDataTest {
 
     @Test
-    void shouldCreateUserProfileData_WhenBothValuesAreProvided() {
+    void new_bothValuesProvided_createsUserProfileData() {
 
         FullName fullName = new FullName("Bruce Wayne");
         GivenName givenName = new GivenName("Bruce");
@@ -22,7 +22,7 @@ class UserProfileDataTest {
     }
 
     @Test
-    void shouldNormalizeGivenName_WhenGivenNameIsNull() {
+    void new_nullGivenName_normalizesToEmpty() {
 
         FullName fullName = new FullName("Bruce Wayne");
 
@@ -32,7 +32,7 @@ class UserProfileDataTest {
     }
 
     @Test
-    void shouldThrowException_WhenFullNameIsNull() {
+    void new_nullFullName_throwsDomainException() {
 
         GivenName givenName = new GivenName("Bruce");
 

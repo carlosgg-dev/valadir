@@ -35,7 +35,7 @@ class RefreshTokenServiceTest {
     private final AccountId accountId = AccountId.generate();
 
     @Test
-    void shouldRefresh_WhenTokenIsValid() {
+    void refresh_validToken_rotatesTokenAndReturnsNewPair() {
 
         var validToken = "valid-token";
         var newAccessToken = "new-access";
@@ -52,7 +52,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void shouldRevokeAllSessions_WhenTokenIsReused() {
+    void refresh_reusedToken_revokesAllSessionsAndThrows() {
 
         var reusedToken = "reused-token";
         var command = new RefreshTokenCommand(reusedToken);
@@ -68,7 +68,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenTokenIsInvalid() {
+    void refresh_invalidToken_throwsApplicationException() {
 
         var invalidToken = "invalid-token";
         var command = new RefreshTokenCommand(invalidToken);

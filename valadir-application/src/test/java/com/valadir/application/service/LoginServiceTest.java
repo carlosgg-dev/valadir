@@ -48,7 +48,7 @@ class LoginServiceTest {
     );
 
     @Test
-    void shouldLogin_WhenCredentialsAreValid() {
+    void login_validCredentials_returnsTokens() {
 
         var email = "bruce.wayne@email.com";
         var password = "SecureP@ss123";
@@ -66,7 +66,7 @@ class LoginServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenEmailNotFound() {
+    void login_emailNotFound_throwsApplicationException() {
 
         var email = "unknown@email.com";
         var password = "SecureP@ss123";
@@ -82,7 +82,7 @@ class LoginServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenPasswordIsWrong() {
+    void login_wrongPassword_throwsApplicationException() {
 
         var email = "bruce.wayne@email.com";
         var password = "WrongP@ss123";

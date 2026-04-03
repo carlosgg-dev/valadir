@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserTest {
 
     @Test
-    void shouldCreateUser_WhenDataIsValid() {
+    void createNewProfile_validData_createsUser() {
 
         UserId id = UserId.generate();
         AccountId accountId = AccountId.generate();
@@ -23,7 +23,7 @@ class UserTest {
     }
 
     @Test
-    void shouldReconstituteUser() {
+    void reconstitute_validData_reconstitutesUser() {
 
         UserId id = UserId.generate();
         AccountId accountId = AccountId.generate();

@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class EmailTest {
 
     @Test
-    void shouldCreateEmail_WhenValueIsValid() {
+    void new_validEmail_createsEmail() {
 
         Email email = new Email("user@domain.com");
         assertThat(email.value()).isEqualTo("user@domain.com");
@@ -27,7 +27,7 @@ class EmailTest {
         "user@domain",
         "user@"
     })
-    void shouldThrowException_WhenValueIsInvalid(String invalidEmail) {
+    void new_invalidFormat_throwsDomainException(String invalidEmail) {
 
         assertThatThrownBy(() -> new Email(invalidEmail))
             .isInstanceOf(DomainException.class)
@@ -36,7 +36,7 @@ class EmailTest {
 
     @ParameterizedTest
     @MethodSource("provideBlankEmails")
-    void shouldThrowException_WhenIsBlank(String invalidEmail) {
+    void new_blankValue_throwsDomainException(String invalidEmail) {
 
         assertThatThrownBy(() -> new Email(invalidEmail))
             .isInstanceOf(DomainException.class)

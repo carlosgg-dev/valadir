@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AccountTest {
 
     @Test
-    void shouldCreateAccount_WhenDataIsValid() {
+    void create_validData_createsAccount() {
 
         AccountId id = AccountId.generate();
         Email email = new Email("bruce.wayne@email.com");
@@ -23,7 +23,7 @@ class AccountTest {
     }
 
     @Test
-    void shouldReconstituteAccount() {
+    void reconstitute_validData_reconstitutesAccount() {
 
         AccountId id = AccountId.generate();
         Email email = new Email("bruce.wayne@email.com");

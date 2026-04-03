@@ -58,7 +58,7 @@ class RegisterServiceTest {
     private ArgumentCaptor<User> userCaptor;
 
     @Test
-    void shouldRegisterUser_WhenDataIsValid() {
+    void register_validData_savesAccountAndUserAndReturnsTokens() {
 
         var email = "bruce.wayne@email.com";
         var password = "SecureP@ss123";
@@ -99,7 +99,7 @@ class RegisterServiceTest {
     }
 
     @Test
-    void shouldThrowException_WhenEmailAlreadyExists() {
+    void register_emailAlreadyExists_throwsApplicationException() {
 
         String email = "bruce.wayne@email.com";
         String password = "SecureP@ss123";

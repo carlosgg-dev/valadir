@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class HashedPasswordTest {
 
     @Test
-    void shouldCreateHashedPassword_WhenValueIsValid() {
+    void new_validValue_createsHashedPassword() {
 
         var password = "$2a$10$someHashValue";
         var hashed = new HashedPassword(password);
@@ -22,7 +22,7 @@ class HashedPasswordTest {
 
     @ParameterizedTest
     @MethodSource("provideBlankHashedPasswords")
-    void shouldThrowException_WhenHashedPasswordIsBlank(String blankHash) {
+    void new_blankHash_throwsDomainException(String blankHash) {
 
         assertThatThrownBy(() -> new HashedPassword(blankHash))
             .isInstanceOf(DomainException.class)

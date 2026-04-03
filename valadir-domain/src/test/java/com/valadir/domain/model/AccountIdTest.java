@@ -12,14 +12,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AccountIdTest {
 
     @Test
-    void shouldCreateAccountId_WhenValueIsValid() {
+    void generate_createsNonNullId() {
 
         AccountId id = AccountId.generate();
         assertThat(id.value()).isNotNull();
     }
 
     @Test
-    void shouldGenerateUniqueIds() {
+    void generate_consecutiveCalls_returnsUniqueIds() {
 
         AccountId first = AccountId.generate();
         AccountId second = AccountId.generate();
@@ -27,7 +27,7 @@ class AccountIdTest {
     }
 
     @Test
-    void shouldReconstitute_WhenFromExistingUUID() {
+    void from_existingUuid_reconstitutesId() {
 
         UUID uuid = UUID.randomUUID();
         AccountId id = AccountId.from(uuid);
@@ -35,7 +35,7 @@ class AccountIdTest {
     }
 
     @Test
-    void shouldThrowException_WhenFromNullUUID() {
+    void from_nullUuid_throwsDomainException() {
 
         assertThatThrownBy(() -> AccountId.from(null))
             .isInstanceOf(DomainException.class)
