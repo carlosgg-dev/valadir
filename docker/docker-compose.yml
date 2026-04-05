@@ -5,9 +5,9 @@ services:
     environment:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_DB: valadir_db
     ports:
-      - "${DATABASE_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
@@ -27,7 +27,7 @@ services:
     command: >
       sh -c "redis-server --requirepass $$REDIS_PASSWORD"
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:

@@ -4,3 +4,13 @@ server:
 spring:
   application:
     name: valadir
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
+
+jwt:
+  private-key: ${JWT_PRIVATE_KEY}
+  access-token-ttl-seconds: 900     # 15 minutes
+  refresh-token-ttl-seconds: 604800 # 7 days

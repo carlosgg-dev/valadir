@@ -24,8 +24,10 @@ infrastructure concerns.
 
 Authentication is based on two tokens with different roles:
 
-- **Access token** — JWT, short-lived (15 min), stateless, sent on every request. Validated by signature and expiry.
+- **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), stateless, sent on every request. Validated by signature and expiry.
 - **Refresh token** — opaque UUID, long-lived (7 days), stored server-side in Redis. Carries no claims.
+
+The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the signing key.
 
 ### Redis Usage
 
@@ -43,8 +45,8 @@ grow indefinitely without TTL-based cleanup.
 Every refresh operation consumes the current refresh token and issues a new pair. A token not found in Redis
 is treated as invalid — the user must log in again.
 
-On login, all existing refresh tokens for the account are revoked before issuing a new one. This ensures that
-any previously stolen token is invalidated the moment the legitimate user authenticates again.
+The system supports multiple active sessions. Each login issues a new refresh token without invalidating existing ones,
+allowing concurrent sessions across different devices. All sessions can be explicitly revoked via a dedicated endpoint.
 
 ## Getting Started
 
