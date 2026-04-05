@@ -7,6 +7,4 @@ import com.valadir.domain.model.Role;
 public interface AuthTokenIssuer {
 
     AuthTokenResult issue(AccountId accountId, Role role);
-
-    AuthTokenResult rotate(String oldRefreshToken);
 }

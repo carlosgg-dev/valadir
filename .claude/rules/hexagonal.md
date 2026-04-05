@@ -6,7 +6,7 @@
 |---|---|---|
 | **Domain** | Entities, value objects, aggregates, domain services, domain events, port interfaces | Nothing outside domain |
 | **Application** | Use cases, application services, command/query handlers | Domain only |
-| **Infrastructure** | Controllers, repositories (impl), messaging, JPA entities, mappers | Application + Domain |
+| **Infrastructure** | Controllers, repository implementations, messaging adapters, persistence models, mappers | Application + Domain |
 
 The dependency rule is absolute: outer layers depend on inner layers, never the reverse.
 
@@ -22,16 +22,16 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 ## Adapters
 
 - **Adapters live in infrastructure** and implement domain ports.
-- A JPA repository adapter implements a domain `UserRepository` port.
+- A persistence adapter implements a domain repository port.
 - A REST controller is a driving adapter — it calls application use cases, never domain objects directly.
 - Adapters translate between external representations and domain objects using mappers.
-  JPA entities never cross into the domain.
+  Persistence models never cross into the domain.
 
 ## Domain rules
 
 - Domain objects (entities, aggregates, value objects) may depend on domain services and port interfaces.
 - Domain objects must never receive or import application services, use case classes,
-  JPA annotations, HTTP types, or any infrastructure concern.
+  persistence annotations, HTTP types, or any infrastructure concern.
 - Validation belongs in the domain — enforce invariants in constructors or factory methods,
   not in controllers or services.
 
@@ -45,7 +45,7 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 
 - Domain class importing anything from `infrastructure` or `application` packages.
 - Controller calling a domain object directly, bypassing the use case.
-- JPA annotation (`@Entity`, `@Column`, etc.) on a domain class.
+- Persistence annotation on a domain class.
 - Business logic living in a controller or repository adapter.
 - Domain service receiving an application service as a dependency.
 - Use case returning a domain entity instead of a DTO.

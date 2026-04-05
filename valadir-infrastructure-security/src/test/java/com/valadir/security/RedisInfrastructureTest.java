@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 class RedisInfrastructureTest {
 
-    private static final String REDIS_PASSWORD = "test_redis_pass";
+    private static final String REDIS_PASSWORD = "test_redis_password";
 
     @Container
     @SuppressWarnings("resource")

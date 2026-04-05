@@ -1,4 +1,4 @@
-# Architecture Decision Rule - Java & Spring Boot
+# Architecture Decision Rule
 
 Activate this rule when: starting a new module, discussing project structure,
 or when the user asks which architectural style to apply.
@@ -23,7 +23,7 @@ Do not assume. Ask these questions explicitly if the answers are not already in 
 
 ## Rules regardless of style chosen
 
-- Agree on the structure **before** creating any class or package.
+- Agree on the structure **before** creating any file or module.
 - Document the decision in a brief ADR (Architecture Decision Record) comment in the README
   if the choice is non-obvious.
 - Never mix styles within the same module — pick one and stay consistent.
@@ -35,7 +35,7 @@ Do not assume. Ask these questions explicitly if the answers are not already in 
 Before writing code for a new feature or module, scan the existing codebase for:
 - Duplicated logic across layers (DRY violation)
 - Services doing persistence logic directly (layer leakage)
-- Domain entities carrying HTTP or JPA annotations (boundary violation)
+- Domain objects carrying infrastructure or framework annotations (boundary violation)
 - God classes / services with more than one clear responsibility (SRP violation)
 
 Report findings and propose a remediation plan before proceeding.

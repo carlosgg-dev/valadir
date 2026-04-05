@@ -26,44 +26,40 @@ class LogoutServiceTest {
     @InjectMocks
     private LogoutService service;
 
+    private static final String ACCESS_TOKEN_JTI = "access-jti";
+    private static final String REFRESH_TOKEN = "refresh-token";
+    private static final long REMAINING_TTL = 600L;
+
     @Test
     void logout_bothOperationsSucceed_revokesAccessTokenAndDeletesRefreshToken() {
 
-        var accessTokenJti = "access-jti";
-        var refreshToken = "refresh-token";
+        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN));
 
-        service.logout(new LogoutCommand(accessTokenJti, refreshToken));
-
-        then(accessTokenBlacklist).should().revoke(accessTokenJti);
-        then(refreshTokenStore).should().delete(refreshToken);
+        then(accessTokenBlacklist).should().revoke(ACCESS_TOKEN_JTI, REMAINING_TTL);
+        then(refreshTokenStore).should().delete(REFRESH_TOKEN);
     }
 
     @Test
     void logout_accessTokenRevocationFails_throwsApplicationException() {
 
-        var accessTokenJti = "access-jti";
-        var refreshToken = "refresh-token";
-        var command = new LogoutCommand(accessTokenJti, refreshToken);
+        var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN);
 
-        willThrow(new RuntimeException("Redis down")).given(accessTokenBlacklist).revoke(accessTokenJti);
+        willThrow(new RuntimeException("Redis down")).given(accessTokenBlacklist).revoke(ACCESS_TOKEN_JTI, REMAINING_TTL);
 
         assertThatThrownBy(() -> service.logout(command))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOKEN_REVOCATION_FAILED);
 
-        then(refreshTokenStore).should(never()).delete(refreshToken);
+        then(refreshTokenStore).should(never()).delete(REFRESH_TOKEN);
     }
 
     @Test
     void logout_refreshTokenDeletionFails_doesNotThrow() {
 
-        var accessTokenJti = "access-jti";
-        var refreshToken = "refresh-token";
+        willThrow(new RuntimeException("Redis down")).given(refreshTokenStore).delete(REFRESH_TOKEN);
 
-        willThrow(new RuntimeException("Redis down")).given(refreshTokenStore).delete(refreshToken);
+        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN));
 
-        service.logout(new LogoutCommand(accessTokenJti, refreshToken));
-
-        then(accessTokenBlacklist).should().revoke(accessTokenJti);
+        then(accessTokenBlacklist).should().revoke(ACCESS_TOKEN_JTI, REMAINING_TTL);
     }
 }

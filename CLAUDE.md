@@ -25,7 +25,7 @@
     boundary crossing from infrastructure data into a valid domain object
     (e.g. `User.reconstitute(id, email, hashedPassword, role)`).
   - `new` + semantic context for construction with a clear domain purpose
-    (e.g. `Account.newProfile(...)`, `Account.newAnonymous(...)`).
+    (e.g. `User.newProfile(...)`, `Account.newAnonymous(...)`).
   - `create` belongs in **services**, never in domain objects — it signals orchestration
     and side effects (e.g. `accountService.createWithProfileSafety(...)`).
   - `build` is reserved for test helper methods that construct objects for test setup

@@ -4,6 +4,7 @@ import com.valadir.application.command.LoginCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
@@ -37,6 +38,8 @@ class LoginServiceTest {
     private PasswordHasher passwordHasher;
     @Mock
     private AuthTokenIssuer authTokenIssuer;
+    @Mock
+    private RefreshTokenStore refreshTokenStore;
     @InjectMocks
     private LoginService service;
 
@@ -59,10 +62,11 @@ class LoginServiceTest {
         given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole())).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
-        var result = service.login(new LoginCommand(email, password));
+        AuthTokenResult result = service.login(new LoginCommand(email, password));
 
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
+        then(refreshTokenStore).should().save(refreshToken, EXISTING_ACCOUNT.getId());
     }
 
     @Test

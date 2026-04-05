@@ -4,9 +4,7 @@ import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.RegisterPersistence;
-import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -28,25 +26,22 @@ public class RegisterService implements RegisterUseCase {
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final RegisterPersistence registerPersistence;
-    private final AuthTokenIssuer authTokenIssuer;
 
     public RegisterService(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RegisterPersistence registerPersistence,
-        AuthTokenIssuer authTokenIssuer
+        RegisterPersistence registerPersistence
     ) {
 
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.registerPersistence = registerPersistence;
-        this.authTokenIssuer = authTokenIssuer;
     }
 
     @Override
-    public AuthTokenResult register(RegisterCommand command) {
+    public void register(RegisterCommand command) {
 
         var email = new Email(command.email());
         var rawPassword = new RawPassword(command.password());
@@ -65,7 +60,5 @@ public class RegisterService implements RegisterUseCase {
         Account account = Account.from(accountId, email, hashedPassword, Role.USER);
         User user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
         registerPersistence.save(account, user);
-
-        return authTokenIssuer.issue(accountId, Role.USER);
     }
 }

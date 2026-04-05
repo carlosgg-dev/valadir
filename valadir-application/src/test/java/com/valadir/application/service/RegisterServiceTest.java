@@ -3,9 +3,7 @@ package com.valadir.application.service;
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.RegisterPersistence;
-import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -32,7 +30,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -48,8 +45,6 @@ class RegisterServiceTest {
     private PasswordSecurityService passwordSecurityService;
     @Mock
     private RegisterPersistence registerPersistence;
-    @Mock
-    private AuthTokenIssuer authTokenIssuer;
     @InjectMocks
     private RegisterService service;
     @Captor
@@ -58,26 +53,20 @@ class RegisterServiceTest {
     private ArgumentCaptor<User> userCaptor;
 
     @Test
-    void register_validData_savesAccountAndUserAndReturnsTokens() {
+    void register_validData_savesAccountAndUser() {
 
         var email = "bruce.wayne@email.com";
         var password = "SecureP@ss123";
         var hashedPassword = new HashedPassword("$2a$12$hashed");
         var fullNameValue = "Bruce Wayne";
-        var givenNameValue = "Bruce Wayne";
+        var givenNameValue = "Bruce";
         var fullName = new FullName(fullNameValue);
         var givenName = new GivenName(givenNameValue);
-        var accessToken = "access-token";
-        var refreshToken = "refresh-token";
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
         given(passwordHasher.hash(new RawPassword(password))).willReturn(hashedPassword);
-        given(authTokenIssuer.issue(any(AccountId.class), eq(Role.USER))).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
-        var result = service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
-
-        assertThat(result.accessToken()).isEqualTo(accessToken);
-        assertThat(result.refreshToken()).isEqualTo(refreshToken);
+        service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
 
         then(passwordSecurityService).should().validatePassword(
             new RawPassword(password),
@@ -101,9 +90,8 @@ class RegisterServiceTest {
     @Test
     void register_emailAlreadyExists_throwsApplicationException() {
 
-        String email = "bruce.wayne@email.com";
-        String password = "SecureP@ss123";
-
+        var email = "bruce.wayne@email.com";
+        var password = "SecureP@ss123";
         var existing = Account.reconstitute(
             AccountId.generate(),
             new Email(email),
@@ -111,7 +99,7 @@ class RegisterServiceTest {
             Role.USER
         );
 
-        var command = new RegisterCommand(email, password, "Bruce Wayne", "Bruce");
+        RegisterCommand command = new RegisterCommand(email, password, "Bruce Wayne", "Bruce");
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(existing));
 
@@ -120,6 +108,5 @@ class RegisterServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).save(any(), any());
-        then(authTokenIssuer).should(never()).issue(any(), any());
     }
 }

@@ -26,7 +26,7 @@ public class LogoutService implements LogoutUseCase {
     public void logout(LogoutCommand command) {
 
         try {
-            accessTokenBlacklist.revoke(command.accessTokenJti());
+            accessTokenBlacklist.revoke(command.accessTokenJti(), command.accessTokenRemainingTtlSeconds());
         } catch (Exception e) {
             throw new ApplicationException("Failed to revoke access token during logout", ErrorCode.TOKEN_REVOCATION_FAILED);
         }

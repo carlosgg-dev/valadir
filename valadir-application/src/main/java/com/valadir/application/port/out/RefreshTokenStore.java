@@ -7,7 +7,7 @@ public interface RefreshTokenStore {
 
     TokenValidationResult validate(String token);
 
-    void delete(String token);
+    void save(String token, AccountId accountId);
 
-    void deleteAllByAccount(AccountId accountId);
+    void delete(String token);
 }
