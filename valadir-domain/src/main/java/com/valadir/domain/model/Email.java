@@ -11,6 +11,10 @@ public record Email(String value) {
             throw new DomainException("Email is required", ErrorCode.REQUIRED_FIELD_MISSING);
         }
 
+        if (value.length() > 255) {
+            throw new DomainException("Email must not exceed 255 characters", ErrorCode.INVALID_FIELD);
+        }
+
         int delimiterIndex = value.indexOf('@');
 
         if (delimiterIndex <= 0 || delimiterIndex != value.lastIndexOf('@')) {

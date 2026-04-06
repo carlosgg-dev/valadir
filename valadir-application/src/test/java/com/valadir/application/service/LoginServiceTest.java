@@ -70,7 +70,7 @@ class LoginServiceTest {
     }
 
     @Test
-    void login_emailNotFound_throwsApplicationException() {
+    void login_emailNotFoundGuardsTiming_throwsApplicationException() {
 
         var email = "unknown@email.com";
         var password = "SecureP@ss123";
@@ -82,6 +82,7 @@ class LoginServiceTest {
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
+        then(passwordHasher).should().guardTiming(new RawPassword(password));
         then(authTokenIssuer).should(never()).issue(any(), any());
     }
 

@@ -42,6 +42,23 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
+    @Test
+    void new_valueAtMaxLength_createsFullName() {
+
+        FullName fullName = new FullName("a".repeat(255));
+        assertThat(fullName.value()).hasSize(255);
+    }
+
+    @Test
+    void new_valueTooLong_throwsDomainException() {
+
+        var tooLong = "a".repeat(256);
+
+        assertThatThrownBy(() -> new FullName(tooLong))
+            .isInstanceOf(DomainException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
     private static String[] provideBlankFullNames() {
 
         return new String[]{null, "", "   "};

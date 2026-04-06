@@ -45,6 +45,23 @@ class RawPasswordTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
+    @Test
+    void new_valueAtMaxLength_createsRawPassword() {
+
+        String password = "Aa1!" + "a".repeat(68);
+        RawPassword rawPassword = new RawPassword(password);
+        assertThat(rawPassword.value()).hasSize(72);
+    }
+
+    @Test
+    void new_valueTooLong_throwsDomainException() {
+
+        String password = "Aa1!" + "a".repeat(69);
+        assertThatThrownBy(() -> new RawPassword(password))
+            .isInstanceOf(DomainException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
+    }
+
     private static String[] provideNullAndBlankPasswords() {
 
         return new String[]{null, "", " "};

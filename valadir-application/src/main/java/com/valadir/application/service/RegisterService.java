@@ -4,14 +4,16 @@ import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
@@ -26,22 +28,28 @@ public class RegisterService implements RegisterUseCase {
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final RegisterPersistence registerPersistence;
+    private final AuthTokenIssuer authTokenIssuer;
+    private final RefreshTokenStore refreshTokenStore;
 
     public RegisterService(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RegisterPersistence registerPersistence
+        RegisterPersistence registerPersistence,
+        AuthTokenIssuer authTokenIssuer,
+        RefreshTokenStore refreshTokenStore
     ) {
 
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.registerPersistence = registerPersistence;
+        this.authTokenIssuer = authTokenIssuer;
+        this.refreshTokenStore = refreshTokenStore;
     }
 
     @Override
-    public void register(RegisterCommand command) {
+    public AuthTokenResult register(RegisterCommand command) {
 
         var email = new Email(command.email());
         var rawPassword = new RawPassword(command.password());
@@ -53,12 +61,16 @@ public class RegisterService implements RegisterUseCase {
         }
 
         var accountId = AccountId.generate();
-        HashedPassword hashedPassword = passwordHasher.hash(rawPassword);
+        var hashedPassword = passwordHasher.hash(rawPassword);
         var profileData = new UserProfileData(fullName, givenName);
         passwordSecurityService.validatePassword(rawPassword, email, profileData);
 
         Account account = Account.from(accountId, email, hashedPassword, Role.USER);
         User user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
         registerPersistence.save(account, user);
+
+        AuthTokenResult tokens = authTokenIssuer.issue(accountId, Role.USER);
+        refreshTokenStore.save(tokens.refreshToken(), accountId);
+        return tokens;
     }
 }

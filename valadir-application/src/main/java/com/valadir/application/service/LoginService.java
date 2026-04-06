@@ -13,6 +13,8 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
 
+import java.util.Optional;
+
 public class LoginService implements LoginUseCase {
 
     private final AccountRepository accountRepository;
@@ -39,8 +41,12 @@ public class LoginService implements LoginUseCase {
         var email = new Email(command.email());
         var rawPassword = new RawPassword(command.password());
 
-        Account account = accountRepository.findByEmail(email)
-            .orElseThrow(() -> new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR));
+        Optional<Account> found = accountRepository.findByEmail(email);
+        if (found.isEmpty()) {
+            passwordHasher.guardTiming(rawPassword);
+            throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+        }
+        var account = found.get();
 
         if (!passwordHasher.matches(rawPassword, account.getPassword())) {
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);

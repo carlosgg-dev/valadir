@@ -43,6 +43,24 @@ class EmailTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
+    @Test
+    void new_valueAtMaxLength_createsEmail() {
+
+        String localPart = "a".repeat(244);
+        Email email = new Email(localPart + "@domain.com");
+        assertThat(email.value()).hasSize(255);
+    }
+
+    @Test
+    void new_valueTooLong_throwsDomainException() {
+
+        String localPart = "a".repeat(245);
+
+        assertThatThrownBy(() -> new Email(localPart + "@domain.com"))
+            .isInstanceOf(DomainException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
     private static String[] provideBlankEmails() {
 
         return new String[]{null, "", "   "};

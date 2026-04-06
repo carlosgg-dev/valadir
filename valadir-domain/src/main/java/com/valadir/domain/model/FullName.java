@@ -14,5 +14,9 @@ public record FullName(String value) {
         if (value.length() < 2) {
             throw new DomainException("Invalid full name", ErrorCode.INVALID_FIELD);
         }
+
+        if (value.length() > 255) {
+            throw new DomainException("Full name must not exceed 255 characters", ErrorCode.INVALID_FIELD);
+        }
     }
 }

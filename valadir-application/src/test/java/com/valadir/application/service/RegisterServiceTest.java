@@ -3,7 +3,10 @@ package com.valadir.application.service;
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -45,6 +48,10 @@ class RegisterServiceTest {
     private PasswordSecurityService passwordSecurityService;
     @Mock
     private RegisterPersistence registerPersistence;
+    @Mock
+    private AuthTokenIssuer authTokenIssuer;
+    @Mock
+    private RefreshTokenStore refreshTokenStore;
     @InjectMocks
     private RegisterService service;
     @Captor
@@ -53,7 +60,7 @@ class RegisterServiceTest {
     private ArgumentCaptor<User> userCaptor;
 
     @Test
-    void register_validData_savesAccountAndUser() {
+    void register_validData_savesAccountAndUserAndReturnsTokens() {
 
         var email = "bruce.wayne@email.com";
         var password = "SecureP@ss123";
@@ -62,11 +69,13 @@ class RegisterServiceTest {
         var givenNameValue = "Bruce";
         var fullName = new FullName(fullNameValue);
         var givenName = new GivenName(givenNameValue);
+        var expectedTokens = new AuthTokenResult("access-token", "refresh-token");
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
         given(passwordHasher.hash(new RawPassword(password))).willReturn(hashedPassword);
+        given(authTokenIssuer.issue(any(), any())).willReturn(expectedTokens);
 
-        service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
+        AuthTokenResult result = service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
 
         then(passwordSecurityService).should().validatePassword(
             new RawPassword(password),
@@ -85,6 +94,10 @@ class RegisterServiceTest {
         assertThat(savedUser.getFullName()).isEqualTo(fullName);
         assertThat(savedUser.getGivenName()).isEqualTo(givenName);
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
+
+        then(authTokenIssuer).should().issue(savedAccount.getId(), Role.USER);
+        then(refreshTokenStore).should().save(expectedTokens.refreshToken(), savedAccount.getId());
+        assertThat(result).isEqualTo(expectedTokens);
     }
 
     @Test
