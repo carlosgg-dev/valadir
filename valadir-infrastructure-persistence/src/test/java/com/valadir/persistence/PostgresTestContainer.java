@@ -18,7 +18,7 @@ public abstract class PostgresTestContainer {
     private static PostgreSQLContainer<?> createContainer() {
 
         return new PostgreSQLContainer<>("postgres:17-alpine")
-            .withDatabaseName("valadir_db")
+            .withDatabaseName("valadir")
             .withUsername("valadir_user")
             .withPassword("valadir_password")
             .withCopyFileToContainer(
