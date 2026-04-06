@@ -1,0 +1,11 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  data:
+    redis:
+      password: ""
+
+jwt:
+  access-token-ttl-seconds: 900
+  refresh-token-ttl-seconds: 604800
