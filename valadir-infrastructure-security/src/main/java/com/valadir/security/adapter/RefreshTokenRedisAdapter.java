@@ -24,16 +24,15 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProperties jwtProperties;
+    private final RedisScript<Long> rotateRefreshTokenScript;
     private final RedisScript<Long> deleteRefreshTokenScript;
 
     public RefreshTokenRedisAdapter(final RedisTemplate<String, String> redisTemplate, final JwtProperties jwtProperties) {
 
         this.redisTemplate = redisTemplate;
         this.jwtProperties = jwtProperties;
-        this.deleteRefreshTokenScript = RedisScript.of(
-            new ClassPathResource("scripts/delete_refresh_token.lua"),
-            Long.class
-        );
+        this.rotateRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/rotate_refresh_token.lua"), Long.class);
+        this.deleteRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/delete_refresh_token.lua"), Long.class);
     }
 
     @Override
@@ -58,6 +57,21 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
             connection.setCommands().sAdd(userTokensKey, tokenBytes);
             return null;
         });
+    }
+
+    @Override
+    public boolean rotate(final String oldToken, final String newToken, final AccountId accountId) {
+
+        final Long result = redisTemplate.execute(
+            rotateRefreshTokenScript,
+            List.of(refreshTokenKey(oldToken), refreshTokenKey(newToken)),
+            oldToken,
+            newToken,
+            accountId.value().toString(),
+            String.valueOf(jwtProperties.refreshTokenTtlSeconds())
+        );
+
+        return Long.valueOf(1L).equals(result);
     }
 
     @Override

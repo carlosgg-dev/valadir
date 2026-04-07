@@ -10,7 +10,6 @@ import com.valadir.application.result.AuthTokenResult;
 import com.valadir.application.result.TokenValidationResult.Invalid;
 import com.valadir.application.result.TokenValidationResult.Valid;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 
 public class RefreshTokenService implements RefreshTokenUseCase {
@@ -19,7 +18,11 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     private final AccountRepository accountRepository;
     private final AuthTokenIssuer authTokenIssuer;
 
-    public RefreshTokenService(RefreshTokenStore refreshTokenStore, AccountRepository accountRepository, AuthTokenIssuer authTokenIssuer) {
+    public RefreshTokenService(
+        RefreshTokenStore refreshTokenStore,
+        AccountRepository accountRepository,
+        AuthTokenIssuer authTokenIssuer
+    ) {
 
         this.refreshTokenStore = refreshTokenStore;
         this.accountRepository = accountRepository;
@@ -37,12 +40,16 @@ public class RefreshTokenService implements RefreshTokenUseCase {
 
     private AuthTokenResult rotateToken(final String oldRefreshToken, final AccountId accountId) {
 
-        final Account account = accountRepository.findById(accountId)
+        final var account = accountRepository.findById(accountId)
             .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.ACCOUNT_NOT_FOUND));
 
-        refreshTokenStore.delete(oldRefreshToken);
         final AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
-        refreshTokenStore.save(result.refreshToken(), accountId);
+
+        final boolean rotated = refreshTokenStore.rotate(oldRefreshToken, result.refreshToken(), accountId);
+        if (!rotated) {
+            throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);
+        }
+
         return result;
     }
 }

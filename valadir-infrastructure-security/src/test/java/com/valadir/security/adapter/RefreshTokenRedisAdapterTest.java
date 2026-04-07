@@ -61,6 +61,18 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
     }
 
     @Test
+    void validate_afterDelete_returnsInvalid() {
+
+        final var accountId = AccountId.generate();
+        final var token = UUID.randomUUID().toString();
+
+        adapter.save(token, accountId);
+        adapter.delete(token);
+
+        assertThat(adapter.validate(token)).isInstanceOf(TokenValidationResult.Invalid.class);
+    }
+
+    @Test
     void save_token_isStoredWithAccountIdAndAddedToUserSet() {
 
         final var accountId = AccountId.generate();
@@ -70,6 +82,38 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
 
         assertThat(redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + token)).isEqualTo(accountId.value().toString());
         assertThat(redisTemplate.opsForSet().isMember(USER_TOKENS_KEY_PREFIX + accountId.value() + USER_TOKENS_KEY_SUFFIX, token)).isTrue();
+    }
+
+    @Test
+    void rotate_existingToken_replacesOldWithNew() {
+
+        final var accountId = AccountId.generate();
+        final var oldToken = UUID.randomUUID().toString();
+        final var newToken = UUID.randomUUID().toString();
+        final var userTokensKey = USER_TOKENS_KEY_PREFIX + accountId.value() + USER_TOKENS_KEY_SUFFIX;
+
+        adapter.save(oldToken, accountId);
+
+        final boolean rotated = adapter.rotate(oldToken, newToken, accountId);
+
+        assertThat(rotated).isTrue();
+        assertThat(redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + oldToken)).isNull();
+        assertThat(redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + newToken)).isEqualTo(accountId.value().toString());
+        assertThat(redisTemplate.opsForSet().isMember(userTokensKey, oldToken)).isFalse();
+        assertThat(redisTemplate.opsForSet().isMember(userTokensKey, newToken)).isTrue();
+    }
+
+    @Test
+    void rotate_nonExistingToken_returnsFalseAndLeavesNoState() {
+
+        final var accountId = AccountId.generate();
+        final var nonExistingToken = UUID.randomUUID().toString();
+        final var newToken = UUID.randomUUID().toString();
+
+        final boolean rotated = adapter.rotate(nonExistingToken, newToken, accountId);
+
+        assertThat(rotated).isFalse();
+        assertThat(redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + newToken)).isNull();
     }
 
     @Test
@@ -85,17 +129,5 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
 
         assertThat(redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + token)).isNull();
         assertThat(redisTemplate.opsForSet().isMember(USER_TOKENS_KEY_PREFIX + accountId.value() + USER_TOKENS_KEY_SUFFIX, token)).isFalse();
-    }
-
-    @Test
-    void validate_afterDelete_returnsInvalid() {
-
-        final var accountId = AccountId.generate();
-        final var token = UUID.randomUUID().toString();
-
-        adapter.save(token, accountId);
-        adapter.delete(token);
-
-        assertThat(adapter.validate(token)).isInstanceOf(TokenValidationResult.Invalid.class);
     }
 }

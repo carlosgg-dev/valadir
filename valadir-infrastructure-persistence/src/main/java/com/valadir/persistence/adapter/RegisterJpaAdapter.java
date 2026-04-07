@@ -7,6 +7,7 @@ import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 public class RegisterJpaAdapter implements RegisterPersistence {
 
@@ -20,6 +21,7 @@ public class RegisterJpaAdapter implements RegisterPersistence {
     }
 
     @Override
+    @Transactional
     public void save(Account account, User user) {
 
         accountJpaRepository.save(AccountMapper.toEntity(account));

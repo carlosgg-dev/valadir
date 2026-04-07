@@ -13,6 +13,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -49,24 +50,41 @@ class RefreshTokenServiceTest {
     );
 
     @Test
-    void refresh_validToken_deletesOldAndSavesNewToken() {
+    void refresh_validToken_rotatesTokensAtomically() {
 
         var oldRefreshToken = "old-refresh-token";
         var newAccessToken = "new-access";
         var newRefreshToken = "new-refresh";
-        var expectedRefreshResult = new AuthTokenResult(newAccessToken, newRefreshToken);
+        var expectedResult = new AuthTokenResult(newAccessToken, newRefreshToken);
         var validToken = new TokenValidationResult.Valid(accountId);
 
         given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(expectedRefreshResult);
+        given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(expectedResult);
+        given(refreshTokenStore.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(true);
 
         var result = service.refresh(new RefreshTokenCommand(oldRefreshToken));
 
         assertThat(result.accessToken()).isEqualTo(newAccessToken);
         assertThat(result.refreshToken()).isEqualTo(newRefreshToken);
-        then(refreshTokenStore).should().delete(oldRefreshToken);
-        then(refreshTokenStore).should().save(newRefreshToken, accountId);
+    }
+
+    @Test
+    void refresh_tokenGoneBeforeRotation_throwsApplicationException() {
+
+        var oldRefreshToken = "old-refresh-token";
+        var newRefreshToken = "new-refresh";
+        var command = new RefreshTokenCommand(oldRefreshToken);
+        var validToken = new TokenValidationResult.Valid(accountId);
+
+        given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
+        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
+        given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(new AuthTokenResult("new-access", newRefreshToken));
+        given(refreshTokenStore.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(false);
+
+        assertThatThrownBy(() -> service.refresh(command))
+            .isInstanceOf(ApplicationException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
     }
 
     @Test
@@ -84,7 +102,7 @@ class RefreshTokenServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_NOT_FOUND);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
-        then(refreshTokenStore).should(never()).save(any(), any());
+        then(refreshTokenStore).should(never()).rotate(any(), any(), any());
     }
 
     @Test
@@ -100,7 +118,8 @@ class RefreshTokenServiceTest {
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
 
-        then(refreshTokenStore).should(never()).delete(any());
+        then(accountRepository).should(never()).findById(any());
         then(authTokenIssuer).should(never()).issue(any(), any());
+        then(refreshTokenStore).should(never()).rotate(any(), any(), any());
     }
 }
