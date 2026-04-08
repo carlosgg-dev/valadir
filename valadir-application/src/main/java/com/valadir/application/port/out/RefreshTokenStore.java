@@ -10,6 +10,4 @@ public interface RefreshTokenStore {
     void save(String token, AccountId accountId);
 
     boolean rotate(String oldToken, String newToken, AccountId accountId);
-
-    void delete(String token);
 }

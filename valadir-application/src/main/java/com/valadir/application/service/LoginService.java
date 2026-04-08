@@ -46,8 +46,8 @@ public class LoginService implements LoginUseCase {
             passwordHasher.guardTiming(rawPassword);
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
         }
-        var account = found.get();
 
+        var account = found.get();
         if (!passwordHasher.matches(rawPassword, account.getPassword())) {
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
         }

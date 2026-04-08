@@ -58,18 +58,6 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
     }
 
     @Test
-    void validate_afterDelete_returnsInvalid() {
-
-        final var accountId = AccountId.generate();
-        final var token = UUID.randomUUID().toString();
-
-        adapter.save(token, accountId);
-        adapter.delete(token);
-
-        assertThat(adapter.validate(token)).isInstanceOf(TokenValidationResult.Invalid.class);
-    }
-
-    @Test
     void save_token_isStoredWithAccountIdAndAddedToUserSet() {
 
         final var accountId = AccountId.generate();
@@ -112,18 +100,4 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isNull();
     }
 
-    @Test
-    void delete_existingToken_removesTokenAndUserSetEntry() {
-
-        final var accountId = AccountId.generate();
-        final var token = UUID.randomUUID().toString();
-
-        adapter.save(token, accountId);
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), token)).isTrue();
-
-        adapter.delete(token);
-
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token))).isNull();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), token)).isFalse();
-    }
 }
