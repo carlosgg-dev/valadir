@@ -18,13 +18,13 @@ public record Email(String value) {
         int delimiterIndex = value.indexOf('@');
 
         if (delimiterIndex <= 0 || delimiterIndex != value.lastIndexOf('@')) {
-            throw new DomainException("Invalid email: " + value, ErrorCode.INVALID_FIELD);
+            throw new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
         }
 
         String domain = value.substring(delimiterIndex + 1);
 
         if (!domain.contains(".")) {
-            throw new DomainException("Invalid email: " + value, ErrorCode.INVALID_FIELD);
+            throw new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
         }
     }
 }

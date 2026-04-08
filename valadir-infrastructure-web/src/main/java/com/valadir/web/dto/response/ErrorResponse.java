@@ -1,7 +1,17 @@
 package com.valadir.web.dto.response;
 
+import java.util.List;
+
 public record ErrorResponse(
     String code,
-    String message) {
+    List<FieldError> errors) {
 
+    public ErrorResponse(final String code) {
+
+        this(code, null);
+    }
+
+    public record FieldError(String field, String message) {
+
+    }
 }

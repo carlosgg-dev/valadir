@@ -41,7 +41,10 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     private AuthTokenResult rotateToken(final String oldRefreshToken, final AccountId accountId) {
 
         final var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.ACCOUNT_NOT_FOUND));
+            .orElseThrow(() -> new ApplicationException(
+                String.format("Account not found for accountId=%s", accountId.value()),
+                ErrorCode.AUTHENTICATION_FAILED
+            ));
 
         final AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
 

@@ -99,7 +99,7 @@ class RefreshTokenServiceTest {
 
         assertThatThrownBy(() -> service.refresh(command))
             .isInstanceOf(ApplicationException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_NOT_FOUND);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_FAILED);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
         then(refreshTokenStore).should(never()).rotate(any(), any(), any());

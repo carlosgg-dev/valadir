@@ -1,5 +1,8 @@
 package com.valadir.web.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.valadir.web.exception.JwtAccessDeniedHandler;
+import com.valadir.web.exception.JwtAuthenticationEntryPoint;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +22,11 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(final HttpSecurity http, final JwtDecoder jwtDecoder) throws Exception {
+    SecurityFilterChain securityFilterChain(
+        final HttpSecurity http,
+        final JwtDecoder jwtDecoder,
+        final ObjectMapper objectMapper
+    ) throws Exception {
 
         return http
             .csrf(AbstractHttpConfigurer::disable)
@@ -36,6 +43,8 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder))
+                .authenticationEntryPoint(new JwtAuthenticationEntryPoint(objectMapper))
+                .accessDeniedHandler(new JwtAccessDeniedHandler(objectMapper))
             )
             .build();
     }
