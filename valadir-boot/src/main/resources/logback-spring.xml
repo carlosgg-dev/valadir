@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <conversionRule conversionWord="mdcContext" converterClass="com.valadir.logging.MdcContextConverter"/>
+
+    <property name="TIMESTAMP"   value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint}"/>
+    <property name="LEVEL"       value="%clr(%5p)"/>
+    <property name="PID"         value="%clr(${PID:- }){magenta}"/>
+    <property name="THREAD"      value="%clr([%15.15t]){faint}"/>
+    <property name="LOGGER"      value="%clr(%-40.40logger{39}){cyan}"/>
+    <property name="LOG_PATTERN" value="${TIMESTAMP} ${LEVEL} ${PID} %clr(---){faint} ${THREAD} %mdcContext${LOGGER} %clr(:){faint} %m%n%wEx"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
