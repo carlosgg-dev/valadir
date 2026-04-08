@@ -4,9 +4,9 @@ import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
-import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.service.LoginService;
@@ -69,11 +69,8 @@ class ApplicationConfig {
     }
 
     @Bean
-    LogoutUseCase logoutUseCase(
-        final RefreshTokenStore refreshTokenStore,
-        final AccessTokenBlacklist accessTokenBlacklist
-    ) {
+    LogoutUseCase logoutUseCase(final LogoutTokensInvalidator logoutTokensInvalidator) {
 
-        return new LogoutService(refreshTokenStore, accessTokenBlacklist);
+        return new LogoutService(logoutTokensInvalidator);
     }
 }

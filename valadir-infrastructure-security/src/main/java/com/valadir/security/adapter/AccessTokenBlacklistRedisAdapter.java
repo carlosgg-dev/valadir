@@ -1,6 +1,7 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.AccessTokenBlacklist;
+import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -9,9 +10,6 @@ import java.util.Objects;
 
 @Component
 public class AccessTokenBlacklistRedisAdapter implements AccessTokenBlacklist {
-
-    private static final String BLACKLIST_KEY_PREFIX = "blacklist:";
-    private static final String REVOKED_VALUE = "revoked";
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -23,17 +21,16 @@ public class AccessTokenBlacklistRedisAdapter implements AccessTokenBlacklist {
     @Override
     public void revoke(final String jti, final long remainingTtlSeconds) {
 
-        redisTemplate.opsForValue().set(blacklistKey(jti), REVOKED_VALUE, Duration.ofSeconds(remainingTtlSeconds));
+        redisTemplate.opsForValue().set(
+            RedisKeySpace.forBlacklist(jti),
+            RedisKeySpace.BLACKLIST_REVOKED_VALUE,
+            Duration.ofSeconds(remainingTtlSeconds)
+        );
     }
 
     @Override
     public boolean isRevoked(final String jti) {
 
-        return Objects.requireNonNullElse(redisTemplate.hasKey(blacklistKey(jti)), false);
-    }
-
-    private String blacklistKey(final String jti) {
-
-        return BLACKLIST_KEY_PREFIX + jti;
+        return Objects.requireNonNullElse(redisTemplate.hasKey(RedisKeySpace.forBlacklist(jti)), false);
     }
 }
