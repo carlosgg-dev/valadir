@@ -10,9 +10,15 @@ import com.valadir.application.result.AuthTokenResult;
 import com.valadir.application.result.TokenValidationResult.Invalid;
 import com.valadir.application.result.TokenValidationResult.Valid;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.AccountId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class RefreshTokenService implements RefreshTokenUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
 
     private final RefreshTokenStore refreshTokenStore;
     private final AccountRepository accountRepository;
@@ -40,19 +46,20 @@ public class RefreshTokenService implements RefreshTokenUseCase {
 
     private AuthTokenResult rotateToken(final String oldRefreshToken, final AccountId accountId) {
 
+        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
+
         final var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ApplicationException(
-                String.format("Account not found for accountId=%s", accountId.value()),
-                ErrorCode.AUTHENTICATION_FAILED
-            ));
+            .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.AUTHENTICATION_FAILED));
 
         final AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
 
         final boolean rotated = refreshTokenStore.rotate(oldRefreshToken, result.refreshToken(), accountId);
         if (!rotated) {
+            log.warn("Stale refresh token detected");
             throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);
         }
 
+        log.info("Token refresh successful");
         return result;
     }
 }

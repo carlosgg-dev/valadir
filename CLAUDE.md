@@ -43,5 +43,3 @@
 ## Validation & Error Handling
 - **Fail-fast at the entry point**: apply JSR-303 / Bean Validation on all external inputs.
 - Use a centralized exception handling mechanism (e.g. `@ControllerAdvice`).
-- Never swallow exceptions. Always log with context or propagate with a meaningful wrapper.
-- Sensitive data (PII, tokens) must never appear in logs or stack traces.

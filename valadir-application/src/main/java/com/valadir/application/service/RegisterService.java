@@ -9,6 +9,7 @@ import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
@@ -21,8 +22,13 @@ import com.valadir.domain.model.UserId;
 import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class RegisterService implements RegisterUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(RegisterService.class);
 
     private final AccountRepository accountRepository;
     private final PasswordHasher passwordHasher;
@@ -61,6 +67,7 @@ public class RegisterService implements RegisterUseCase {
         }
 
         var accountId = AccountId.generate();
+        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
         var hashedPassword = passwordHasher.hash(rawPassword);
         var profileData = new UserProfileData(fullName, givenName);
         passwordSecurityService.validatePassword(rawPassword, email, profileData);
@@ -71,6 +78,7 @@ public class RegisterService implements RegisterUseCase {
 
         AuthTokenResult tokens = authTokenIssuer.issue(accountId, Role.USER);
         refreshTokenStore.save(tokens.refreshToken(), accountId);
+        log.info("Registration successful");
         return tokens;
     }
 }

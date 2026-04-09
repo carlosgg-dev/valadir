@@ -25,7 +25,11 @@ class GlobalErrorController implements ErrorController {
         final HttpStatus resolved = HttpStatus.resolve(statusCode);
         final HttpStatus status = resolved != null ? resolved : HttpStatus.INTERNAL_SERVER_ERROR;
 
-        log.warn("Unhandled error: status={}", statusCode);
+        if (status.is5xxServerError()) {
+            log.error("Unhandled error: status={}", statusCode);
+        } else {
+            log.warn("Unhandled error: status={}", statusCode);
+        }
 
         return ResponseEntity
             .status(status)

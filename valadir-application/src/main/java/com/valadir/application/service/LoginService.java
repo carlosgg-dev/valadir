@@ -13,9 +13,16 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
 
+import com.valadir.common.mdc.MdcKeys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
 import java.util.Optional;
 
 public class LoginService implements LoginUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginService.class);
 
     private final AccountRepository accountRepository;
     private final PasswordHasher passwordHasher;
@@ -48,12 +55,14 @@ public class LoginService implements LoginUseCase {
         }
 
         var account = found.get();
+        MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
         if (!passwordHasher.matches(rawPassword, account.getPassword())) {
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
         }
 
         AuthTokenResult result = authTokenIssuer.issue(account.getId(), account.getRole());
         refreshTokenStore.save(result.refreshToken(), account.getId());
+        log.info("Login successful");
         return result;
     }
 }
