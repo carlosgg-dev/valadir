@@ -1,6 +1,8 @@
 package com.valadir.web.adapter;
 
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.ratelimit.RateLimiter;
+import com.valadir.web.config.SecurityConfig;
 import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GlobalErrorController.class)
-@Import(com.valadir.web.config.SecurityConfig.class)
+@Import(SecurityConfig.class)
 @ExtendWith(MockitoExtension.class)
 class GlobalErrorControllerTest {
 
@@ -27,6 +29,9 @@ class GlobalErrorControllerTest {
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Test
     void handleError_withStatusAttribute_propagatesHttpStatus() throws Exception {

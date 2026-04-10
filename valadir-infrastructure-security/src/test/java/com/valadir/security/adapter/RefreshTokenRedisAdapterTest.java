@@ -61,18 +61,20 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
     void save_token_isStoredWithAccountIdAndAddedToUserSet() {
 
         final var accountId = AccountId.generate();
+        final var accountIdStr = accountId.value().toString();
         final var token = UUID.randomUUID().toString();
 
         adapter.save(token, accountId);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token))).isEqualTo(accountId.value().toString());
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), token)).isTrue();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token))).isEqualTo(accountIdStr);
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), token)).isTrue();
     }
 
     @Test
     void rotate_existingToken_replacesOldWithNew() {
 
         final var accountId = AccountId.generate();
+        final var accountIdStr = accountId.value().toString();
         final var oldToken = UUID.randomUUID().toString();
         final var newToken = UUID.randomUUID().toString();
 
@@ -82,9 +84,9 @@ class RefreshTokenRedisAdapterTest extends RedisTestContainer {
 
         assertThat(rotated).isTrue();
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(oldToken))).isNull();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isEqualTo(accountId.value().toString());
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), oldToken)).isFalse();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), newToken)).isTrue();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isEqualTo(accountIdStr);
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), oldToken)).isFalse();
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), newToken)).isTrue();
     }
 
     @Test

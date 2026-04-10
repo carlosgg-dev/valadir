@@ -53,7 +53,7 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
         assertThat(redisTemplate.getExpire(RedisKeySpace.forBlacklist(jti))).isPositive();
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), refreshToken)).isFalse();
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId.value().toString()), refreshToken)).isFalse();
     }
 
     @Test

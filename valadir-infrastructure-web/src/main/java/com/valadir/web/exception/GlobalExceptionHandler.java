@@ -97,6 +97,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case CONFLICT -> HttpStatus.CONFLICT;
             case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
+            case RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS;
             case SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

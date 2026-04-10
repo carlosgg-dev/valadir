@@ -43,10 +43,11 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
     @Override
     public void save(final String token, final AccountId accountId) {
 
+        final String accountIdStr = accountId.value().toString();
         redisTemplate.execute(
             saveRefreshTokenScript,
-            List.of(RedisKeySpace.forRefreshToken(token)),
-            accountId.value().toString(),
+            List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
+            accountIdStr,
             String.valueOf(jwtProperties.refreshTokenTtlSeconds()),
             token
         );
@@ -56,12 +57,17 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
     @Override
     public boolean rotate(final String oldToken, final String newToken, final AccountId accountId) {
 
+        final String accountIdStr = accountId.value().toString();
         final Long result = redisTemplate.execute(
             rotateRefreshTokenScript,
-            List.of(RedisKeySpace.forRefreshToken(oldToken), RedisKeySpace.forRefreshToken(newToken)),
+            List.of(
+                RedisKeySpace.forRefreshToken(oldToken),
+                RedisKeySpace.forRefreshToken(newToken),
+                RedisKeySpace.forUserTokens(accountIdStr)
+            ),
             oldToken,
             newToken,
-            accountId.value().toString(),
+            accountIdStr,
             String.valueOf(jwtProperties.refreshTokenTtlSeconds())
         );
 

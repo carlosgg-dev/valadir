@@ -1,10 +1,14 @@
 package com.valadir.web.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.exception.JwtAccessDeniedHandler;
 import com.valadir.web.exception.JwtAuthenticationEntryPoint;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
+import com.valadir.web.filter.RateLimitFilter;
+import com.valadir.web.filter.RateLimitKeyResolver;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,20 +23,26 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
         final HttpSecurity http,
         final JwtDecoder jwtDecoder,
-        final ObjectMapper objectMapper
+        final ObjectMapper objectMapper,
+        final RateLimiter rateLimiter,
+        final RateLimitProperties rateLimitProperties
     ) throws Exception {
 
         return http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
-            .addFilterAfter(new MdcSecurityFilter(), BearerTokenAuthenticationFilter.class)
+            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, objectMapper, new RateLimitKeyResolver(objectMapper)),
+                            BearerTokenAuthenticationFilter.class
+            )
+            .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST,
                                  ApiRoutes.Auth.REGISTER_PATH,

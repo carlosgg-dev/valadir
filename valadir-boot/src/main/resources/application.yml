@@ -31,3 +31,29 @@ jwt:
   private-key: ${JWT_PRIVATE_KEY}
   access-token-ttl-seconds: 900     # 15 minutes
   refresh-token-ttl-seconds: 604800 # 7 days
+
+rate-limit:
+  enabled: true
+  rules:
+    # --- Public auth endpoints: per-IP limit per endpoint ---
+    - path: /api/auth/login
+      strategy: IP
+      max-requests: 10
+      window-seconds: 60
+    - path: /api/auth/login
+      strategy: EMAIL
+      max-requests: 5
+      window-seconds: 900   # 15 minutes
+    - path: /api/auth/register
+      strategy: IP
+      max-requests: 5
+      window-seconds: 3600  # 1 hour
+    - path: /api/auth/refresh
+      strategy: IP
+      max-requests: 30
+      window-seconds: 60
+    # --- Authenticated endpoints: per-user limit ---
+    - path: /api/**
+      strategy: USER
+      max-requests: 100
+      window-seconds: 60

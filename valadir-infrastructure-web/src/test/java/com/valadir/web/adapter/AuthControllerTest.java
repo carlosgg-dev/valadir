@@ -12,7 +12,9 @@ import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.ApiRoutes;
+import com.valadir.web.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@Import(com.valadir.web.config.SecurityConfig.class)
+@Import(SecurityConfig.class)
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
@@ -69,6 +71,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Captor
     private ArgumentCaptor<LogoutCommand> logoutCommandCaptor;

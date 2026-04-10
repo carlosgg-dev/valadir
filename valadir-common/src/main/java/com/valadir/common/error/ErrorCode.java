@@ -18,6 +18,7 @@ public enum ErrorCode {
     INVALID_TOKEN("SEC-003", Category.UNAUTHORIZED),
     AUTHENTICATION_REQUIRED("SEC-004", Category.UNAUTHORIZED),
     ACCESS_DENIED("SEC-005", Category.FORBIDDEN),
+    RATE_LIMIT_EXCEEDED("SEC-006", Category.RATE_LIMITED),
 
     // System (SYS-xxx)
     INTERNAL_SERVER_ERROR("SYS-001", Category.SERVER_ERROR);
@@ -27,6 +28,7 @@ public enum ErrorCode {
         CONFLICT,
         UNAUTHORIZED,
         FORBIDDEN,
+        RATE_LIMITED,
         SERVER_ERROR
     }
 

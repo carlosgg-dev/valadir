@@ -107,6 +107,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleApplication_rateLimitedCategory_returns429() throws Exception {
+
+        mockMvc.perform(get("/application/rate-limited"))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(jsonPath("$.code").value(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
+    }
+
+    @Test
     void handleApplication_serverErrorCategory_returns500() throws Exception {
 
         mockMvc.perform(get("/application/server-error"))
@@ -164,6 +172,12 @@ class GlobalExceptionHandlerTest {
         void applicationForbidden() {
 
             throw new ApplicationException("access denied", ErrorCode.ACCESS_DENIED);
+        }
+
+        @GetMapping("/application/rate-limited")
+        void applicationRateLimited() {
+
+            throw new ApplicationException("rate limit exceeded", ErrorCode.RATE_LIMIT_EXCEEDED);
         }
 
         @GetMapping("/application/server-error")

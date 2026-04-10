@@ -3,6 +3,7 @@
 --
 -- KEYS[1] = refresh_token:{oldToken}
 -- KEYS[2] = refresh_token:{newToken}
+-- KEYS[3] = user:{accountId}:tokens
 -- ARGV[1] = oldToken (UUID, used for SREM)
 -- ARGV[2] = newToken (UUID, used for SADD)
 -- ARGV[3] = accountId (value stored for the new token)
@@ -14,8 +15,8 @@ if not accountId then
 end
 
 redis.call('DEL', KEYS[1])
-redis.call('SREM', 'user:' .. accountId .. ':tokens', ARGV[1])
+redis.call('SREM', KEYS[3], ARGV[1])
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
-redis.call('SADD', 'user:' .. accountId .. ':tokens', ARGV[2])
+redis.call('SADD', KEYS[3], ARGV[2])
 
 return 1
