@@ -86,6 +86,6 @@ class AuthController {
 
         final long remainingTtl = Objects.requireNonNull(jwt.getExpiresAt()).getEpochSecond() - Instant.now().getEpochSecond();
 
-        logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken()));
+        logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), jwt.getSubject()));
     }
 }

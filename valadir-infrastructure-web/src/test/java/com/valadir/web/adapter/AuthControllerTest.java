@@ -46,6 +46,7 @@ class AuthControllerTest {
 
     private static final String ACCESS_TOKEN = "access.token.value";
     private static final String REFRESH_TOKEN = "refresh-token-uuid";
+    private static final String ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
     private static final String EMAIL = "user@example.com";
     private static final String PASSWORD = "S3cur3P@ss!";
     private static final String FULL_NAME = "Bruce Wayne";
@@ -77,8 +78,6 @@ class AuthControllerTest {
 
     @Captor
     private ArgumentCaptor<LogoutCommand> logoutCommandCaptor;
-
-    // --- register ---
 
     @Test
     void register_validRequest_returns201() throws Exception {
@@ -152,8 +151,6 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.code").value(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
     }
 
-    // --- login ---
-
     @Test
     void login_validCredentials_returns200WithTokens() throws Exception {
 
@@ -213,8 +210,6 @@ class AuthControllerTest {
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
     }
 
-    // --- refresh ---
-
     @Test
     void refresh_validToken_returns200WithTokens() throws Exception {
 
@@ -252,13 +247,15 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_TOKEN.getCode()));
     }
 
-    // --- logout ---
-
     @Test
     void logout_authenticated_returns204() throws Exception {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGOUT_PATH)
-                            .with(jwt().jwt(j -> j.claim("jti", "jti-value").expiresAt(java.time.Instant.now().plusSeconds(900))))
+                            .with(jwt().jwt(jwt -> jwt
+                                .subject(ACCOUNT_ID)
+                                .claim("jti", "jti-value")
+                                .expiresAt(java.time.Instant.now().plusSeconds(900)))
+                            )
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new LogoutBody(REFRESH_TOKEN))))
             .andExpect(status().isNoContent());
@@ -269,13 +266,18 @@ class AuthControllerTest {
         assertThat(command.accessTokenJti()).isEqualTo("jti-value");
         assertThat(command.refreshToken()).isEqualTo(REFRESH_TOKEN);
         assertThat(command.accessTokenRemainingTtlSeconds()).isPositive();
+        assertThat(command.accountId()).isEqualTo(ACCOUNT_ID);
     }
 
     @Test
     void logout_blankRefreshToken_returns400() throws Exception {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGOUT_PATH)
-                            .with(jwt().jwt(j -> j.claim("jti", "jti-value").expiresAt(java.time.Instant.now().plusSeconds(900))))
+                            .with(jwt().jwt(jwt -> jwt
+                                .subject(ACCOUNT_ID)
+                                .claim("jti", "jti-value")
+                                .expiresAt(java.time.Instant.now().plusSeconds(900)))
+                            )
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new LogoutBody(""))))
             .andExpect(status().isBadRequest());

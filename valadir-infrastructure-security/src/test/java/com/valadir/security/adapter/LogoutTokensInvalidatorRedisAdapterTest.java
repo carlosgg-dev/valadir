@@ -42,28 +42,31 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     void invalidate_blacklistsAccessTokenAndDeletesRefreshToken() {
 
         final var accountId = AccountId.generate();
+        final var accountIdStr = accountId.value().toString();
         final var jti = UUID.randomUUID().toString();
         final var refreshToken = UUID.randomUUID().toString();
         final long ttl = 600L;
 
         refreshTokenAdapter.save(refreshToken, accountId);
 
-        tokenInvalidatorAdapter.invalidate(jti, ttl, refreshToken);
+        tokenInvalidatorAdapter.invalidate(jti, ttl, refreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
         assertThat(redisTemplate.getExpire(RedisKeySpace.forBlacklist(jti))).isPositive();
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId.value().toString()), refreshToken)).isFalse();
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), refreshToken)).isFalse();
     }
 
     @Test
     void invalidate_refreshTokenAlreadyGone_stillBlacklistsAccessToken() {
 
+        final var accountId = AccountId.generate();
+        final var accountIdStr = accountId.value().toString();
         final var jti = UUID.randomUUID().toString();
         final var nonExistingRefreshToken = UUID.randomUUID().toString();
         final long ttl = 600L;
 
-        tokenInvalidatorAdapter.invalidate(jti, ttl, nonExistingRefreshToken);
+        tokenInvalidatorAdapter.invalidate(jti, ttl, nonExistingRefreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
     }
@@ -72,12 +75,13 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     void invalidate_expiredAccessToken_skipsBlacklistButDeletesRefreshToken() {
 
         final var accountId = AccountId.generate();
+        final var accountIdStr = accountId.value().toString();
         final var jti = UUID.randomUUID().toString();
         final var refreshToken = UUID.randomUUID().toString();
 
         refreshTokenAdapter.save(refreshToken, accountId);
 
-        tokenInvalidatorAdapter.invalidate(jti, 0L, refreshToken);
+        tokenInvalidatorAdapter.invalidate(jti, 0L, refreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isNull();
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();

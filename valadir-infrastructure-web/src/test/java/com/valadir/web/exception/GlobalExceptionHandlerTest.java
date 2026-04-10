@@ -37,8 +37,6 @@ class GlobalExceptionHandlerTest {
             .build();
     }
 
-    // --- handleMethodArgumentNotValid ---
-
     @Test
     void handleMethodArgumentNotValid_blankField_returns400WithFieldErrors() throws Exception {
 
@@ -52,8 +50,6 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.errors[0].message").exists());
     }
 
-    // --- handleExceptionInternal ---
-
     @Test
     void handleExceptionInternal_unsupportedMethod_preservesStatusWithSysCode() throws Exception {
 
@@ -62,8 +58,6 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 
-    // --- handleDomain ---
-
     @Test
     void handleDomain_domainException_returns400WithCode() throws Exception {
 
@@ -71,8 +65,6 @@ class GlobalExceptionHandlerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INSECURE_PASSWORD.getCode()));
     }
-
-    // --- handleApplication ---
 
     @Test
     void handleApplication_validationCategory_returns400() throws Exception {
@@ -121,8 +113,6 @@ class GlobalExceptionHandlerTest {
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.code").value(ErrorCode.TOKEN_REVOCATION_FAILED.getCode()));
     }
-
-    // --- handleUnexpected ---
 
     @Test
     void handleUnexpected_runtimeException_returns500WithSysCode() throws Exception {

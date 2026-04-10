@@ -27,7 +27,8 @@ public class LogoutService implements LogoutUseCase {
             logoutTokensInvalidator.invalidate(
                 command.accessTokenJti(),
                 command.accessTokenRemainingTtlSeconds(),
-                command.refreshToken()
+                command.refreshToken(),
+                command.accountId()
             );
             log.info("Logout successful");
         } catch (Exception e) {

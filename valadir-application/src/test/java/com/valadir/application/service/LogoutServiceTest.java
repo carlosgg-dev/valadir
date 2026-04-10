@@ -24,21 +24,23 @@ class LogoutServiceTest {
 
     private static final String ACCESS_TOKEN_JTI = "access-jti";
     private static final String REFRESH_TOKEN = "refresh-token";
+    private static final String ACCOUNT_ID = "account-uuid";
     private static final long REMAINING_TTL = 600L;
 
     @Test
     void logout_success_invalidatesBothTokens() {
 
-        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN));
+        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID));
 
-        then(logoutTokensInvalidator).should().invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN);
+        then(logoutTokensInvalidator).should().invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
     }
 
     @Test
     void logout_invalidationFails_throwsApplicationException() {
 
-        var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN);
-        willThrow(new RuntimeException("Redis down")).given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN);
+        var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
+        willThrow(new RuntimeException("Redis down"))
+            .given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
 
         assertThatThrownBy(() -> service.logout(command))
             .isInstanceOf(ApplicationException.class)
