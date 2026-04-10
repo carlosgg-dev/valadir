@@ -41,7 +41,7 @@ class AccessTokenBlacklistRedisAdapterTest extends RedisTestContainer {
         adapter.revoke(jti, 900L);
 
         assertThat(adapter.isRevoked(jti)).isTrue();
-        assertThat(redisTemplate.getExpire("blacklist:" + jti)).isPositive();
+        assertThat(redisTemplate.getExpire("auth:blacklist:" + jti)).isPositive();
     }
 
     @Test

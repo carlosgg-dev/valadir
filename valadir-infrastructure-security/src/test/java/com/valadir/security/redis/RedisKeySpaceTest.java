@@ -18,20 +18,20 @@ class RedisKeySpaceTest {
     @Test
     void forBlacklist_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forBlacklist(JTI)).isEqualTo("blacklist:" + JTI);
+        assertThat(RedisKeySpace.forBlacklist(JTI)).isEqualTo("auth:blacklist:" + JTI);
     }
 
     @Test
     void forRefreshToken_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forRefreshToken(TOKEN)).isEqualTo("refresh_token:" + TOKEN);
+        assertThat(RedisKeySpace.forRefreshToken(TOKEN)).isEqualTo("auth:refresh_token:" + TOKEN);
     }
 
     @Test
     void forUserTokens_returnsExpectedKey() {
 
         assertThat(RedisKeySpace.forUserTokens(ACCOUNT_UUID.toString()))
-            .isEqualTo("user:" + ACCOUNT_UUID + ":tokens");
+            .isEqualTo("auth:user_tokens:" + ACCOUNT_UUID);
     }
 
     @Test

@@ -1,9 +1,9 @@
 -- Atomically rotates a refresh token: deletes the old one and saves the new one.
 -- Returns 1 if the rotation succeeded, 0 if the old token did not exist.
 --
--- KEYS[1] = refresh_token:{oldToken}
--- KEYS[2] = refresh_token:{newToken}
--- KEYS[3] = user:{accountId}:tokens
+-- KEYS[1] = auth:refresh_token:{oldToken}
+-- KEYS[2] = auth:refresh_token:{newToken}
+-- KEYS[3] = auth:user_tokens:{accountId}
 -- ARGV[1] = oldToken (UUID, used for SREM)
 -- ARGV[2] = newToken (UUID, used for SADD)
 -- ARGV[3] = accountId (value stored for the new token)

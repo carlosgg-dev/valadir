@@ -25,11 +25,16 @@
     boundary crossing from infrastructure data into a valid domain object
     (e.g. `User.reconstitute(id, email, hashedPassword, role)`).
   - `new` + semantic context for construction with a clear domain purpose
-    (e.g. `User.newProfile(...)`, `Account.newAnonymous(...)`).
+    (e.g. `User.newProfile(...)`, `User.newAnonymous(...)`).
   - `create` belongs in **services**, never in domain objects — it signals orchestration
     and side effects (e.g. `accountService.createWithProfileSafety(...)`).
   - `build` is reserved for test helper methods that construct objects for test setup
     (e.g. `buildValidUser()`, `buildExpiredAccount()`).
+- **`var` for local variables** when the type is unambiguous without navigation:
+  instantiation with `new` where the variable and the constructor type are identical
+  (e.g. `var user = new User(...)`), or when the type is immediately obvious from the
+  right-hand side within the same method. Never use `var` when the type requires navigating
+  to another file or method to be understood.
 - **try-with-resources** for every `AutoCloseable`. No exceptions.
 
 ## Architecture
