@@ -2,6 +2,7 @@ package com.valadir.web.exception;
 
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -115,6 +116,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleInfrastructure_infrastructureException_returns503WithInfraCode() throws Exception {
+
+        mockMvc.perform(get("/infrastructure"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
+    }
+
+    @Test
     void handleUnexpected_runtimeException_returns500WithSysCode() throws Exception {
 
         mockMvc.perform(get("/unexpected"))
@@ -174,6 +183,12 @@ class GlobalExceptionHandlerTest {
         void applicationServerError() {
 
             throw new ApplicationException("revocation failed", ErrorCode.TOKEN_REVOCATION_FAILED);
+        }
+
+        @GetMapping("/infrastructure")
+        void infrastructure() {
+
+            throw new InfrastructureException("redis down", new RuntimeException("connection refused"));
         }
 
         @GetMapping("/unexpected")

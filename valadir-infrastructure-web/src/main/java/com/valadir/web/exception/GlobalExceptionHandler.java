@@ -2,6 +2,7 @@ package com.valadir.web.exception;
 
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.web.dto.response.ErrorResponse;
 import org.slf4j.Logger;
@@ -77,6 +78,16 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity
             .status(status)
+            .body(new ErrorResponse(e.getErrorCode().getCode()));
+    }
+
+    @ExceptionHandler(InfrastructureException.class)
+    ResponseEntity<ErrorResponse> handleInfrastructure(final InfrastructureException e) {
+
+        log.error("Infrastructure dependency unavailable: {}", e.getMessage(), e);
+
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
             .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
 

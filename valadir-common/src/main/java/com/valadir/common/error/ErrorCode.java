@@ -20,6 +20,9 @@ public enum ErrorCode {
     ACCESS_DENIED("SEC-005", Category.FORBIDDEN),
     RATE_LIMIT_EXCEEDED("SEC-006", Category.RATE_LIMITED),
 
+    // Infrastructure (INFRA-xxx)
+    INFRASTRUCTURE_UNAVAILABLE("INFRA-001", Category.SERVER_ERROR),
+
     // System (SYS-xxx)
     INTERNAL_SERVER_ERROR("SYS-001", Category.SERVER_ERROR);
 

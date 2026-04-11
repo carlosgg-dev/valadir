@@ -2,10 +2,12 @@ package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.result.TokenValidationResult;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
@@ -32,45 +34,55 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
     @Override
     public TokenValidationResult validate(final String token) {
 
-        final String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
-
-        return accountIdValue == null
-            ? new TokenValidationResult.Invalid()
-            : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
+        try {
+            final String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
+            return accountIdValue == null
+                ? new TokenValidationResult.Invalid()
+                : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
+        } catch (RedisConnectionFailureException e) {
+            throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
+        }
     }
 
     // Atomic: stores the refresh token and registers it in the user's token set
     @Override
     public void save(final String token, final AccountId accountId) {
 
-        final String accountIdStr = accountId.value().toString();
-        redisTemplate.execute(
-            saveRefreshTokenScript,
-            List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
-            accountIdStr,
-            String.valueOf(jwtProperties.refreshTokenTtlSeconds()),
-            token
-        );
+        try {
+            final String accountIdStr = accountId.value().toString();
+            redisTemplate.execute(
+                saveRefreshTokenScript,
+                List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
+                accountIdStr,
+                String.valueOf(jwtProperties.refreshTokenTtlSeconds()),
+                token
+            );
+        } catch (RedisConnectionFailureException e) {
+            throw new InfrastructureException("Redis unavailable — refresh token save failed", e);
+        }
     }
 
     // Atomic: removes old token and stores new one with TTL. Returns false if old token no longer exists
     @Override
     public boolean rotate(final String oldToken, final String newToken, final AccountId accountId) {
 
-        final String accountIdStr = accountId.value().toString();
-        final Long result = redisTemplate.execute(
-            rotateRefreshTokenScript,
-            List.of(
-                RedisKeySpace.forRefreshToken(oldToken),
-                RedisKeySpace.forRefreshToken(newToken),
-                RedisKeySpace.forUserTokens(accountIdStr)
-            ),
-            oldToken,
-            newToken,
-            accountIdStr,
-            String.valueOf(jwtProperties.refreshTokenTtlSeconds())
-        );
-
-        return Long.valueOf(1L).equals(result);
+        try {
+            final String accountIdStr = accountId.value().toString();
+            final Long result = redisTemplate.execute(
+                rotateRefreshTokenScript,
+                List.of(
+                    RedisKeySpace.forRefreshToken(oldToken),
+                    RedisKeySpace.forRefreshToken(newToken),
+                    RedisKeySpace.forUserTokens(accountIdStr)
+                ),
+                oldToken,
+                newToken,
+                accountIdStr,
+                String.valueOf(jwtProperties.refreshTokenTtlSeconds())
+            );
+            return Long.valueOf(1L).equals(result);
+        } catch (RedisConnectionFailureException e) {
+            throw new InfrastructureException("Redis unavailable — refresh token rotation failed", e);
+        }
     }
 }
