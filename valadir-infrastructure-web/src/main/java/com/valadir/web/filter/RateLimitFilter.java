@@ -2,6 +2,7 @@ package com.valadir.web.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
@@ -105,20 +106,24 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         for (final RateLimitProperties.Rule rule : rules) {
             final Optional<String> redisKey = keyResolver.resolve(request, rule);
-            if (redisKey.isEmpty()) {
-                continue;
-            }
+            if (redisKey.isPresent()) {
+                final RateLimitResult result;
+                try {
+                    result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.windowSeconds());
+                } catch (InfrastructureException e) {
+                    log.warn("Rate limiter unavailable, failing open: {}", e.getMessage());
+                    continue;
+                }
 
-            final RateLimitResult result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.windowSeconds());
+                if (!result.allowed()) {
+                    log.warn("Rate limit exceeded: strategy={} key={}", rule.strategy(), redisKey.get());
+                    writeRateLimitResponse(response, result);
+                    return true;
+                }
 
-            if (!result.allowed()) {
-                log.warn("Rate limit exceeded: strategy={} key={}", rule.strategy(), redisKey.get());
-                writeRateLimitResponse(response, result);
-                return true;
-            }
-
-            if (mostRestrictive == null || remaining(result) < remaining(mostRestrictive)) {
-                mostRestrictive = result;
+                if (mostRestrictive == null || remaining(result) < remaining(mostRestrictive)) {
+                    mostRestrictive = result;
+                }
             }
         }
 

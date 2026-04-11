@@ -23,7 +23,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     @SuppressWarnings("unchecked")
     private static RedisTemplate<String, String> failingTemplate() {
 
-        return mock(RedisTemplate.class, inv -> {
+        return mock(RedisTemplate.class, invocationOnMock -> {
             throw new RedisConnectionFailureException("connection refused");
         });
     }

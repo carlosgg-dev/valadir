@@ -2,6 +2,7 @@ package com.valadir.web.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
@@ -230,6 +231,42 @@ class RateLimitFilterTest {
         then(rateLimiter).should().consume(REDIS_KEY, LIMIT, WINDOW);
         then(keyResolver).shouldHaveNoMoreInteractions();
         then(rateLimiter).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    void doFilter_rateLimiterUnavailable_failsOpen() throws Exception {
+
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(REDIS_KEY));
+        given(rateLimiter.consume(REDIS_KEY, LIMIT, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
+
+        final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
+        final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
+        final var response = new MockHttpServletResponse();
+        final var chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @Test
+    void doFilter_rateLimiterUnavailableOnFirstRule_evaluatesRemainingRules() throws Exception {
+
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of("key:ip"));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of("key:email"));
+        given(rateLimiter.consume("key:ip", LIMIT, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
+        given(rateLimiter.consume("key:email", 5, 900)).willReturn(new RateLimitResult(true, 1L, 5, 900L));
+
+        final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
+        final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
+        final var response = new MockHttpServletResponse();
+        final var chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+        assertThat(chain.getRequest()).isNotNull();
     }
 
     private RateLimitFilter buildFilter(final boolean enabled, final List<RateLimitProperties.Rule> rules) {
