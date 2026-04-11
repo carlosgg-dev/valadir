@@ -26,22 +26,53 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
+    private final ObjectMapper objectMapper;
+    private final RateLimiter rateLimiter;
+    private final RateLimitProperties rateLimitProperties;
+
+    public SecurityConfig(
+        final ObjectMapper objectMapper,
+        final RateLimiter rateLimiter,
+        final RateLimitProperties rateLimitProperties
+    ) {
+
+        this.objectMapper = objectMapper;
+        this.rateLimiter = rateLimiter;
+        this.rateLimitProperties = rateLimitProperties;
+    }
+
+    @Bean
+    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+
+        return new JwtAuthenticationEntryPoint(objectMapper);
+    }
+
+    @Bean
+    JwtAccessDeniedHandler jwtAccessDeniedHandler() {
+
+        return new JwtAccessDeniedHandler(objectMapper);
+    }
+
+    @Bean
+    RateLimitKeyResolver rateLimitKeyResolver() {
+
+        return new RateLimitKeyResolver(objectMapper);
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(
         final HttpSecurity http,
         final JwtDecoder jwtDecoder,
-        final ObjectMapper objectMapper,
-        final RateLimiter rateLimiter,
-        final RateLimitProperties rateLimitProperties
+        final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+        final JwtAccessDeniedHandler jwtAccessDeniedHandler,
+        final RateLimitKeyResolver rateLimitKeyResolver
     ) throws Exception {
 
         return http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
-            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, objectMapper, new RateLimitKeyResolver(objectMapper)),
-                            BearerTokenAuthenticationFilter.class
-            )
+            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, objectMapper, rateLimitKeyResolver), BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST,
@@ -53,8 +84,8 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.decoder(jwtDecoder))
-                .authenticationEntryPoint(new JwtAuthenticationEntryPoint(objectMapper))
-                .accessDeniedHandler(new JwtAccessDeniedHandler(objectMapper))
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler)
             )
             .build();
     }
