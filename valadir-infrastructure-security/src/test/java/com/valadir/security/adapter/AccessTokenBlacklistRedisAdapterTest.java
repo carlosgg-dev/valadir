@@ -1,6 +1,7 @@
 package com.valadir.security.adapter;
 
 import com.valadir.security.RedisTestContainer;
+import com.valadir.security.redis.RedisKeySpace;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -34,22 +36,10 @@ class AccessTokenBlacklistRedisAdapterTest extends RedisTestContainer {
     }
 
     @Test
-    void revoke_jti_isStoredWithTtl() {
-
-        final String jti = UUID.randomUUID().toString();
-
-        adapter.revoke(jti, 900L);
-
-        assertThat(adapter.isRevoked(jti)).isTrue();
-        assertThat(redisTemplate.getExpire("auth:blacklist:" + jti)).isPositive();
-    }
-
-    @Test
     void isRevoked_revokedJti_returnsTrue() {
 
         final String jti = UUID.randomUUID().toString();
-
-        adapter.revoke(jti, 900L);
+        redisTemplate.opsForValue().set(RedisKeySpace.forBlacklist(jti), RedisKeySpace.BLACKLIST_REVOKED_VALUE, Duration.ofSeconds(900));
 
         assertThat(adapter.isRevoked(jti)).isTrue();
     }

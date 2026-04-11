@@ -27,8 +27,8 @@ class JwtConfig {
         return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
     }
 
-    @Bean
-    JwtDecoder jwtDecoder(final JwtProperties properties) throws ParseException {
+    @Bean("nimbusJwtDecoder")
+    JwtDecoder nimbusJwtDecoder(final JwtProperties properties) throws ParseException {
 
         final ECKey publicKey = ECKey.parse(properties.privateKey()).toPublicJWK();
         final var jwkSource = new ImmutableJWKSet<>(new JWKSet(publicKey));
