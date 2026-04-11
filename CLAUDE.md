@@ -45,6 +45,16 @@
   Use mappers (manual or generated) at the boundary layer.
 - Protect the domain. External concerns (HTTP, persistence, messaging) must not leak inward.
 
+## Naming Conventions
+
+- **`Config` suffix** for technical infrastructure configuration classes — framework setup,
+  library wiring, module configuration (e.g. `SecurityConfig`, `RedisConfig`, `JpaConfig`).
+- **`Wiring` suffix** for composition root classes — classes that bind ports (interfaces)
+  to their concrete adapter or service implementations
+  (e.g. `UserWiring`, `PaymentWiring`).
+
+Never mix both responsibilities in the same class.
+
 ## Validation & Error Handling
 - **Fail-fast at the entry point**: apply JSR-303 / Bean Validation on all external inputs.
 - Use a centralized exception handling mechanism (e.g. `@ControllerAdvice`).
