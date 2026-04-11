@@ -24,11 +24,12 @@ class GlobalErrorController implements ErrorController {
         final int statusCode = statusAttr instanceof Integer code ? code : HttpStatus.INTERNAL_SERVER_ERROR.value();
         final HttpStatus resolved = HttpStatus.resolve(statusCode);
         final HttpStatus status = resolved != null ? resolved : HttpStatus.INTERNAL_SERVER_ERROR;
+        final Throwable cause = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
 
         if (status.is5xxServerError()) {
-            log.error("Unhandled error: status={}", statusCode);
+            log.error("Unhandled filter-level error: status={}", statusCode, cause);
         } else {
-            log.warn("Unhandled error: status={}", statusCode);
+            log.warn("Unhandled filter-level error: status={}", statusCode, cause);
         }
 
         return ResponseEntity
