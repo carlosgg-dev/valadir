@@ -8,6 +8,7 @@ import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
 import com.valadir.web.filter.RateLimitFilter;
 import com.valadir.web.filter.RateLimitKeyResolver;
+import com.valadir.web.filter.RateLimitResponseWriter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -72,7 +73,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
-            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, objectMapper, rateLimitKeyResolver), BearerTokenAuthenticationFilter.class)
+            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper), rateLimitKeyResolver),
+                            BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST,

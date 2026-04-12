@@ -1,7 +1,6 @@
 package com.valadir.web.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
@@ -10,9 +9,10 @@ import com.valadir.web.config.RateLimitProperties.Strategy;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -35,17 +35,13 @@ import static org.mockito.Mockito.never;
 class RateLimitFilterTest {
 
     private static final String EMAIL = "user@example.com";
-    private static final int LIMIT = 10;
+    private static final int MAX_REQUESTS = 10;
     private static final int WINDOW = 60;
-    private static final String REDIS_KEY = "rate_limit:ip:api_auth_login:10.0.0.1";
+    private static final String IP_REDIS_KEY = "rate_limit:ip:api_auth_login:10.0.0.1";
+    private static final String EMAIL_REDIS_KEY = "rate_limit:email:api_auth_login:user@example.com";
     private static final String PATH_LOGIN = "/api/auth/login";
 
-    private static final String HEADER_LIMIT = "X-RateLimit-Limit";
-    private static final String HEADER_REMAINING = "X-RateLimit-Remaining";
-    private static final String HEADER_RESET = "X-RateLimit-Reset";
-    private static final String HEADER_RETRY_AFTER = "Retry-After";
-
-    private static final RateLimitProperties.Rule IP_RULE = new RateLimitProperties.Rule(PATH_LOGIN, Strategy.IP, LIMIT, WINDOW);
+    private static final RateLimitProperties.Rule IP_RULE = new RateLimitProperties.Rule(PATH_LOGIN, Strategy.IP, MAX_REQUESTS, WINDOW);
     private static final RateLimitProperties.Rule EMAIL_RULE = new RateLimitProperties.Rule(PATH_LOGIN, Strategy.EMAIL, 5, 900);
 
     @Mock
@@ -53,6 +49,12 @@ class RateLimitFilterTest {
 
     @Mock
     private RateLimitKeyResolver keyResolver;
+
+    @Mock
+    private RateLimitResponseWriter responseWriter;
+
+    @Captor
+    private ArgumentCaptor<RateLimitResult> resultCaptor;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -67,6 +69,7 @@ class RateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         then(rateLimiter).should(never()).consume(anyString(), anyInt(), anyInt());
+        then(responseWriter).shouldHaveNoInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
 
@@ -81,14 +84,16 @@ class RateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         then(rateLimiter).should(never()).consume(anyString(), anyInt(), anyInt());
+        then(responseWriter).shouldHaveNoInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
 
     @Test
-    void doFilter_allowed_setsHeadersAndPassesThrough() throws Exception {
+    void doFilter_allowed_delegatesToWriteAllowedHeadersAndPassesThrough() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(REDIS_KEY));
-        given(rateLimiter.consume(REDIS_KEY, LIMIT, WINDOW)).willReturn(new RateLimitResult(true, 3L, LIMIT, 45L));
+        final var allowedResult = new RateLimitResult(true, 3L, MAX_REQUESTS, 45L);
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willReturn(allowedResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -97,18 +102,17 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
-        assertThat(response.getHeader(HEADER_LIMIT)).isEqualTo("10");
-        assertThat(response.getHeader(HEADER_REMAINING)).isEqualTo("7");
-        assertThat(response.getHeader(HEADER_RESET)).isNotNull();
+        then(responseWriter).should().writeAllowedRequestHeaders(response, allowedResult);
+        then(responseWriter).should(never()).writeBlockedResponse(any(), any());
         assertThat(chain.getRequest()).isNotNull();
     }
 
     @Test
-    void doFilter_blocked_returns429WithHeaders() throws Exception {
+    void doFilter_blocked_delegatesToWriteBlockedResponseAndStopsChain() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(REDIS_KEY));
-        given(rateLimiter.consume(REDIS_KEY, LIMIT, WINDOW)).willReturn(new RateLimitResult(false, 11L, LIMIT, 30L));
+        final var blockedResult = new RateLimitResult(false, 11L, MAX_REQUESTS, 30L);
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willReturn(blockedResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -117,20 +121,15 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
-        assertThat(response.getHeader(HEADER_LIMIT)).isEqualTo("10");
-        assertThat(response.getHeader(HEADER_REMAINING)).isEqualTo("0");
-        assertThat(response.getHeader(HEADER_RESET)).isNotNull();
-        assertThat(response.getHeader(HEADER_RETRY_AFTER)).isEqualTo("30");
-        assertThat(response.getContentAsString()).contains(ErrorCode.RATE_LIMIT_EXCEEDED.getCode());
+        then(responseWriter).should().writeBlockedResponse(response, blockedResult);
+        then(responseWriter).should(never()).writeAllowedRequestHeaders(any(), any());
         assertThat(chain.getRequest()).isNull();
     }
 
     @Test
-    void doFilter_unresolvedKey_skipsRule() throws Exception {
+    void doFilter_unresolvedKey_skipsRuleAndDoesNotWriteHeaders() throws Exception {
 
-        final var userRule = new RateLimitProperties.Rule(PATH_LOGIN, Strategy.USER, LIMIT, WINDOW);
+        final var userRule = new RateLimitProperties.Rule(PATH_LOGIN, Strategy.USER, MAX_REQUESTS, WINDOW);
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(userRule))).willReturn(Optional.empty());
 
         final RateLimitFilter filter = buildFilter(true, List.of(userRule));
@@ -141,17 +140,15 @@ class RateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         then(rateLimiter).should(never()).consume(anyString(), anyInt(), anyInt());
-        assertThat(response.getHeader(HEADER_LIMIT)).isNull();
-        assertThat(response.getHeader(HEADER_REMAINING)).isNull();
-        assertThat(response.getHeader(HEADER_RESET)).isNull();
+        then(responseWriter).shouldHaveNoInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
 
     @Test
     void doFilter_emailStrategy_wrapsRequestSoBodyIsReadableByController() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(REDIS_KEY));
-        given(rateLimiter.consume(REDIS_KEY, 5, 900)).willReturn(new RateLimitResult(true, 1L, 5, 900L));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, 5, 900)).willReturn(new RateLimitResult(true, 1L, 5, 900L));
 
         final RateLimitFilter filter = buildFilter(true, List.of(EMAIL_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -162,7 +159,6 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
         assertThat(chain.getRequest()).isNotNull();
         // Body must still be readable by the controller (cached wrapper was passed down)
         final byte[] bodyAfterFilter = chain.getRequest().getInputStream().readAllBytes();
@@ -170,12 +166,14 @@ class RateLimitFilterTest {
     }
 
     @Test
-    void doFilter_multipleRules_headersReflectMostRestrictivePassingRule() throws Exception {
+    void doFilter_multipleRules_passesTheMostRestrictiveResultToWriteAllowedHeaders() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of("key:ip"));
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of("key:email"));
-        given(rateLimiter.consume("key:ip", LIMIT, WINDOW)).willReturn(new RateLimitResult(true, 8L, LIMIT, 55L)); // 2 remaining
-        given(rateLimiter.consume("key:email", 5, 900)).willReturn(new RateLimitResult(true, 2L, 5, 800L)); // 3 remaining
+        final var ipResult = new RateLimitResult(true, 8L, MAX_REQUESTS, 55L);    // 2 remaining
+        final var emailResult = new RateLimitResult(true, 2L, 5, 800L);    // 3 remaining
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willReturn(ipResult);
+        given(rateLimiter.consume(EMAIL_REDIS_KEY, 5, 900)).willReturn(emailResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -185,17 +183,19 @@ class RateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         // IP has 2 remaining, EMAIL has 3 remaining → IP is most restrictive
-        assertThat(response.getHeader(HEADER_LIMIT)).isEqualTo("10");
-        assertThat(response.getHeader(HEADER_REMAINING)).isEqualTo("2");
+        then(responseWriter).should().writeAllowedRequestHeaders(eq(response), resultCaptor.capture());
+        assertThat(resultCaptor.getValue()).isEqualTo(ipResult);
     }
 
     @Test
-    void doFilter_multipleRulesSecondRuleBlocked_returns429WithoutAllowedHeadersFromFirstRule() throws Exception {
+    void doFilter_multipleRulesSecondRuleBlocked_writesBlockedResponseForBlockedRuleOnly() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of("key:ip"));
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of("key:email"));
-        given(rateLimiter.consume("key:ip", LIMIT, WINDOW)).willReturn(new RateLimitResult(true, 3L, LIMIT, 45L));
-        given(rateLimiter.consume("key:email", 5, 900)).willReturn(new RateLimitResult(false, 6L, 5, 30L));
+        final var allowedResult = new RateLimitResult(true, 3L, MAX_REQUESTS, 45L);
+        final var blockedResult = new RateLimitResult(false, 6L, 5, 30L);
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willReturn(allowedResult);
+        given(rateLimiter.consume(EMAIL_REDIS_KEY, 5, 900)).willReturn(blockedResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -204,20 +204,18 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        // IP's allowed headers must NOT leak into the 429 response
-        assertThat(response.getHeader(HEADER_LIMIT)).isEqualTo("5");
-        assertThat(response.getHeader(HEADER_REMAINING)).isEqualTo("0");
-        assertThat(response.getHeader(HEADER_RETRY_AFTER)).isEqualTo("30");
-        assertThat(response.getContentAsString()).contains(ErrorCode.RATE_LIMIT_EXCEEDED.getCode());
+        // IP's result must NOT reach writeAllowedRequestHeaders — only the blocked EMAIL result reaches writeBlockedResponse
+        then(responseWriter).should().writeBlockedResponse(response, blockedResult);
+        then(responseWriter).should(never()).writeAllowedRequestHeaders(any(), any());
         assertThat(chain.getRequest()).isNull();
     }
 
     @Test
     void doFilter_multipleRules_failFastOnFirstBlockedRule() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(REDIS_KEY));
-        given(rateLimiter.consume(REDIS_KEY, LIMIT, WINDOW)).willReturn(new RateLimitResult(false, 11L, LIMIT, 30L));
+        final var blockedResult = new RateLimitResult(false, 11L, MAX_REQUESTS, 30L);
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willReturn(blockedResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -226,18 +224,18 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
         // Only one consume was made (fail-fast after first blocked rule)
-        then(rateLimiter).should().consume(REDIS_KEY, LIMIT, WINDOW);
         then(keyResolver).shouldHaveNoMoreInteractions();
         then(rateLimiter).shouldHaveNoMoreInteractions();
+        then(responseWriter).should().writeBlockedResponse(response, blockedResult);
+        assertThat(chain.getRequest()).isNull();
     }
 
     @Test
     void doFilter_rateLimiterUnavailable_failsOpen() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(REDIS_KEY));
-        given(rateLimiter.consume(REDIS_KEY, LIMIT, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -246,17 +244,18 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+        then(responseWriter).shouldHaveNoInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
 
     @Test
     void doFilter_rateLimiterUnavailableOnFirstRule_evaluatesRemainingRules() throws Exception {
 
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of("key:ip"));
-        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of("key:email"));
-        given(rateLimiter.consume("key:ip", LIMIT, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
-        given(rateLimiter.consume("key:email", 5, 900)).willReturn(new RateLimitResult(true, 1L, 5, 900L));
+        final var emailResult = new RateLimitResult(true, 1L, 5, 900L);
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
+        given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
+        given(rateLimiter.consume(IP_REDIS_KEY, MAX_REQUESTS, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
+        given(rateLimiter.consume(EMAIL_REDIS_KEY, 5, 900)).willReturn(emailResult);
 
         final RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
         final MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -265,13 +264,14 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
+        then(responseWriter).should().writeAllowedRequestHeaders(response, emailResult);
+        then(responseWriter).shouldHaveNoMoreInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
 
     private RateLimitFilter buildFilter(final boolean enabled, final List<RateLimitProperties.Rule> rules) {
 
-        return new RateLimitFilter(rateLimiter, new RateLimitProperties(enabled, rules), objectMapper, keyResolver);
+        return new RateLimitFilter(rateLimiter, new RateLimitProperties(enabled, rules), responseWriter, keyResolver);
     }
 
     private MockHttpServletRequest buildRequest(final String path) {

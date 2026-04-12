@@ -1,21 +1,16 @@
 package com.valadir.web.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
 import com.valadir.web.config.RateLimitProperties.Strategy;
-import com.valadir.web.dto.response.ErrorResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -28,27 +23,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
-    private static final String HEADER_LIMIT = "X-RateLimit-Limit";
-    private static final String HEADER_REMAINING = "X-RateLimit-Remaining";
-    private static final String HEADER_RESET = "X-RateLimit-Reset";
-    private static final String HEADER_RETRY_AFTER = "Retry-After";
-
     private final RateLimiter rateLimiter;
     private final RateLimitProperties properties;
-    private final ObjectMapper objectMapper;
+    private final RateLimitResponseWriter responseWriter;
     private final RateLimitKeyResolver keyResolver;
     private final AntPathMatcher pathMatcher;
 
     public RateLimitFilter(
         final RateLimiter rateLimiter,
         final RateLimitProperties properties,
-        final ObjectMapper objectMapper,
+        final RateLimitResponseWriter responseWriter,
         final RateLimitKeyResolver keyResolver
     ) {
 
         this.rateLimiter = rateLimiter;
         this.properties = properties;
-        this.objectMapper = objectMapper;
+        this.responseWriter = responseWriter;
         this.keyResolver = keyResolver;
         this.pathMatcher = new AntPathMatcher();
     }
@@ -117,11 +107,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 if (!result.allowed()) {
                     log.warn("Rate limit exceeded: strategy={} key={}", rule.strategy(), redisKey.get());
-                    writeRateLimitResponse(response, result);
+                    responseWriter.writeBlockedResponse(response, result);
                     return true;
                 }
 
-                if (mostRestrictive == null || remaining(result) < remaining(mostRestrictive)) {
+                if (mostRestrictive == null || result.remaining() < mostRestrictive.remaining()) {
                     mostRestrictive = result;
                 }
             }
@@ -129,37 +119,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // headers are only set when at least one rule was evaluated and allowed
         if (mostRestrictive != null) {
-            setRateLimitHeaders(response, mostRestrictive);
+            responseWriter.writeAllowedRequestHeaders(response, mostRestrictive);
         }
 
         return false;
     }
 
-    private void setRateLimitHeaders(final HttpServletResponse response, final RateLimitResult result) {
-
-        response.setHeader(HEADER_LIMIT, String.valueOf(result.maxRequests()));
-        response.setHeader(HEADER_REMAINING, String.valueOf(remaining(result)));
-        response.setHeader(HEADER_RESET, String.valueOf(resetEpochSeconds(result)));
-    }
-
-    private void writeRateLimitResponse(final HttpServletResponse response, final RateLimitResult result) throws IOException {
-
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setHeader(HEADER_LIMIT, String.valueOf(result.maxRequests()));
-        response.setHeader(HEADER_REMAINING, "0");
-        response.setHeader(HEADER_RESET, String.valueOf(resetEpochSeconds(result)));
-        response.setHeader(HEADER_RETRY_AFTER, String.valueOf(result.remainingTtl()));
-        objectMapper.writeValue(response.getWriter(), new ErrorResponse(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
-    }
-
-    private long remaining(final RateLimitResult result) {
-
-        return Math.max(0L, result.maxRequests() - result.requestCount());
-    }
-
-    private long resetEpochSeconds(final RateLimitResult result) {
-
-        return System.currentTimeMillis() / 1000L + result.remainingTtl();
-    }
 }

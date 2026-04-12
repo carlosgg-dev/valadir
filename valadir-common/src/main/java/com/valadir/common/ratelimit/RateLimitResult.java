@@ -6,4 +6,8 @@ public record RateLimitResult(
     int maxRequests,
     long remainingTtl) {
 
+    public long remaining() {
+
+        return Math.max(0L, maxRequests - requestCount);
+    }
 }
