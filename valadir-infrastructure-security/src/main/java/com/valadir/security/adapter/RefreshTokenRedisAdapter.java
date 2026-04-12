@@ -8,6 +8,7 @@ import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
@@ -39,7 +40,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
             return accountIdValue == null
                 ? new TokenValidationResult.Invalid()
                 : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
-        } catch (RedisConnectionFailureException e) {
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
         }
     }
@@ -57,7 +58,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
                 String.valueOf(jwtProperties.refreshTokenTtlSeconds()),
                 token
             );
-        } catch (RedisConnectionFailureException e) {
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — refresh token save failed", e);
         }
     }
@@ -81,7 +82,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
                 String.valueOf(jwtProperties.refreshTokenTtlSeconds())
             );
             return Long.valueOf(1L).equals(result);
-        } catch (RedisConnectionFailureException e) {
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — refresh token rotation failed", e);
         }
     }

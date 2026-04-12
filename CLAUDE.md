@@ -38,9 +38,6 @@
 - **try-with-resources** for every `AutoCloseable`. No exceptions.
 
 ## Architecture
-- Adapt the structure (Layered, Hexagonal, Feature-based) to the project's scale and complexity.
-  Discuss and agree on the approach **before** scaffolding — see `rules/architecture.md`.
-- **Composition over Inheritance** for extensibility.
 - **DTOs at system boundaries**: never expose persistence entities or internal domain state to external APIs.
   Use mappers (manual or generated) at the boundary layer.
 - Protect the domain. External concerns (HTTP, persistence, messaging) must not leak inward.
@@ -56,5 +53,5 @@
 Never mix both responsibilities in the same class.
 
 ## Validation & Error Handling
-- **Fail-fast at the entry point**: apply JSR-303 / Bean Validation on all external inputs.
+- **Fail-fast** (see global): apply JSR-303 / Bean Validation on all external inputs.
 - Use a centralized exception handling mechanism (e.g. `@ControllerAdvice`).

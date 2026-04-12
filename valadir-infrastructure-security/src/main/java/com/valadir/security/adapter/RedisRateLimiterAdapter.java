@@ -5,6 +5,7 @@ import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,7 @@ class RedisRateLimiterAdapter implements RateLimiter {
             final long remainingTtl = (Long) result.get(1);
 
             return new RateLimitResult(requestCount <= maxRequests, requestCount, maxRequests, remainingTtl);
-        } catch (RedisConnectionFailureException e) {
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — rate limit check failed", e);
         }
     }

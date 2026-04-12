@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.UUID;
@@ -16,23 +17,45 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
-    // Returns RedisConnectionFailureException on any call — avoids varargs stubbing issues
+    // Throws RedisConnectionFailureException on any call — avoids varargs stubbing issues
     @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> failingTemplate() {
+    private static RedisTemplate<String, String> connectionFailureTemplate() {
 
         return mock(RedisTemplate.class, invocationOnMock -> {
             throw new RedisConnectionFailureException("connection refused");
         });
     }
 
-    @Test
-    void invalidate_redisUnavailable_throwsInfrastructureException() {
+    // Throws RedisSystemException on any call — simulates command-level Redis errors
+    @SuppressWarnings("unchecked")
+    private static RedisTemplate<String, String> systemErrorTemplate() {
 
-        final var adapter = new LogoutTokensInvalidatorRedisAdapter(failingTemplate());
-        String jti = UUID.randomUUID().toString();
-        long remainingTtlSeconds = 600L;
-        String refreshToken = UUID.randomUUID().toString();
-        String accountId = AccountId.generate().toString();
+        return mock(RedisTemplate.class, invocationOnMock -> {
+            throw new RedisSystemException("ERR command not allowed", null);
+        });
+    }
+
+    @Test
+    void invalidate_redisConnectionFailure_throwsInfrastructureException() {
+
+        final var adapter = new LogoutTokensInvalidatorRedisAdapter(connectionFailureTemplate());
+        final String jti = UUID.randomUUID().toString();
+        final long remainingTtlSeconds = 600L;
+        final String refreshToken = UUID.randomUUID().toString();
+        final String accountId = AccountId.generate().toString();
+
+        assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
+            .isInstanceOf(InfrastructureException.class);
+    }
+
+    @Test
+    void invalidate_redisSystemError_throwsInfrastructureException() {
+
+        final var adapter = new LogoutTokensInvalidatorRedisAdapter(systemErrorTemplate());
+        final String jti = UUID.randomUUID().toString();
+        final long remainingTtlSeconds = 600L;
+        final String refreshToken = UUID.randomUUID().toString();
+        final String accountId = AccountId.generate().toString();
 
         assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
             .isInstanceOf(InfrastructureException.class);

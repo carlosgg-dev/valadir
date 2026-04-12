@@ -5,6 +5,7 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
@@ -39,7 +40,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
                 String.valueOf(remainingTtlSeconds),
                 refreshToken
             );
-        } catch (RedisConnectionFailureException e) {
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — logout token invalidation failed for jti: " + jti, e);
         }
     }
