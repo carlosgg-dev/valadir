@@ -1,13 +1,10 @@
 package com.valadir.web.exception;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.web.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
@@ -17,11 +14,11 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class);
 
-    private final ObjectMapper objectMapper;
+    private final SecurityErrorResponseWriter responseWriter;
 
-    public JwtAuthenticationEntryPoint(final ObjectMapper objectMapper) {
+    public JwtAuthenticationEntryPoint(final SecurityErrorResponseWriter responseWriter) {
 
-        this.objectMapper = objectMapper;
+        this.responseWriter = responseWriter;
     }
 
     @Override
@@ -33,8 +30,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         log.warn("Authentication failed: {}", e.getMessage());
 
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getWriter(), new ErrorResponse(ErrorCode.AUTHENTICATION_REQUIRED.getCode()));
+        responseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.AUTHENTICATION_REQUIRED);
     }
 }

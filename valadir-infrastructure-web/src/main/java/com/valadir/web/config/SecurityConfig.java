@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.exception.JwtAccessDeniedHandler;
 import com.valadir.web.exception.JwtAuthenticationEntryPoint;
+import com.valadir.web.exception.SecurityErrorResponseWriter;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
 import com.valadir.web.filter.RateLimitFilter;
@@ -43,15 +44,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+    SecurityErrorResponseWriter securityErrorResponseWriter() {
 
-        return new JwtAuthenticationEntryPoint(objectMapper);
+        return new SecurityErrorResponseWriter(objectMapper);
     }
 
     @Bean
-    JwtAccessDeniedHandler jwtAccessDeniedHandler() {
+    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(final SecurityErrorResponseWriter securityErrorResponseWriter) {
 
-        return new JwtAccessDeniedHandler(objectMapper);
+        return new JwtAuthenticationEntryPoint(securityErrorResponseWriter);
+    }
+
+    @Bean
+    JwtAccessDeniedHandler jwtAccessDeniedHandler(final SecurityErrorResponseWriter securityErrorResponseWriter) {
+
+        return new JwtAccessDeniedHandler(securityErrorResponseWriter);
     }
 
     @Bean
