@@ -34,7 +34,7 @@ class GlobalExceptionHandlerTest {
 
         mockMvc = MockMvcBuilders
             .standaloneSetup(new StubController())
-            .setControllerAdvice(new GlobalExceptionHandler())
+            .setControllerAdvice(new GlobalExceptionHandler(new HttpStatusResolver()))
             .build();
     }
 

@@ -25,6 +25,13 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final HttpStatusResolver httpStatusResolver;
+
+    GlobalExceptionHandler(final HttpStatusResolver httpStatusResolver) {
+
+        this.httpStatusResolver = httpStatusResolver;
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
         @NonNull final MethodArgumentNotValidException e,
@@ -73,7 +80,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ApplicationException.class)
     ResponseEntity<ErrorResponse> handleApplication(final ApplicationException e) {
 
-        final HttpStatus status = resolveHttpStatus(e.getErrorCode());
+        final HttpStatus status = httpStatusResolver.resolve(e.getErrorCode());
         logAtLevel(status, "Application error: " + e.getMessage(), e);
 
         return ResponseEntity
@@ -99,18 +106,6 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
-    }
-
-    private static HttpStatus resolveHttpStatus(final ErrorCode code) {
-
-        return switch (code.getCategory()) {
-            case VALIDATION -> HttpStatus.BAD_REQUEST;
-            case CONFLICT -> HttpStatus.CONFLICT;
-            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
-            case FORBIDDEN -> HttpStatus.FORBIDDEN;
-            case RATE_LIMITED -> HttpStatus.TOO_MANY_REQUESTS;
-            case SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
     }
 
     private static void logAtLevel(final HttpStatusCode status, final String message, final Exception e) {
