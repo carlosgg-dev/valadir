@@ -4,6 +4,8 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,5 +41,21 @@ class UserProfileDataTest {
         assertThatThrownBy(() -> new UserProfileData(null, givenName))
             .isInstanceOf(DomainException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
+    }
+
+    @Test
+    void values_fullNameAndGivenName_returnsBothValues() {
+
+        final var profileData = new UserProfileData(new FullName("Bruce Wayne"), new GivenName("Batman"));
+
+        assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne", "Batman"));
+    }
+
+    @Test
+    void values_noGivenName_returnsOnlyFullName() {
+
+        final var profileData = new UserProfileData(new FullName("Bruce Wayne"), null);
+
+        assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne"));
     }
 }

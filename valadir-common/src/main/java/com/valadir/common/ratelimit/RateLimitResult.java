@@ -10,4 +10,9 @@ public record RateLimitResult(
 
         return Math.max(0L, maxRequests - requestCount);
     }
+
+    public boolean isMoreRestrictiveThan(final RateLimitResult other) {
+
+        return this.remaining() < other.remaining();
+    }
 }

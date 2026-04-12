@@ -111,7 +111,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     return true;
                 }
 
-                if (mostRestrictive == null || result.remaining() < mostRestrictive.remaining()) {
+                if (mostRestrictive == null || result.isMoreRestrictiveThan(mostRestrictive)) {
                     mostRestrictive = result;
                 }
             }
