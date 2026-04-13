@@ -38,7 +38,7 @@ public enum ErrorCode {
     private final String code;
     private final Category category;
 
-    ErrorCode(final String code, final Category category) {
+    ErrorCode(String code, Category category) {
 
         this.code = code;
         this.category = category;

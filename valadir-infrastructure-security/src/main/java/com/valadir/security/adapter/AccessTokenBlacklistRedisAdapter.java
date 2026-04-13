@@ -15,13 +15,13 @@ public class AccessTokenBlacklistRedisAdapter implements AccessTokenBlacklist {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public AccessTokenBlacklistRedisAdapter(final RedisTemplate<String, String> redisTemplate) {
+    public AccessTokenBlacklistRedisAdapter(RedisTemplate<String, String> redisTemplate) {
 
         this.redisTemplate = redisTemplate;
     }
 
     @Override
-    public boolean isRevoked(final String jti) {
+    public boolean isRevoked(String jti) {
 
         try {
             return Objects.requireNonNullElse(redisTemplate.hasKey(RedisKeySpace.forBlacklist(jti)), false);

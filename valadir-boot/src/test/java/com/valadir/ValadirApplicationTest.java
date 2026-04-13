@@ -35,7 +35,7 @@ class ValadirApplicationTest {
             REDIS.start();
 
             EC_KEY = buildEcKey();
-        } catch (final Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -55,9 +55,9 @@ class ValadirApplicationTest {
 
     private static ECKey buildEcKey() throws NoSuchAlgorithmException {
 
-        final KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
         kpg.initialize(256);
-        final KeyPair keyPair = kpg.generateKeyPair();
+        KeyPair keyPair = kpg.generateKeyPair();
 
         return new ECKey.Builder(Curve.P_256, (ECPublicKey) keyPair.getPublic())
             .privateKey((ECPrivateKey) keyPair.getPrivate())
@@ -65,7 +65,7 @@ class ValadirApplicationTest {
     }
 
     @DynamicPropertySource
-    static void configureProperties(final DynamicPropertyRegistry registry) {
+    static void configureProperties(DynamicPropertyRegistry registry) {
 
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);

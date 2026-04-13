@@ -24,11 +24,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     private final AccountRepository accountRepository;
     private final AuthTokenIssuer authTokenIssuer;
 
-    public RefreshTokenService(
-        RefreshTokenStore refreshTokenStore,
-        AccountRepository accountRepository,
-        AuthTokenIssuer authTokenIssuer
-    ) {
+    public RefreshTokenService(RefreshTokenStore refreshTokenStore, AccountRepository accountRepository, AuthTokenIssuer authTokenIssuer) {
 
         this.refreshTokenStore = refreshTokenStore;
         this.accountRepository = accountRepository;
@@ -44,16 +40,16 @@ public class RefreshTokenService implements RefreshTokenUseCase {
         };
     }
 
-    private AuthTokenResult rotateToken(final String oldRefreshToken, final AccountId accountId) {
+    private AuthTokenResult rotateToken(String oldRefreshToken, AccountId accountId) {
 
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
-        final var account = accountRepository.findById(accountId)
+        var account = accountRepository.findById(accountId)
             .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.AUTHENTICATION_FAILED));
 
-        final AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
+        AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
 
-        final boolean rotated = refreshTokenStore.rotate(oldRefreshToken, result.refreshToken(), accountId);
+        boolean rotated = refreshTokenStore.rotate(oldRefreshToken, result.refreshToken(), accountId);
         if (!rotated) {
             log.warn("Stale refresh token detected");
             throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);

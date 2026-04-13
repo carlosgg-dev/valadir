@@ -6,7 +6,7 @@ public record ErrorResponse(
     String code,
     List<FieldError> errors) {
 
-    public ErrorResponse(final String code) {
+    public ErrorResponse(String code) {
 
         this(code, null);
     }

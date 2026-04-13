@@ -20,7 +20,7 @@ public abstract class RedisTestContainer {
     }
 
     @DynamicPropertySource
-    static void configureProperties(final DynamicPropertyRegistry registry) {
+    static void configureProperties(DynamicPropertyRegistry registry) {
 
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", REDIS::getFirstMappedPort);

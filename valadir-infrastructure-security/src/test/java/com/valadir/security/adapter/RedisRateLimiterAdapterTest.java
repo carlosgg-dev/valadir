@@ -34,8 +34,8 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
     @BeforeEach
     void setUp() {
 
-        final RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
-        try (final var connection = factory.getConnection()) {
+        RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
+        try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
         }
     }
@@ -43,7 +43,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
     @Test
     void consume_firstRequest_isAllowed() {
 
-        final RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(1L);
@@ -56,7 +56,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         IntStream.range(0, MAX_REQUESTS - 1).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
 
-        final RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(MAX_REQUESTS);
@@ -67,7 +67,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
 
-        final RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isFalse();
         assertThat(result.requestCount()).isEqualTo(MAX_REQUESTS + 1);
@@ -79,7 +79,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         rateLimiter.consume(KEY, MAX_REQUESTS, 30);
 
-        final Long ttl = redisTemplate.getExpire(KEY);
+        Long ttl = redisTemplate.getExpire(KEY);
 
         assertThat(ttl).isPositive().isLessThanOrEqualTo(30L);
     }
@@ -92,7 +92,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
         redisTemplate.expire(KEY, 10, TimeUnit.SECONDS);
 
         rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
-        final Long ttl = redisTemplate.getExpire(KEY);
+        Long ttl = redisTemplate.getExpire(KEY);
 
         // If EXPIRE ran again on the second call, TTL would be back to WINDOW (60s)
         assertThat(ttl).isLessThanOrEqualTo(10L);
@@ -103,7 +103,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
 
-        final RateLimitResult result = rateLimiter.consume("test:rate_limit:other_key", MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume("test:rate_limit:other_key", MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(1L);
@@ -118,7 +118,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         redisTemplate.delete(KEY); // simulate window expiry
 
-        final RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         // Creates the key from 0

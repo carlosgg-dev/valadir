@@ -15,13 +15,13 @@ public class LogoutService implements LogoutUseCase {
 
     private final LogoutTokensInvalidator logoutTokensInvalidator;
 
-    public LogoutService(final LogoutTokensInvalidator logoutTokensInvalidator) {
+    public LogoutService(LogoutTokensInvalidator logoutTokensInvalidator) {
 
         this.logoutTokensInvalidator = logoutTokensInvalidator;
     }
 
     @Override
-    public void logout(final LogoutCommand command) {
+    public void logout(LogoutCommand command) {
 
         try {
             logoutTokensInvalidator.invalidate(

@@ -32,8 +32,8 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     @BeforeEach
     void setUp() {
 
-        final RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
-        try (final var connection = factory.getConnection()) {
+        RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
+        try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
         }
     }
@@ -41,11 +41,11 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     @Test
     void invalidate_blacklistsAccessTokenAndDeletesRefreshToken() {
 
-        final var accountId = AccountId.generate();
-        final var accountIdStr = accountId.value().toString();
-        final var jti = UUID.randomUUID().toString();
-        final var refreshToken = UUID.randomUUID().toString();
-        final long ttl = 600L;
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var jti = UUID.randomUUID().toString();
+        var refreshToken = UUID.randomUUID().toString();
+        long ttl = 600L;
 
         refreshTokenAdapter.save(refreshToken, accountId);
 
@@ -60,11 +60,11 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     @Test
     void invalidate_refreshTokenAlreadyGone_stillBlacklistsAccessToken() {
 
-        final var accountId = AccountId.generate();
-        final var accountIdStr = accountId.value().toString();
-        final var jti = UUID.randomUUID().toString();
-        final var nonExistingRefreshToken = UUID.randomUUID().toString();
-        final long ttl = 600L;
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var jti = UUID.randomUUID().toString();
+        var nonExistingRefreshToken = UUID.randomUUID().toString();
+        long ttl = 600L;
 
         tokenInvalidatorAdapter.invalidate(jti, ttl, nonExistingRefreshToken, accountIdStr);
 
@@ -74,10 +74,10 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     @Test
     void invalidate_expiredAccessToken_skipsBlacklistButDeletesRefreshToken() {
 
-        final var accountId = AccountId.generate();
-        final var accountIdStr = accountId.value().toString();
-        final var jti = UUID.randomUUID().toString();
-        final var refreshToken = UUID.randomUUID().toString();
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var jti = UUID.randomUUID().toString();
+        var refreshToken = UUID.randomUUID().toString();
 
         refreshTokenAdapter.save(refreshToken, accountId);
 

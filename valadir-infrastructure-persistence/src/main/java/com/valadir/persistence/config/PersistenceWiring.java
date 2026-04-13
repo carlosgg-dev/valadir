@@ -13,16 +13,13 @@ import org.springframework.context.annotation.Configuration;
 class PersistenceWiring {
 
     @Bean
-    AccountRepository accountRepository(final AccountJpaRepository accountJpaRepository) {
+    AccountRepository accountRepository(AccountJpaRepository accountJpaRepository) {
 
         return new AccountJpaAdapter(accountJpaRepository);
     }
 
     @Bean
-    RegisterPersistence registerPersistence(
-        final AccountJpaRepository accountJpaRepository,
-        final UserJpaRepository userJpaRepository
-    ) {
+    RegisterPersistence registerPersistence(AccountJpaRepository accountJpaRepository, UserJpaRepository userJpaRepository) {
 
         return new RegisterJpaAdapter(accountJpaRepository, userJpaRepository);
     }

@@ -12,12 +12,12 @@ public class SecurityErrorResponseWriter {
 
     private final ObjectMapper objectMapper;
 
-    public SecurityErrorResponseWriter(final ObjectMapper objectMapper) {
+    public SecurityErrorResponseWriter(ObjectMapper objectMapper) {
 
         this.objectMapper = objectMapper;
     }
 
-    public void write(final HttpServletResponse response, final int status, final ErrorCode errorCode) throws IOException {
+    public void write(HttpServletResponse response, int status, ErrorCode errorCode) throws IOException {
 
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

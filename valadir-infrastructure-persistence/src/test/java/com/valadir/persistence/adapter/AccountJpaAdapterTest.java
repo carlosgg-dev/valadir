@@ -36,7 +36,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     @Test
     void findById_existingAccount_returnsAccount() {
 
-        final Account account = buildAccount();
+        Account account = buildAccount();
         adapter.save(account);
 
         Optional<Account> result = adapter.findById(account.getId());
@@ -60,7 +60,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     @Test
     void findByEmail_existingAccount_returnsAccount() {
 
-        final Account account = buildAccount();
+        Account account = buildAccount();
         adapter.save(account);
 
         Optional<Account> result = adapter.findByEmail(account.getEmail());
@@ -84,7 +84,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     @Test
     void save_validAccount_persistsToDatabase() {
 
-        final Account account = buildAccount();
+        Account account = buildAccount();
 
         adapter.save(account);
 

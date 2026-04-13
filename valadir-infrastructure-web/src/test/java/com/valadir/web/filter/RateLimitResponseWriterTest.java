@@ -25,8 +25,8 @@ class RateLimitResponseWriterTest {
     @Test
     void writeBlockedResponse_sets429StatusAndHeaders() throws Exception {
 
-        final var response = new MockHttpServletResponse();
-        final var result = new RateLimitResult(false, 11L, MAX_REQUESTS, REMAINING_TTL);
+        var response = new MockHttpServletResponse();
+        var result = new RateLimitResult(false, 11L, MAX_REQUESTS, REMAINING_TTL);
 
         writer.writeBlockedResponse(response, result);
 
@@ -41,8 +41,8 @@ class RateLimitResponseWriterTest {
     @Test
     void writeBlockedResponse_bodyContainsRateLimitExceededCode() throws Exception {
 
-        final var response = new MockHttpServletResponse();
-        final var result = new RateLimitResult(false, 11L, MAX_REQUESTS, REMAINING_TTL);
+        var response = new MockHttpServletResponse();
+        var result = new RateLimitResult(false, 11L, MAX_REQUESTS, REMAINING_TTL);
 
         writer.writeBlockedResponse(response, result);
 
@@ -52,8 +52,8 @@ class RateLimitResponseWriterTest {
     @Test
     void writeAllowedRequestHeaders_setsRateLimitHeaders() {
 
-        final var response = new MockHttpServletResponse();
-        final var result = new RateLimitResult(true, 3L, MAX_REQUESTS, 45L);
+        var response = new MockHttpServletResponse();
+        var result = new RateLimitResult(true, 3L, MAX_REQUESTS, 45L);
 
         writer.writeAllowedRequestHeaders(response, result);
 
@@ -65,8 +65,8 @@ class RateLimitResponseWriterTest {
     @Test
     void writeAllowedRequestHeaders_remainingFlooredAtZero_whenRequestCountExceedsLimit() {
 
-        final var response = new MockHttpServletResponse();
-        final var result = new RateLimitResult(true, 15L, MAX_REQUESTS, 45L);
+        var response = new MockHttpServletResponse();
+        var result = new RateLimitResult(true, 15L, MAX_REQUESTS, 45L);
 
         writer.writeAllowedRequestHeaders(response, result);
 

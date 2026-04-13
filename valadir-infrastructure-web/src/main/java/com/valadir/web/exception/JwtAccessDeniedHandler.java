@@ -16,17 +16,13 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
     private final SecurityErrorResponseWriter responseWriter;
 
-    public JwtAccessDeniedHandler(final SecurityErrorResponseWriter responseWriter) {
+    public JwtAccessDeniedHandler(SecurityErrorResponseWriter responseWriter) {
 
         this.responseWriter = responseWriter;
     }
 
     @Override
-    public void handle(
-        final HttpServletRequest request,
-        final HttpServletResponse response,
-        final AccessDeniedException e
-    ) throws IOException {
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException e) throws IOException {
 
         log.warn("Access denied: {}", e.getMessage());
 

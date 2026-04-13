@@ -33,12 +33,12 @@ class ApplicationWiring {
 
     @Bean
     RegisterUseCase registerUseCase(
-        final AccountRepository accountRepository,
-        final PasswordHasher passwordHasher,
-        final PasswordSecurityService passwordSecurityService,
-        final RegisterPersistence registerPersistence,
-        final AuthTokenIssuer authTokenIssuer,
-        final RefreshTokenStore refreshTokenStore
+        AccountRepository accountRepository,
+        PasswordHasher passwordHasher,
+        PasswordSecurityService passwordSecurityService,
+        RegisterPersistence registerPersistence,
+        AuthTokenIssuer authTokenIssuer,
+        RefreshTokenStore refreshTokenStore
     ) {
 
         return new RegisterService(
@@ -53,10 +53,10 @@ class ApplicationWiring {
 
     @Bean
     LoginUseCase loginUseCase(
-        final AccountRepository accountRepository,
-        final PasswordHasher passwordHasher,
-        final AuthTokenIssuer authTokenIssuer,
-        final RefreshTokenStore refreshTokenStore
+        AccountRepository accountRepository,
+        PasswordHasher passwordHasher,
+        AuthTokenIssuer authTokenIssuer,
+        RefreshTokenStore refreshTokenStore
     ) {
 
         return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenStore);
@@ -64,25 +64,22 @@ class ApplicationWiring {
 
     @Bean
     RefreshTokenUseCase refreshTokenUseCase(
-        final RefreshTokenStore refreshTokenStore,
-        final AccountRepository accountRepository,
-        final AuthTokenIssuer authTokenIssuer
+        RefreshTokenStore refreshTokenStore,
+        AccountRepository accountRepository,
+        AuthTokenIssuer authTokenIssuer
     ) {
 
         return new RefreshTokenService(refreshTokenStore, accountRepository, authTokenIssuer);
     }
 
     @Bean
-    LogoutUseCase logoutUseCase(final LogoutTokensInvalidator logoutTokensInvalidator) {
+    LogoutUseCase logoutUseCase(LogoutTokensInvalidator logoutTokensInvalidator) {
 
         return new LogoutService(logoutTokensInvalidator);
     }
 
     @Bean
-    JwtDecoder jwtDecoder(
-        @Qualifier("nimbusJwtDecoder") final JwtDecoder delegate,
-        final AccessTokenBlacklist accessTokenBlacklist
-    ) {
+    JwtDecoder jwtDecoder(@Qualifier("nimbusJwtDecoder") JwtDecoder delegate, AccessTokenBlacklist accessTokenBlacklist) {
 
         return new BlacklistAwareJwtDecoder(delegate, accessTokenBlacklist);
     }

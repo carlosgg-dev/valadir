@@ -29,8 +29,8 @@ class AccessTokenBlacklistRedisAdapterTest extends RedisTestContainer {
     @BeforeEach
     void setUp() {
 
-        final RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
-        try (final var connection = factory.getConnection()) {
+        RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
+        try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
         }
     }
@@ -38,7 +38,7 @@ class AccessTokenBlacklistRedisAdapterTest extends RedisTestContainer {
     @Test
     void isRevoked_revokedJti_returnsTrue() {
 
-        final String jti = UUID.randomUUID().toString();
+        String jti = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(RedisKeySpace.forBlacklist(jti), RedisKeySpace.BLACKLIST_REVOKED_VALUE, Duration.ofSeconds(900));
 
         assertThat(adapter.isRevoked(jti)).isTrue();

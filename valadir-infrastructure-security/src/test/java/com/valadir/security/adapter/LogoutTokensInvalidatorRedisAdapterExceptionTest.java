@@ -38,11 +38,11 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
     @Test
     void invalidate_redisConnectionFailure_throwsInfrastructureException() {
 
-        final var adapter = new LogoutTokensInvalidatorRedisAdapter(connectionFailureTemplate());
-        final String jti = UUID.randomUUID().toString();
-        final long remainingTtlSeconds = 600L;
-        final String refreshToken = UUID.randomUUID().toString();
-        final String accountId = AccountId.generate().toString();
+        var adapter = new LogoutTokensInvalidatorRedisAdapter(connectionFailureTemplate());
+        String jti = UUID.randomUUID().toString();
+        long remainingTtlSeconds = 600L;
+        String refreshToken = UUID.randomUUID().toString();
+        String accountId = AccountId.generate().toString();
 
         assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
             .isInstanceOf(InfrastructureException.class);
@@ -51,11 +51,11 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
     @Test
     void invalidate_redisSystemError_throwsInfrastructureException() {
 
-        final var adapter = new LogoutTokensInvalidatorRedisAdapter(systemErrorTemplate());
-        final String jti = UUID.randomUUID().toString();
-        final long remainingTtlSeconds = 600L;
-        final String refreshToken = UUID.randomUUID().toString();
-        final String accountId = AccountId.generate().toString();
+        var adapter = new LogoutTokensInvalidatorRedisAdapter(systemErrorTemplate());
+        String jti = UUID.randomUUID().toString();
+        long remainingTtlSeconds = 600L;
+        String refreshToken = UUID.randomUUID().toString();
+        String accountId = AccountId.generate().toString();
 
         assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
             .isInstanceOf(InfrastructureException.class);

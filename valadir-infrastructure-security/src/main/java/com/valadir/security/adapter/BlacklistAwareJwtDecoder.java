@@ -16,17 +16,17 @@ public class BlacklistAwareJwtDecoder implements JwtDecoder {
     private final JwtDecoder delegate;
     private final AccessTokenBlacklist accessTokenBlacklist;
 
-    public BlacklistAwareJwtDecoder(final JwtDecoder delegate, final AccessTokenBlacklist accessTokenBlacklist) {
+    public BlacklistAwareJwtDecoder(JwtDecoder delegate, AccessTokenBlacklist accessTokenBlacklist) {
 
         this.delegate = delegate;
         this.accessTokenBlacklist = accessTokenBlacklist;
     }
 
     @Override
-    public Jwt decode(final String token) throws JwtException {
+    public Jwt decode(String token) throws JwtException {
 
-        final Jwt jwt = delegate.decode(token);
-        final String jti = jwt.getId();
+        Jwt jwt = delegate.decode(token);
+        String jti = jwt.getId();
 
         if (jti != null) {
             try {

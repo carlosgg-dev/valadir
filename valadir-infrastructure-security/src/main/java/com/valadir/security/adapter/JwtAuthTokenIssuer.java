@@ -23,27 +23,27 @@ public class JwtAuthTokenIssuer implements AuthTokenIssuer {
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
 
-    public JwtAuthTokenIssuer(final JwtEncoder jwtEncoder, final JwtProperties jwtProperties) {
+    public JwtAuthTokenIssuer(JwtEncoder jwtEncoder, JwtProperties jwtProperties) {
 
         this.jwtEncoder = jwtEncoder;
         this.jwtProperties = jwtProperties;
     }
 
     @Override
-    public AuthTokenResult issue(final AccountId accountId, final Role role) {
+    public AuthTokenResult issue(AccountId accountId, Role role) {
 
-        final String accessToken = buildAccessToken(accountId, role);
-        final String refreshToken = UUID.randomUUID().toString();
+        String accessToken = buildAccessToken(accountId, role);
+        String refreshToken = UUID.randomUUID().toString();
 
         return new AuthTokenResult(accessToken, refreshToken);
     }
 
-    private String buildAccessToken(final AccountId accountId, final Role role) {
+    private String buildAccessToken(AccountId accountId, Role role) {
 
-        final Instant now = Instant.now();
-        final JwsHeader header = JwsHeader.with(() -> ALGORITHM).build();
+        Instant now = Instant.now();
+        JwsHeader header = JwsHeader.with(() -> ALGORITHM).build();
 
-        final JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet claims = JwtClaimsSet.builder()
             .id(UUID.randomUUID().toString())
             .subject(accountId.value().toString())
             .claim(ROLE_CLAIM, role.name())

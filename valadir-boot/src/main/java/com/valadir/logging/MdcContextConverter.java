@@ -9,10 +9,10 @@ import java.util.Map;
 public class MdcContextConverter extends ClassicConverter {
 
     @Override
-    public String convert(final ILoggingEvent event) {
+    public String convert(ILoggingEvent event) {
 
-        final Map<String, String> mdc = event.getMDCPropertyMap();
-        final String requestId = mdc.get(MdcKeys.REQUEST_ID);
+        Map<String, String> mdc = event.getMDCPropertyMap();
+        String requestId = mdc.get(MdcKeys.REQUEST_ID);
 
         if (requestId == null || requestId.isBlank()) {
             return "";

@@ -52,10 +52,10 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_ipStrategy_returnsKeyContainingClientIpAndPath() {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:ip:" + NORMALIZED_PATH + ":" + CLIENT_IP);
     }
@@ -63,11 +63,11 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_ipStrategy_withHeaderXForwardedForUsesFirstIpInChain() {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.addHeader("X-Forwarded-For", "203.0.113.5, 10.0.0.1, 192.168.1.1");
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:ip:" + NORMALIZED_PATH + ":203.0.113.5");
     }
@@ -76,11 +76,11 @@ class RateLimitKeyResolverTest {
     @ValueSource(strings = {"", " "})
     void resolve_ipStrategy_withBlankHeaderXForwardedForUsesClientIp(String header) {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.IP, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.addHeader("X-Forwarded-For", header);
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:ip:" + NORMALIZED_PATH + ":" + CLIENT_IP);
     }
@@ -88,12 +88,12 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_emailStrategy_withEmailReturnsKeyContainingEmailAndPath() throws Exception {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.setContent(objectMapper.writeValueAsBytes(Map.of("email", EMAIL, "password", "secret")));
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:email:" + NORMALIZED_PATH + ":" + EMAIL);
     }
@@ -101,12 +101,12 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_emailStrategy_missingEmailInBodyReturnsEmpty() throws Exception {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.setContent(objectMapper.writeValueAsBytes(Map.of("password", "secret")));
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).isEmpty();
     }
@@ -115,12 +115,12 @@ class RateLimitKeyResolverTest {
     @ValueSource(strings = {"", " "})
     void resolve_emailStrategy_blankEmailReturnsEmpty(String email) throws Exception {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.setContent(objectMapper.writeValueAsBytes(Map.of("email", email, "password", "secret")));
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).isEmpty();
     }
@@ -128,12 +128,12 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_emailStrategy_invalidJsonReturnsEmpty() {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
         request.setContent("not-json".getBytes());
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).isEmpty();
     }
@@ -142,10 +142,10 @@ class RateLimitKeyResolverTest {
     void resolve_userStrategy_authenticatedReturnsKeyContainingAccountId() {
 
         authenticate();
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:user:" + ACCOUNT_ID);
     }
@@ -153,10 +153,10 @@ class RateLimitKeyResolverTest {
     @Test
     void resolve_userStrategy_unauthenticatedReturnsEmpty() {
 
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).isEmpty();
     }
@@ -165,22 +165,22 @@ class RateLimitKeyResolverTest {
     void resolve_userStrategy_nonJwtAuthenticationReturnsEmpty() {
 
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(ACCOUNT_ID, null));
-        final var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).isEmpty();
     }
 
     @ParameterizedTest(name = "{0} → {1}")
     @MethodSource("pathNormalizationCases")
-    void resolve_ipStrategy_normalizesPathCorrectly(final String path, final String expectedNormalized) {
+    void resolve_ipStrategy_normalizesPathCorrectly(String path, String expectedNormalized) {
 
-        final var rule = new RateLimitProperties.Rule(path, Strategy.IP, MAX_REQUESTS, WINDOW);
-        final MockHttpServletRequest request = buildRequest();
+        var rule = new RateLimitProperties.Rule(path, Strategy.IP, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
 
-        final Optional<String> key = resolver.resolve(request, rule);
+        Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:ip:" + expectedNormalized + ":" + CLIENT_IP);
     }
@@ -200,7 +200,7 @@ class RateLimitKeyResolverTest {
 
     private MockHttpServletRequest buildRequest() {
 
-        final var request = new MockHttpServletRequest();
+        var request = new MockHttpServletRequest();
         request.setRequestURI(PATH);
         request.setRemoteAddr(CLIENT_IP);
         return request;
@@ -208,7 +208,7 @@ class RateLimitKeyResolverTest {
 
     private void authenticate() {
 
-        final Jwt jwt = Jwt.withTokenValue("token")
+        Jwt jwt = Jwt.withTokenValue("token")
             .header("alg", "ES256")
             .subject(ACCOUNT_ID)
             .issuedAt(Instant.now())

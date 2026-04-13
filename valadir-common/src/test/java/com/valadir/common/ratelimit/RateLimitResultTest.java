@@ -9,7 +9,7 @@ class RateLimitResultTest {
     @Test
     void remaining_requestCountBelowLimit_returnsAvailableSlots() {
 
-        final var result = new RateLimitResult(true, 3L, 10, 60L);
+        var result = new RateLimitResult(true, 3L, 10, 60L);
 
         assertThat(result.remaining()).isEqualTo(7L);
     }
@@ -17,7 +17,7 @@ class RateLimitResultTest {
     @Test
     void remaining_requestCountEqualsLimit_returnsZero() {
 
-        final var result = new RateLimitResult(false, 10L, 10, 60L);
+        var result = new RateLimitResult(false, 10L, 10, 60L);
 
         assertThat(result.remaining()).isZero();
     }
@@ -25,7 +25,7 @@ class RateLimitResultTest {
     @Test
     void remaining_requestCountExceedsLimit_returnsZero() {
 
-        final var result = new RateLimitResult(false, 15L, 10, 60L);
+        var result = new RateLimitResult(false, 15L, 10, 60L);
 
         assertThat(result.remaining()).isZero();
     }
@@ -33,8 +33,8 @@ class RateLimitResultTest {
     @Test
     void isMoreRestrictiveThan_fewerRemainingRequests_returnsTrue() {
 
-        final var restrictive = new RateLimitResult(true, 8L, 10, 60L);  // 2 remaining
-        final var lenient = new RateLimitResult(true, 5L, 10, 60L);       // 5 remaining
+        var restrictive = new RateLimitResult(true, 8L, 10, 60L);  // 2 remaining
+        var lenient = new RateLimitResult(true, 5L, 10, 60L);       // 5 remaining
 
         assertThat(restrictive.isMoreRestrictiveThan(lenient)).isTrue();
     }
@@ -42,8 +42,8 @@ class RateLimitResultTest {
     @Test
     void isMoreRestrictiveThan_moreRemainingRequests_returnsFalse() {
 
-        final var lenient = new RateLimitResult(true, 5L, 10, 60L);       // 5 remaining
-        final var restrictive = new RateLimitResult(true, 8L, 10, 60L);   // 2 remaining
+        var lenient = new RateLimitResult(true, 5L, 10, 60L);       // 5 remaining
+        var restrictive = new RateLimitResult(true, 8L, 10, 60L);   // 2 remaining
 
         assertThat(lenient.isMoreRestrictiveThan(restrictive)).isFalse();
     }
@@ -51,8 +51,8 @@ class RateLimitResultTest {
     @Test
     void isMoreRestrictiveThan_equalRemainingRequests_returnsFalse() {
 
-        final var a = new RateLimitResult(true, 7L, 10, 60L);  // 3 remaining
-        final var b = new RateLimitResult(true, 7L, 10, 60L);  // 3 remaining
+        var a = new RateLimitResult(true, 7L, 10, 60L);  // 3 remaining
+        var b = new RateLimitResult(true, 7L, 10, 60L);  // 3 remaining
 
         assertThat(a.isMoreRestrictiveThan(b)).isFalse();
     }

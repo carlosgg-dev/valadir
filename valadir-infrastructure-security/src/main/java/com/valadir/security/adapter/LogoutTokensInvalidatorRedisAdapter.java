@@ -18,7 +18,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisScript<Long> logoutInvalidateTokensScript;
 
-    public LogoutTokensInvalidatorRedisAdapter(final RedisTemplate<String, String> redisTemplate) {
+    public LogoutTokensInvalidatorRedisAdapter(RedisTemplate<String, String> redisTemplate) {
 
         this.redisTemplate = redisTemplate;
         this.logoutInvalidateTokensScript = RedisScript.of(new ClassPathResource("scripts/logout_invalidate_tokens.lua"), Long.class);
@@ -26,7 +26,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
 
     // Atomic: blacklists the access token and removes the refresh token from the user token set
     @Override
-    public void invalidate(final String jti, final long remainingTtlSeconds, final String refreshToken, final String accountId) {
+    public void invalidate(String jti, long remainingTtlSeconds, String refreshToken, String accountId) {
 
         try {
             redisTemplate.execute(

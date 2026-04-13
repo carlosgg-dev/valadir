@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class HttpStatusResolver {
 
-    HttpStatus resolve(final ErrorCode code) {
+    HttpStatus resolve(ErrorCode code) {
 
         return switch (code.getCategory()) {
             case VALIDATION -> HttpStatus.BAD_REQUEST;

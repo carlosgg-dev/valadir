@@ -16,17 +16,13 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final SecurityErrorResponseWriter responseWriter;
 
-    public JwtAuthenticationEntryPoint(final SecurityErrorResponseWriter responseWriter) {
+    public JwtAuthenticationEntryPoint(SecurityErrorResponseWriter responseWriter) {
 
         this.responseWriter = responseWriter;
     }
 
     @Override
-    public void commence(
-        final HttpServletRequest request,
-        final HttpServletResponse response,
-        final AuthenticationException e
-    ) throws IOException {
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException e) throws IOException {
 
         log.warn("Authentication failed: {}", e.getMessage());
 

@@ -51,7 +51,7 @@ class RedisKeySpaceTest {
     @Test
     void forRateLimitUser_returnsExpectedKey() {
 
-        final var accountId = ACCOUNT_UUID.toString();
+        var accountId = ACCOUNT_UUID.toString();
 
         assertThat(RedisKeySpace.forRateLimitUser(accountId))
             .isEqualTo("rate_limit:user:" + accountId);

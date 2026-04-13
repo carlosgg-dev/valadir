@@ -16,11 +16,10 @@ public class PasswordSecurityService {
 
     public void validatePassword(RawPassword password, Email email, UserProfileData profileData) {
 
-        final String pwd = password.value().toLowerCase();
+        String pwd = password.value().toLowerCase();
+        boolean containsEmail = pwd.contains(email.value().toLowerCase());
 
-        final boolean containsEmail = pwd.contains(email.value().toLowerCase());
-
-        final Set<String> nameTerms = profileData.values().stream()
+        Set<String> nameTerms = profileData.values().stream()
             .map(String::toLowerCase)
             .flatMap(term -> Arrays.stream(term.split("[\\s._-]+")))
             .filter(term -> term.length() >= MIN_TERM_LENGTH)

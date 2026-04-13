@@ -17,12 +17,12 @@ class AccountMapperTest {
     @Test
     void toDomain_validEntity_mapsAllFields() {
 
-        final var id = UUID.randomUUID();
-        final var email = "bruce.wayne@email.com";
-        final var hashedPassword = "$2a$12$hashedpassword";
-        final var entity = new AccountEntity(id, email, hashedPassword, Role.USER);
+        var id = UUID.randomUUID();
+        var email = "bruce.wayne@email.com";
+        var hashedPassword = "$2a$12$hashedpassword";
+        var entity = new AccountEntity(id, email, hashedPassword, Role.USER);
 
-        final Account result = AccountMapper.toDomain(entity);
+        Account result = AccountMapper.toDomain(entity);
 
         assertThat(result.getId().value()).isEqualTo(id);
         assertThat(result.getEmail().value()).isEqualTo(email);
@@ -33,23 +33,22 @@ class AccountMapperTest {
     @Test
     void toEntity_validDomain_mapsAllFields() {
 
-        final var id = UUID.randomUUID();
-        final var email = "bruce.wayne@email.com";
-        final var hashedPassword = "$2a$12$hashedpassword";
+        var id = UUID.randomUUID();
+        var email = "bruce.wayne@email.com";
+        var hashedPassword = "$2a$12$hashedpassword";
 
-        final var account = Account.from(
+        var account = Account.from(
             AccountId.from(id),
             new Email(email),
             new HashedPassword(hashedPassword),
             Role.USER
         );
 
-        final AccountEntity result = AccountMapper.toEntity(account);
+        AccountEntity result = AccountMapper.toEntity(account);
 
         assertThat(result.getId()).isEqualTo(id);
         assertThat(result.getEmail()).isEqualTo(email);
         assertThat(result.getHashedPassword()).isEqualTo(hashedPassword);
         assertThat(result.getRole()).isEqualTo(Role.USER);
     }
-
 }

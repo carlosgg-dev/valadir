@@ -38,10 +38,10 @@ class AuthController {
     private final LogoutUseCase logoutUseCase;
 
     AuthController(
-        final RegisterUseCase registerUseCase,
-        final LoginUseCase loginUseCase,
-        final RefreshTokenUseCase refreshTokenUseCase,
-        final LogoutUseCase logoutUseCase
+        RegisterUseCase registerUseCase,
+        LoginUseCase loginUseCase,
+        RefreshTokenUseCase refreshTokenUseCase,
+        LogoutUseCase logoutUseCase
     ) {
 
         this.registerUseCase = registerUseCase;
@@ -52,9 +52,9 @@ class AuthController {
 
     @PostMapping(ApiRoutes.Auth.REGISTER)
     @ResponseStatus(HttpStatus.CREATED)
-    AuthResponse register(@Valid @RequestBody final RegisterRequest request) {
+    AuthResponse register(@Valid @RequestBody RegisterRequest request) {
 
-        final AuthTokenResult result = registerUseCase.register(new RegisterCommand(
+        AuthTokenResult result = registerUseCase.register(new RegisterCommand(
             request.email(),
             request.password(),
             request.fullName(),
@@ -65,26 +65,26 @@ class AuthController {
     }
 
     @PostMapping(ApiRoutes.Auth.LOGIN)
-    AuthResponse login(@Valid @RequestBody final LoginRequest request) {
+    AuthResponse login(@Valid @RequestBody LoginRequest request) {
 
-        final AuthTokenResult result = loginUseCase.login(new LoginCommand(request.email(), request.password()));
+        AuthTokenResult result = loginUseCase.login(new LoginCommand(request.email(), request.password()));
 
         return new AuthResponse(result.accessToken(), result.refreshToken());
     }
 
     @PostMapping(ApiRoutes.Auth.REFRESH)
-    AuthResponse refresh(@Valid @RequestBody final RefreshRequest request) {
+    AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
 
-        final AuthTokenResult result = refreshTokenUseCase.refresh(new RefreshTokenCommand(request.refreshToken()));
+        AuthTokenResult result = refreshTokenUseCase.refresh(new RefreshTokenCommand(request.refreshToken()));
 
         return new AuthResponse(result.accessToken(), result.refreshToken());
     }
 
     @PostMapping(ApiRoutes.Auth.LOGOUT)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void logout(@Valid @RequestBody final LogoutRequest request, @AuthenticationPrincipal final Jwt jwt) {
+    void logout(@Valid @RequestBody LogoutRequest request, @AuthenticationPrincipal Jwt jwt) {
 
-        final long remainingTtl = Objects.requireNonNull(jwt.getExpiresAt()).getEpochSecond() - Instant.now().getEpochSecond();
+        long remainingTtl = Objects.requireNonNull(jwt.getExpiresAt()).getEpochSecond() - Instant.now().getEpochSecond();
 
         logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), jwt.getSubject()));
     }

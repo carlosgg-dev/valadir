@@ -36,12 +36,12 @@ class BlacklistAwareJwtDecoderTest {
     @Test
     void decode_validNonRevokedToken_returnsJwt() {
 
-        final String jti = UUID.randomUUID().toString();
-        final Jwt jwt = buildJwt(jti);
+        String jti = UUID.randomUUID().toString();
+        Jwt jwt = buildJwt(jti);
         given(delegate.decode("token")).willReturn(jwt);
         given(accessTokenBlacklist.isRevoked(jti)).willReturn(false);
 
-        final Jwt result = decoder.decode("token");
+        Jwt result = decoder.decode("token");
 
         assertThat(result).isEqualTo(jwt);
     }
@@ -49,7 +49,7 @@ class BlacklistAwareJwtDecoderTest {
     @Test
     void decode_revokedToken_throwsBadJwtException() {
 
-        final String jti = UUID.randomUUID().toString();
+        String jti = UUID.randomUUID().toString();
         given(delegate.decode("token")).willReturn(buildJwt(jti));
         given(accessTokenBlacklist.isRevoked(jti)).willReturn(true);
 
@@ -60,12 +60,12 @@ class BlacklistAwareJwtDecoderTest {
     @Test
     void decode_blacklistUnavailable_failsOpenAndReturnsJwt() {
 
-        final String jti = UUID.randomUUID().toString();
-        final Jwt jwt = buildJwt(jti);
+        String jti = UUID.randomUUID().toString();
+        Jwt jwt = buildJwt(jti);
         given(delegate.decode("token")).willReturn(jwt);
         given(accessTokenBlacklist.isRevoked(jti)).willThrow(new InfrastructureException("Redis unavailable", new RuntimeException()));
 
-        final Jwt result = decoder.decode("token");
+        Jwt result = decoder.decode("token");
 
         assertThat(result).isEqualTo(jwt);
     }
@@ -73,16 +73,16 @@ class BlacklistAwareJwtDecoderTest {
     @Test
     void decode_tokenWithoutJti_skipsBlacklistCheck() {
 
-        final Jwt jwt = buildJwt(null);
+        Jwt jwt = buildJwt(null);
         given(delegate.decode("token")).willReturn(jwt);
 
-        final Jwt result = decoder.decode("token");
+        Jwt result = decoder.decode("token");
 
         assertThat(result).isEqualTo(jwt);
         then(accessTokenBlacklist).should(never()).isRevoked(any());
     }
 
-    private static Jwt buildJwt(final String jti) {
+    private static Jwt buildJwt(String jti) {
 
         return Jwt.withTokenValue("token")
             .header("alg", "RS256")

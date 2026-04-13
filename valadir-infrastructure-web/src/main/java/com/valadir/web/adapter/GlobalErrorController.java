@@ -18,13 +18,13 @@ class GlobalErrorController implements ErrorController {
     private static final Logger log = LoggerFactory.getLogger(GlobalErrorController.class);
 
     @RequestMapping("/error")
-    ResponseEntity<ErrorResponse> handleError(final HttpServletRequest request) {
+    ResponseEntity<ErrorResponse> handleError(HttpServletRequest request) {
 
-        final Object statusAttr = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        final int statusCode = statusAttr instanceof Integer code ? code : HttpStatus.INTERNAL_SERVER_ERROR.value();
-        final HttpStatus resolved = HttpStatus.resolve(statusCode);
-        final HttpStatus status = resolved != null ? resolved : HttpStatus.INTERNAL_SERVER_ERROR;
-        final Throwable cause = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+        Object statusAttr = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+        int statusCode = statusAttr instanceof Integer code ? code : HttpStatus.INTERNAL_SERVER_ERROR.value();
+        HttpStatus resolved = HttpStatus.resolve(statusCode);
+        HttpStatus status = resolved != null ? resolved : HttpStatus.INTERNAL_SERVER_ERROR;
+        Throwable cause = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
 
         if (status.is5xxServerError()) {
             log.error("Unhandled filter-level error: status={}", statusCode, cause);

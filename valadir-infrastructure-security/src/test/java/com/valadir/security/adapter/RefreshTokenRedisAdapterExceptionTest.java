@@ -44,8 +44,8 @@ class RefreshTokenRedisAdapterExceptionTest {
     @Test
     void validate_redisConnectionFailure_throwsInfrastructureException() {
 
-        final var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        final String token = UUID.randomUUID().toString();
+        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        String token = UUID.randomUUID().toString();
 
         assertThatThrownBy(() -> adapter.validate(token))
             .isInstanceOf(InfrastructureException.class);
@@ -54,8 +54,8 @@ class RefreshTokenRedisAdapterExceptionTest {
     @Test
     void validate_redisSystemError_throwsInfrastructureException() {
 
-        final var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
-        final String token = UUID.randomUUID().toString();
+        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        String token = UUID.randomUUID().toString();
 
         assertThatThrownBy(() -> adapter.validate(token))
             .isInstanceOf(InfrastructureException.class);
@@ -65,9 +65,9 @@ class RefreshTokenRedisAdapterExceptionTest {
     void save_redisConnectionFailure_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtlSeconds()).willReturn(604800L);
-        final var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        final String token = UUID.randomUUID().toString();
-        final AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        String token = UUID.randomUUID().toString();
+        AccountId accountId = AccountId.generate();
 
         assertThatThrownBy(() -> adapter.save(token, accountId))
             .isInstanceOf(InfrastructureException.class);
@@ -77,9 +77,9 @@ class RefreshTokenRedisAdapterExceptionTest {
     void save_redisSystemError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtlSeconds()).willReturn(604800L);
-        final var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
-        final String token = UUID.randomUUID().toString();
-        final AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        String token = UUID.randomUUID().toString();
+        AccountId accountId = AccountId.generate();
 
         assertThatThrownBy(() -> adapter.save(token, accountId))
             .isInstanceOf(InfrastructureException.class);
@@ -89,10 +89,10 @@ class RefreshTokenRedisAdapterExceptionTest {
     void rotate_redisConnectionFailure_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtlSeconds()).willReturn(604800L);
-        final var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        final String oldToken = UUID.randomUUID().toString();
-        final String newToken = UUID.randomUUID().toString();
-        final AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        String oldToken = UUID.randomUUID().toString();
+        String newToken = UUID.randomUUID().toString();
+        AccountId accountId = AccountId.generate();
 
         assertThatThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
             .isInstanceOf(InfrastructureException.class);
@@ -102,10 +102,10 @@ class RefreshTokenRedisAdapterExceptionTest {
     void rotate_redisSystemError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtlSeconds()).willReturn(604800L);
-        final var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
-        final String oldToken = UUID.randomUUID().toString();
-        final String newToken = UUID.randomUUID().toString();
-        final AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        String oldToken = UUID.randomUUID().toString();
+        String newToken = UUID.randomUUID().toString();
+        AccountId accountId = AccountId.generate();
 
         assertThatThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
             .isInstanceOf(InfrastructureException.class);

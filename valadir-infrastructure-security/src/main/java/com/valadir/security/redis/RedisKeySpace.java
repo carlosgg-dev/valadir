@@ -18,32 +18,32 @@ public final class RedisKeySpace {
 
     }
 
-    public static String forBlacklist(final String jti) {
+    public static String forBlacklist(String jti) {
 
         return AUTH_BLACKLIST_PREFIX + jti;
     }
 
-    public static String forRefreshToken(final String token) {
+    public static String forRefreshToken(String token) {
 
         return AUTH_REFRESH_TOKEN_PREFIX + token;
     }
 
-    public static String forUserTokens(final String accountId) {
+    public static String forUserTokens(String accountId) {
 
         return AUTH_USER_TOKENS_PREFIX + accountId;
     }
 
-    public static String forRateLimitIp(final String pathKey, final String ip) {
+    public static String forRateLimitIp(String pathKey, String ip) {
 
         return RATE_LIMIT_IP_PREFIX + pathKey + ":" + ip;
     }
 
-    public static String forRateLimitEmail(final String pathKey, final String email) {
+    public static String forRateLimitEmail(String pathKey, String email) {
 
         return RATE_LIMIT_EMAIL_PREFIX + pathKey + ":" + email;
     }
 
-    public static String forRateLimitUser(final String accountId) {
+    public static String forRateLimitUser(String accountId) {
 
         return RATE_LIMIT_USER_PREFIX + accountId;
     }

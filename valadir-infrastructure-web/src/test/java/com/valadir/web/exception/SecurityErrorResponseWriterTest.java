@@ -19,7 +19,7 @@ class SecurityErrorResponseWriterTest {
     @Test
     void write_setsStatusContentTypeAndErrorCodeBody() throws Exception {
 
-        final var response = new MockHttpServletResponse();
+        var response = new MockHttpServletResponse();
         int status = HttpServletResponse.SC_UNAUTHORIZED;
         ErrorCode errorCode = ErrorCode.AUTHENTICATION_REQUIRED;
 
@@ -28,7 +28,7 @@ class SecurityErrorResponseWriterTest {
         assertThat(response.getStatus()).isEqualTo(status);
         assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
 
-        final ErrorResponse body = OBJECT_MAPPER.readValue(response.getContentAsString(), ErrorResponse.class);
+        ErrorResponse body = OBJECT_MAPPER.readValue(response.getContentAsString(), ErrorResponse.class);
         assertThat(body.code()).isEqualTo(errorCode.getCode());
     }
 }

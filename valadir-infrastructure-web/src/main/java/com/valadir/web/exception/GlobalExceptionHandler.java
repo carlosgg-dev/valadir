@@ -27,20 +27,20 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private final HttpStatusResolver httpStatusResolver;
 
-    GlobalExceptionHandler(final HttpStatusResolver httpStatusResolver) {
+    GlobalExceptionHandler(HttpStatusResolver httpStatusResolver) {
 
         this.httpStatusResolver = httpStatusResolver;
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
-        @NonNull final MethodArgumentNotValidException e,
-        @NonNull final HttpHeaders headers,
-        @NonNull final HttpStatusCode status,
-        @NonNull final WebRequest request
+        @NonNull MethodArgumentNotValidException e,
+        @NonNull HttpHeaders headers,
+        @NonNull HttpStatusCode status,
+        @NonNull WebRequest request
     ) {
 
-        final List<ErrorResponse.FieldError> errors = e.getBindingResult().getFieldErrors().stream()
+        List<ErrorResponse.FieldError> errors = e.getBindingResult().getFieldErrors().stream()
             .map(fieldError -> new ErrorResponse.FieldError(fieldError.getField(), fieldError.getDefaultMessage()))
             .toList();
 
@@ -53,11 +53,11 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
-        @NonNull final Exception e,
-        final Object body,
-        @NonNull final HttpHeaders headers,
-        @NonNull final HttpStatusCode status,
-        @NonNull final WebRequest request
+        @NonNull Exception e,
+        Object body,
+        @NonNull HttpHeaders headers,
+        @NonNull HttpStatusCode status,
+        @NonNull WebRequest request
     ) {
 
         logAtLevel(status, "Spring MVC error: " + e.getMessage(), e);
@@ -68,7 +68,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(DomainException.class)
-    ResponseEntity<ErrorResponse> handleDomain(final DomainException e) {
+    ResponseEntity<ErrorResponse> handleDomain(DomainException e) {
 
         log.warn("Domain rule violation: {}", e.getMessage());
 
@@ -78,9 +78,9 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(ApplicationException.class)
-    ResponseEntity<ErrorResponse> handleApplication(final ApplicationException e) {
+    ResponseEntity<ErrorResponse> handleApplication(ApplicationException e) {
 
-        final HttpStatus status = httpStatusResolver.resolve(e.getErrorCode());
+        HttpStatus status = httpStatusResolver.resolve(e.getErrorCode());
         logAtLevel(status, "Application error: " + e.getMessage(), e);
 
         return ResponseEntity
@@ -89,7 +89,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(InfrastructureException.class)
-    ResponseEntity<ErrorResponse> handleInfrastructure(final InfrastructureException e) {
+    ResponseEntity<ErrorResponse> handleInfrastructure(InfrastructureException e) {
 
         log.error("Infrastructure dependency unavailable: {}", e.getMessage(), e);
 
@@ -99,7 +99,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ErrorResponse> handleUnexpected(final Exception e) {
+    ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
 
         log.error("Unexpected error", e);
 
@@ -108,7 +108,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 
-    private static void logAtLevel(final HttpStatusCode status, final String message, final Exception e) {
+    private static void logAtLevel(HttpStatusCode status, String message, Exception e) {
 
         if (status.is5xxServerError()) {
             log.error(message, e);

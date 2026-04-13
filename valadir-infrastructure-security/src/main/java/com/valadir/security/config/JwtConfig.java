@@ -21,18 +21,18 @@ import java.text.ParseException;
 class JwtConfig {
 
     @Bean
-    JwtEncoder jwtEncoder(final JwtProperties properties) throws ParseException {
+    JwtEncoder jwtEncoder(JwtProperties properties) throws ParseException {
 
-        final ECKey ecKey = ECKey.parse(properties.privateKey());
+        ECKey ecKey = ECKey.parse(properties.privateKey());
         return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
     }
 
     @Bean("nimbusJwtDecoder")
-    JwtDecoder nimbusJwtDecoder(final JwtProperties properties) throws ParseException {
+    JwtDecoder nimbusJwtDecoder(JwtProperties properties) throws ParseException {
 
-        final ECKey publicKey = ECKey.parse(properties.privateKey()).toPublicJWK();
-        final var jwkSource = new ImmutableJWKSet<>(new JWKSet(publicKey));
-        final var processor = new DefaultJWTProcessor<>();
+        ECKey publicKey = ECKey.parse(properties.privateKey()).toPublicJWK();
+        var jwkSource = new ImmutableJWKSet<>(new JWKSet(publicKey));
+        var processor = new DefaultJWTProcessor<>();
         processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.ES256, jwkSource));
         return new NimbusJwtDecoder(processor);
     }

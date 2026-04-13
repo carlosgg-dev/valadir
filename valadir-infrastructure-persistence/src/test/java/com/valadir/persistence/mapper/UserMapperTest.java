@@ -17,14 +17,13 @@ class UserMapperTest {
     @Test
     void toDomain_validEntity_mapsAllFields() {
 
-        final var id = UUID.randomUUID();
-        final var accountId = UUID.randomUUID();
-        final var fullName = "Bruce Wayne";
-        final var givenName = "Bruce";
+        var id = UUID.randomUUID();
+        var accountId = UUID.randomUUID();
+        var fullName = "Bruce Wayne";
+        var givenName = "Bruce";
+        var entity = new UserEntity(id, accountId, fullName, givenName);
 
-        final var entity = new UserEntity(id, accountId, fullName, givenName);
-
-        final User result = UserMapper.toDomain(entity);
+        User result = UserMapper.toDomain(entity);
 
         assertThat(result.getId().value()).isEqualTo(id);
         assertThat(result.getAccountId().value()).isEqualTo(accountId);
@@ -35,19 +34,19 @@ class UserMapperTest {
     @Test
     void toEntity_validDomain_mapsAllFields() {
 
-        final var id = UUID.randomUUID();
-        final var accountId = UUID.randomUUID();
-        final var fullName = "Bruce Wayne";
-        final var givenName = "Bruce";
+        var id = UUID.randomUUID();
+        var accountId = UUID.randomUUID();
+        var fullName = "Bruce Wayne";
+        var givenName = "Bruce";
 
-        final User user = User.newProfile(
+        User user = User.newProfile(
             UserId.from(id),
             AccountId.from(accountId),
             new FullName(fullName),
             new GivenName(givenName)
         );
 
-        final UserEntity result = UserMapper.toEntity(user);
+        UserEntity result = UserMapper.toEntity(user);
 
         assertThat(result.getId()).isEqualTo(id);
         assertThat(result.getAccountId()).isEqualTo(accountId);

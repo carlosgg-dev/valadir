@@ -24,7 +24,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
 
-    public RefreshTokenRedisAdapter(final RedisTemplate<String, String> redisTemplate, final JwtProperties jwtProperties) {
+    public RefreshTokenRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
 
         this.redisTemplate = redisTemplate;
         this.jwtProperties = jwtProperties;
@@ -33,10 +33,10 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
     }
 
     @Override
-    public TokenValidationResult validate(final String token) {
+    public TokenValidationResult validate(String token) {
 
         try {
-            final String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
+            String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
             return accountIdValue == null
                 ? new TokenValidationResult.Invalid()
                 : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
@@ -47,10 +47,10 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
 
     // Atomic: stores the refresh token and registers it in the user's token set
     @Override
-    public void save(final String token, final AccountId accountId) {
+    public void save(String token, AccountId accountId) {
 
         try {
-            final String accountIdStr = accountId.value().toString();
+            String accountIdStr = accountId.value().toString();
             redisTemplate.execute(
                 saveRefreshTokenScript,
                 List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
@@ -65,11 +65,11 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
 
     // Atomic: removes old token and stores new one with TTL. Returns false if old token no longer exists
     @Override
-    public boolean rotate(final String oldToken, final String newToken, final AccountId accountId) {
+    public boolean rotate(String oldToken, String newToken, AccountId accountId) {
 
         try {
-            final String accountIdStr = accountId.value().toString();
-            final Long result = redisTemplate.execute(
+            String accountIdStr = accountId.value().toString();
+            Long result = redisTemplate.execute(
                 rotateRefreshTokenScript,
                 List.of(
                     RedisKeySpace.forRefreshToken(oldToken),

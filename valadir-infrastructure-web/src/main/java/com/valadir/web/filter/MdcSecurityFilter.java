@@ -18,12 +18,12 @@ public class MdcSecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        @NonNull final HttpServletRequest request,
-        @NonNull final HttpServletResponse response,
-        @NonNull final FilterChain chain
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain chain
     ) throws ServletException, IOException {
 
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwtToken) {
             MDC.put(MdcKeys.ACCOUNT_ID, jwtToken.getName());
         }

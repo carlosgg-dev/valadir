@@ -38,20 +38,20 @@ class JwtAuthTokenIssuerTest {
     @BeforeEach
     void setUp() throws Exception {
 
-        final KeyPairGenerator kpg = KeyPairGenerator.getInstance(EC_ALGORITHM);
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance(EC_ALGORITHM);
         kpg.initialize(EC_KEY_SIZE);
-        final KeyPair keyPair = kpg.generateKeyPair();
+        KeyPair keyPair = kpg.generateKeyPair();
 
-        final ECKey ecKey = new ECKey.Builder(Curve.P_256, (ECPublicKey) keyPair.getPublic())
+        ECKey ecKey = new ECKey.Builder(Curve.P_256, (ECPublicKey) keyPair.getPublic())
             .privateKey((ECPrivateKey) keyPair.getPrivate())
             .build();
 
-        final var properties = new JwtProperties(ecKey.toJSONString(), ACCESS_TTL, REFRESH_TTL);
-        final var jwtEncoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
+        var properties = new JwtProperties(ecKey.toJSONString(), ACCESS_TTL, REFRESH_TTL);
+        var jwtEncoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
         issuer = new JwtAuthTokenIssuer(jwtEncoder, properties);
 
-        final var jwkSource = new ImmutableJWKSet<>(new JWKSet(ecKey.toPublicJWK()));
-        final var processor = new DefaultJWTProcessor<>();
+        var jwkSource = new ImmutableJWKSet<>(new JWKSet(ecKey.toPublicJWK()));
+        var processor = new DefaultJWTProcessor<>();
         processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.ES256, jwkSource));
         jwtDecoder = new NimbusJwtDecoder(processor);
     }
@@ -59,10 +59,10 @@ class JwtAuthTokenIssuerTest {
     @Test
     void issue_validInput_returnsAccessTokenWithCorrectClaims() {
 
-        final var accountId = AccountId.generate();
+        var accountId = AccountId.generate();
 
-        final AuthTokenResult result = issuer.issue(accountId, Role.USER);
-        final var jwt = jwtDecoder.decode(result.accessToken());
+        AuthTokenResult result = issuer.issue(accountId, Role.USER);
+        var jwt = jwtDecoder.decode(result.accessToken());
 
         assertThat(jwt.getId()).isNotNull();
         assertThat(jwt.getSubject()).isEqualTo(accountId.value().toString());
@@ -74,12 +74,12 @@ class JwtAuthTokenIssuerTest {
     @Test
     void issue_validInput_accessTokenExpiresAfterTtl() {
 
-        final AuthTokenResult result = issuer.issue(AccountId.generate(), Role.USER);
-        final var jwt = jwtDecoder.decode(result.accessToken());
+        AuthTokenResult result = issuer.issue(AccountId.generate(), Role.USER);
+        var jwt = jwtDecoder.decode(result.accessToken());
 
         long issuedAt = requireNonNull(jwt.getIssuedAt()).getEpochSecond();
         long expiresAt = requireNonNull(jwt.getExpiresAt()).getEpochSecond();
-        final long ttl = expiresAt - issuedAt;
+        long ttl = expiresAt - issuedAt;
 
         assertThat(ttl).isEqualTo(ACCESS_TTL);
     }
@@ -87,7 +87,7 @@ class JwtAuthTokenIssuerTest {
     @Test
     void issue_validInput_refreshTokenIsOpaqueUuid() {
 
-        final AuthTokenResult result = issuer.issue(AccountId.generate(), Role.USER);
+        AuthTokenResult result = issuer.issue(AccountId.generate(), Role.USER);
 
         assertThat(result.refreshToken()).isNotBlank();
         assertThat(result.refreshToken()).doesNotContain(".");
@@ -96,10 +96,10 @@ class JwtAuthTokenIssuerTest {
     @Test
     void issue_calledTwice_generatesDifferentJtis() {
 
-        final var accountId = AccountId.generate();
+        var accountId = AccountId.generate();
 
-        final String token1 = issuer.issue(accountId, Role.USER).accessToken();
-        final String token2 = issuer.issue(accountId, Role.USER).accessToken();
+        String token1 = issuer.issue(accountId, Role.USER).accessToken();
+        String token2 = issuer.issue(accountId, Role.USER).accessToken();
 
         assertThat(jwtDecoder.decode(token1).getId())
             .isNotEqualTo(jwtDecoder.decode(token2).getId());

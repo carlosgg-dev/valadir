@@ -19,7 +19,7 @@ class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
 
     private final byte[] cachedBody;
 
-    CachedBodyRequestWrapper(final HttpServletRequest request) throws IOException {
+    CachedBodyRequestWrapper(HttpServletRequest request) throws IOException {
 
         super(request);
         this.cachedBody = request.getInputStream().readAllBytes();
@@ -41,7 +41,7 @@ class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
 
         private final ByteArrayInputStream delegate;
 
-        CachedBodyServletInputStream(final byte[] body) {
+        CachedBodyServletInputStream(byte[] body) {
 
             this.delegate = new ByteArrayInputStream(body);
         }
@@ -59,7 +59,7 @@ class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
         }
 
         @Override
-        public void setReadListener(final ReadListener readListener) {
+        public void setReadListener(ReadListener readListener) {
 
             throw new UnsupportedOperationException("Async reads not supported");
         }

@@ -19,12 +19,12 @@ public class MdcRequestFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        @NonNull final HttpServletRequest request,
-        @NonNull final HttpServletResponse response,
-        @NonNull final FilterChain chain
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain chain
     ) throws ServletException, IOException {
 
-        final String requestId = Optional.ofNullable(request.getHeader(REQUEST_ID_HEADER))
+        String requestId = Optional.ofNullable(request.getHeader(REQUEST_ID_HEADER))
             .filter(id -> !id.isBlank())
             .orElseGet(() -> UUID.randomUUID().toString());
 

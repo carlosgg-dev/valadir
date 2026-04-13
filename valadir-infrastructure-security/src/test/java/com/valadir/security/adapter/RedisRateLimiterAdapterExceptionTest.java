@@ -35,7 +35,7 @@ class RedisRateLimiterAdapterExceptionTest {
     @Test
     void consume_redisConnectionFailure_throwsInfrastructureException() {
 
-        final var adapter = new RedisRateLimiterAdapter(connectionFailureTemplate());
+        var adapter = new RedisRateLimiterAdapter(connectionFailureTemplate());
 
         assertThatThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
             .isInstanceOf(InfrastructureException.class);
@@ -44,7 +44,7 @@ class RedisRateLimiterAdapterExceptionTest {
     @Test
     void consume_redisSystemError_throwsInfrastructureException() {
 
-        final var adapter = new RedisRateLimiterAdapter(systemErrorTemplate());
+        var adapter = new RedisRateLimiterAdapter(systemErrorTemplate());
 
         assertThatThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
             .isInstanceOf(InfrastructureException.class);

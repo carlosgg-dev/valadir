@@ -30,10 +30,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final AntPathMatcher pathMatcher;
 
     public RateLimitFilter(
-        final RateLimiter rateLimiter,
-        final RateLimitProperties properties,
-        final RateLimitResponseWriter responseWriter,
-        final RateLimitKeyResolver keyResolver
+        RateLimiter rateLimiter,
+        RateLimitProperties properties,
+        RateLimitResponseWriter responseWriter,
+        RateLimitKeyResolver keyResolver
     ) {
 
         this.rateLimiter = rateLimiter;
@@ -45,18 +45,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-        @NonNull final HttpServletRequest request,
-        @NonNull final HttpServletResponse response,
-        @NonNull final FilterChain chain
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain chain
     ) throws ServletException, IOException {
 
-        final List<RateLimitProperties.Rule> matchingRules = matchingRules(request.getRequestURI());
+        List<RateLimitProperties.Rule> matchingRules = matchingRules(request.getRequestURI());
         if (!properties.enabled() || matchingRules.isEmpty()) {
             chain.doFilter(request, response);
             return;
         }
 
-        final HttpServletRequest effectiveRequest = prepareRequest(request, matchingRules);
+        HttpServletRequest effectiveRequest = prepareRequest(request, matchingRules);
 
         if (isRateLimited(effectiveRequest, response, matchingRules)) {
             return;
@@ -65,39 +65,32 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(effectiveRequest, response);
     }
 
-    private List<RateLimitProperties.Rule> matchingRules(final String path) {
+    private List<RateLimitProperties.Rule> matchingRules(String path) {
 
         return properties.rules().stream()
             .filter(rule -> pathMatcher.match(rule.path(), path))
             .toList();
     }
 
-    private HttpServletRequest prepareRequest(
-        final HttpServletRequest request,
-        final List<RateLimitProperties.Rule> rules
-    ) throws IOException {
+    private HttpServletRequest prepareRequest(HttpServletRequest request, List<RateLimitProperties.Rule> rules) throws IOException {
 
-        final boolean needsBodyRead = rules.stream().anyMatch(rule -> rule.strategy() == Strategy.EMAIL);
+        boolean needsBodyRead = rules.stream().anyMatch(rule -> rule.strategy() == Strategy.EMAIL);
 
         return needsBodyRead
             ? new CachedBodyRequestWrapper(request)
             : request;
     }
 
-    private boolean isRateLimited(
-        final HttpServletRequest request,
-        final HttpServletResponse response,
-        final List<RateLimitProperties.Rule> rules
-    ) throws IOException {
+    private boolean isRateLimited(HttpServletRequest request, HttpServletResponse response, List<RateLimitProperties.Rule> rules) throws IOException {
 
         // Most constrained result across rules — used only to populate response headers
         // This does not affect the block/pass decision
         RateLimitResult mostRestrictive = null;
 
-        for (final RateLimitProperties.Rule rule : rules) {
-            final Optional<String> redisKey = keyResolver.resolve(request, rule);
+        for (RateLimitProperties.Rule rule : rules) {
+            Optional<String> redisKey = keyResolver.resolve(request, rule);
             if (redisKey.isPresent()) {
-                final RateLimitResult result;
+                RateLimitResult result;
                 try {
                     result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.windowSeconds());
                 } catch (InfrastructureException e) {

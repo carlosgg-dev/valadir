@@ -41,9 +41,9 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
     @Test
     void save_validAccountAndUser_persistsBoth() {
 
-        final AccountId accountId = AccountId.generate();
-        final Account account = buildAccount(accountId);
-        final User user = buildUser(accountId);
+        AccountId accountId = AccountId.generate();
+        Account account = buildAccount(accountId);
+        User user = buildUser(accountId);
 
         adapter.save(account, user);
 

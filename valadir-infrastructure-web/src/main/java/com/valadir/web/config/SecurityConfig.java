@@ -33,11 +33,7 @@ public class SecurityConfig {
     private final RateLimiter rateLimiter;
     private final RateLimitProperties rateLimitProperties;
 
-    public SecurityConfig(
-        final ObjectMapper objectMapper,
-        final RateLimiter rateLimiter,
-        final RateLimitProperties rateLimitProperties
-    ) {
+    public SecurityConfig(ObjectMapper objectMapper, RateLimiter rateLimiter, RateLimitProperties rateLimitProperties) {
 
         this.objectMapper = objectMapper;
         this.rateLimiter = rateLimiter;
@@ -57,13 +53,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(final SecurityErrorResponseWriter securityErrorResponseWriter) {
+    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(SecurityErrorResponseWriter securityErrorResponseWriter) {
 
         return new JwtAuthenticationEntryPoint(securityErrorResponseWriter);
     }
 
     @Bean
-    JwtAccessDeniedHandler jwtAccessDeniedHandler(final SecurityErrorResponseWriter securityErrorResponseWriter) {
+    JwtAccessDeniedHandler jwtAccessDeniedHandler(SecurityErrorResponseWriter securityErrorResponseWriter) {
 
         return new JwtAccessDeniedHandler(securityErrorResponseWriter);
     }
@@ -76,11 +72,11 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-        final HttpSecurity http,
-        final JwtDecoder jwtDecoder,
-        final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-        final JwtAccessDeniedHandler jwtAccessDeniedHandler,
-        final RateLimitKeyResolver rateLimitKeyResolver
+        HttpSecurity http,
+        JwtDecoder jwtDecoder,
+        JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+        JwtAccessDeniedHandler jwtAccessDeniedHandler,
+        RateLimitKeyResolver rateLimitKeyResolver
     ) throws Exception {
 
         return http

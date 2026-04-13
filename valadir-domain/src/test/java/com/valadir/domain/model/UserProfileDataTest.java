@@ -46,7 +46,7 @@ class UserProfileDataTest {
     @Test
     void values_fullNameAndGivenName_returnsBothValues() {
 
-        final var profileData = new UserProfileData(new FullName("Bruce Wayne"), new GivenName("Batman"));
+        var profileData = new UserProfileData(new FullName("Bruce Wayne"), new GivenName("Batman"));
 
         assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne", "Batman"));
     }
@@ -54,7 +54,7 @@ class UserProfileDataTest {
     @Test
     void values_noGivenName_returnsOnlyFullName() {
 
-        final var profileData = new UserProfileData(new FullName("Bruce Wayne"), null);
+        var profileData = new UserProfileData(new FullName("Bruce Wayne"), null);
 
         assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne"));
     }
