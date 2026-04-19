@@ -53,7 +53,7 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
 
     private Account buildAccount(AccountId accountId) {
 
-        return Account.from(
+        return Account.newPendingVerification(
             accountId,
             new Email("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),

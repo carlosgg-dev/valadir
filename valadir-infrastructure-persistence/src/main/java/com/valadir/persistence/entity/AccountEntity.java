@@ -1,5 +1,6 @@
 package com.valadir.persistence.entity;
 
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,16 +31,22 @@ public class AccountEntity {
     @Column(nullable = false, columnDefinition = "user_role")
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "account_status")
+    private AccountStatus status;
+
     protected AccountEntity() {
 
     }
 
-    public AccountEntity(UUID id, String email, String hashedPassword, Role role) {
+    public AccountEntity(UUID id, String email, String hashedPassword, Role role, AccountStatus status) {
 
         this.id = id;
         this.email = email;
         this.hashedPassword = hashedPassword;
         this.role = role;
+        this.status = status;
     }
 
     public UUID getId() {
@@ -60,5 +67,10 @@ public class AccountEntity {
     public Role getRole() {
 
         return role;
+    }
+
+    public AccountStatus getStatus() {
+
+        return status;
     }
 }

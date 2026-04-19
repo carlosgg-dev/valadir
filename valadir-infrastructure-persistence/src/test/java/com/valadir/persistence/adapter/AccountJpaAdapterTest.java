@@ -2,6 +2,7 @@ package com.valadir.persistence.adapter;
 
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
@@ -47,6 +48,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
         assertThat(retrieved.getEmail()).isEqualTo(account.getEmail());
         assertThat(retrieved.getPassword()).isEqualTo(account.getPassword());
         assertThat(retrieved.getRole()).isEqualTo(account.getRole());
+        assertThat(retrieved.getStatus()).isEqualTo(account.getStatus());
     }
 
     @Test
@@ -71,6 +73,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
         assertThat(retrieved.getEmail()).isEqualTo(account.getEmail());
         assertThat(retrieved.getPassword()).isEqualTo(account.getPassword());
         assertThat(retrieved.getRole()).isEqualTo(account.getRole());
+        assertThat(retrieved.getStatus()).isEqualTo(account.getStatus());
     }
 
     @Test
@@ -93,11 +96,12 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
 
     private Account buildAccount() {
 
-        return Account.from(
+        return Account.reconstitute(
             AccountId.generate(),
             new Email("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),
-            Role.USER
+            Role.USER,
+            AccountStatus.ACTIVE
         );
     }
 }

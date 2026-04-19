@@ -6,35 +6,61 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AccountTest {
 
+    private static final AccountId ID = AccountId.generate();
+    private static final Email EMAIL = new Email("bruce.wayne@email.com");
+    private static final HashedPassword PASSWORD = new HashedPassword("$2a$12$hashedpassword");
+    private static final Role ROLE = Role.USER;
+
     @Test
-    void from_validData_createsAccount() {
+    void newPendingVerification_validData_createsAccountWithPendingVerification() {
 
-        AccountId id = AccountId.generate();
-        Email email = new Email("bruce.wayne@email.com");
-        HashedPassword hashedPassword = new HashedPassword("$2a$12$hashedpassword");
-        Role role = Role.USER;
+        Account account = Account.newPendingVerification(ID, EMAIL, PASSWORD, ROLE);
 
-        Account account = Account.from(id, email, hashedPassword, role);
-
-        assertThat(account.getId()).isEqualTo(id);
-        assertThat(account.getEmail()).isEqualTo(email);
-        assertThat(account.getPassword()).isEqualTo(hashedPassword);
-        assertThat(account.getRole()).isEqualTo(role);
+        assertThat(account.getId()).isEqualTo(ID);
+        assertThat(account.getEmail()).isEqualTo(EMAIL);
+        assertThat(account.getPassword()).isEqualTo(PASSWORD);
+        assertThat(account.getRole()).isEqualTo(ROLE);
+        assertThat(account.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
+        assertThat(account.isActive()).isFalse();
     }
 
     @Test
     void reconstitute_validData_reconstitutesAccount() {
 
-        AccountId id = AccountId.generate();
-        Email email = new Email("bruce.wayne@email.com");
-        HashedPassword hashedPassword = new HashedPassword("$2a$12$hashedpassword");
-        Role role = Role.ADMIN;
+        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
 
-        Account account = Account.reconstitute(id, email, hashedPassword, role);
+        assertThat(account.getId()).isEqualTo(ID);
+        assertThat(account.getEmail()).isEqualTo(EMAIL);
+        assertThat(account.getPassword()).isEqualTo(PASSWORD);
+        assertThat(account.getRole()).isEqualTo(ROLE);
+        assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+    }
 
-        assertThat(account.getId()).isEqualTo(id);
-        assertThat(account.getEmail()).isEqualTo(email);
-        assertThat(account.getPassword()).isEqualTo(hashedPassword);
-        assertThat(account.getRole()).isEqualTo(role);
+    @Test
+    void activate_pendingAccount_returnsNewInstanceWithActiveStatus() {
+
+        Account pending = Account.newPendingVerification(ID, EMAIL, PASSWORD, ROLE);
+
+        Account activated = pending.activate();
+
+        assertThat(activated.isActive()).isTrue();
+        assertThat(activated.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(pending.isActive()).isFalse();
+    }
+
+    @Test
+    void isActive_activeAccount_returnsTrue() {
+
+        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
+
+        assertThat(account.isActive()).isTrue();
+    }
+
+    @Test
+    void isActive_pendingAccount_returnsFalse() {
+
+        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.PENDING_VERIFICATION);
+
+        assertThat(account.isActive()).isFalse();
     }
 }

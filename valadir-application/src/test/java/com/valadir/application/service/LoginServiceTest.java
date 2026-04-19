@@ -9,6 +9,7 @@ import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
@@ -47,7 +48,8 @@ class LoginServiceTest {
         AccountId.generate(),
         new Email("bruce.wayne@email.com"),
         new HashedPassword("$2a$12$hashed"),
-        Role.USER
+        Role.USER,
+        AccountStatus.ACTIVE
     );
 
     @Test
@@ -99,6 +101,29 @@ class LoginServiceTest {
         assertThatThrownBy(() -> service.login(command))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
+        then(authTokenIssuer).should(never()).issue(any(), any());
+    }
+
+    @Test
+    void login_accountPendingVerification_throwsAccountPendingVerification() {
+
+        var email = "bruce.wayne@email.com";
+        var password = "SecureP@ss123";
+        var command = new LoginCommand(email, password);
+        var pendingAccount = Account.newPendingVerification(
+            AccountId.generate(),
+            new Email(email),
+            new HashedPassword("$2a$12$hashed"),
+            Role.USER
+        );
+
+        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(pendingAccount));
+        given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
+
+        assertThatThrownBy(() -> service.login(command))
+            .isInstanceOf(ApplicationException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
     }

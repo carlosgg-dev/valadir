@@ -8,12 +8,11 @@ import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
-
-import com.valadir.common.mdc.MdcKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -58,6 +57,10 @@ public class LoginService implements LoginUseCase {
         MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
         if (!passwordHasher.matches(rawPassword, account.getPassword())) {
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+        }
+
+        if (!account.isActive()) {
+            throw new ApplicationException("Account pending verification", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
         }
 
         AuthTokenResult result = authTokenIssuer.issue(account.getId(), account.getRole());

@@ -10,6 +10,7 @@ import com.valadir.application.result.TokenValidationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
@@ -46,7 +47,8 @@ class RefreshTokenServiceTest {
         accountId,
         new Email("bruce.wayne@email.com"),
         new HashedPassword("$2a$12$hashed"),
-        Role.USER
+        Role.USER,
+        AccountStatus.ACTIVE
     );
 
     @Test

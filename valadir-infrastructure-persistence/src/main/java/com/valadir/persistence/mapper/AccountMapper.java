@@ -18,7 +18,8 @@ public class AccountMapper {
             AccountId.from(entity.getId()),
             new Email(entity.getEmail()),
             new HashedPassword(entity.getHashedPassword()),
-            entity.getRole()
+            entity.getRole(),
+            entity.getStatus()
         );
     }
 
@@ -28,7 +29,8 @@ public class AccountMapper {
             account.getId().value(),
             account.getEmail().value(),
             account.getPassword().value(),
-            account.getRole()
+            account.getRole(),
+            account.getStatus()
         );
     }
 }

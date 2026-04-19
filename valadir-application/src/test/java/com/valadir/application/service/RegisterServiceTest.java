@@ -10,6 +10,7 @@ import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
@@ -109,7 +110,8 @@ class RegisterServiceTest {
             AccountId.generate(),
             new Email(email),
             new HashedPassword("$2a$12$hashed"),
-            Role.USER
+            Role.USER,
+            AccountStatus.ACTIVE
         );
 
         RegisterCommand command = new RegisterCommand(email, password, "Bruce Wayne", "Bruce");
