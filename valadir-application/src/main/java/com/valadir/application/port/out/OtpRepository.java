@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface OtpRepository {
 
-    void save(AccountId accountId, String hashedCode, Duration ttl);
+    void save(AccountId accountId, String hashedOtp, Duration ttl);
 
     Optional<String> find(AccountId accountId);
 

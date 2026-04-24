@@ -18,6 +18,8 @@ import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutService;
+import com.valadir.application.service.OtpVerificationSender;
+import com.valadir.application.service.OtpVerificationSenderService;
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendVerificationService;
@@ -65,15 +67,23 @@ class ApplicationWiring {
     }
 
     @Bean
+    OtpVerificationSender otpVerificationSender(
+        EmailVerificationPort emailVerificationPort,
+        OtpRepository otpRepository,
+        OtpHasher otpHasher,
+        VerificationConfig verificationConfig
+    ) {
+
+        return new OtpVerificationSenderService(emailVerificationPort, otpRepository, otpHasher, verificationConfig);
+    }
+
+    @Bean
     RegisterUseCase registerUseCase(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
-        EmailVerificationPort emailVerificationPort,
-        OtpRepository otpRepository,
-        OtpHasher otpHasher,
-        VerificationConfig verificationConfig
+        OtpVerificationSender otpVerificationSender
     ) {
 
         return new RegisterService(
@@ -81,10 +91,7 @@ class ApplicationWiring {
             passwordHasher,
             passwordSecurityService,
             registerPersistence,
-            emailVerificationPort,
-            otpRepository,
-            otpHasher,
-            verificationConfig
+            otpVerificationSender
         );
     }
 
@@ -95,21 +102,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    ResendVerificationUseCase resendVerificationUseCase(
-        AccountRepository accountRepository,
-        OtpRepository otpRepository,
-        OtpHasher otpHasher,
-        EmailVerificationPort emailVerificationPort,
-        VerificationConfig verificationConfig
-    ) {
+    ResendVerificationUseCase resendVerificationUseCase(AccountRepository accountRepository, OtpVerificationSender otpVerificationSender) {
 
-        return new ResendVerificationService(
-            accountRepository,
-            otpRepository,
-            otpHasher,
-            emailVerificationPort,
-            verificationConfig
-        );
+        return new ResendVerificationService(accountRepository, otpVerificationSender);
     }
 
     @Bean

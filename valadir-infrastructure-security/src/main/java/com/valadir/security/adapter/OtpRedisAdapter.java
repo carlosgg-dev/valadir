@@ -21,10 +21,10 @@ public class OtpRedisAdapter implements OtpRepository {
     }
 
     @Override
-    public void save(AccountId accountId, String hashedCode, Duration ttl) {
+    public void save(AccountId accountId, String hashedOtp, Duration ttl) {
 
         try {
-            redisTemplate.opsForValue().set(key(accountId), hashedCode, ttl);
+            redisTemplate.opsForValue().set(key(accountId), hashedOtp, ttl);
         } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — otp save failed", e);
         }

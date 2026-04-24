@@ -1,12 +1,8 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.RegisterCommand;
-import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.EmailVerificationPort;
-import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
@@ -30,7 +26,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,13 +47,7 @@ class RegisterServiceTest {
     @Mock
     private RegisterPersistence registerPersistence;
     @Mock
-    private EmailVerificationPort emailVerificationPort;
-    @Mock
-    private OtpRepository otpRepository;
-    @Mock
-    private OtpHasher otpHasher;
-    @Mock
-    private VerificationConfig verificationConfig;
+    private OtpVerificationSender otpVerificationSender;
     @InjectMocks
     private RegisterService registerService;
 
@@ -66,8 +55,6 @@ class RegisterServiceTest {
     private ArgumentCaptor<Account> accountCaptor;
     @Captor
     private ArgumentCaptor<User> userCaptor;
-    @Captor
-    private ArgumentCaptor<String> otpCaptor;
 
     @Test
     void register_validData_persistsAccountAndUserAndSendsVerificationCode() {
@@ -81,13 +68,9 @@ class RegisterServiceTest {
         var givenNameValue = "Bruce";
         var fullName = new FullName(fullNameValue);
         var givenName = new GivenName(givenNameValue);
-        var hashedOtp = "$argon2id$hashedOtp";
-        var otpTtl = Duration.ofSeconds(900);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
-        given(otpHasher.hash(any(String.class))).willReturn(hashedOtp);
-        given(verificationConfig.otpTtl()).willReturn(otpTtl);
 
         registerService.register(new RegisterCommand(emailValue, rawPasswordValue, fullNameValue, givenNameValue));
 
@@ -105,9 +88,7 @@ class RegisterServiceTest {
         assertThat(savedUser.getGivenName()).isEqualTo(givenName);
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
 
-        then(otpHasher).should().hash(otpCaptor.capture());
-        then(otpRepository).should().save(savedAccount.getId(), hashedOtp, otpTtl);
-        then(emailVerificationPort).should().sendVerificationCode(email, otpCaptor.getValue());
+        then(otpVerificationSender).should().send(savedAccount.getId(), email);
     }
 
     @Test
@@ -131,7 +112,6 @@ class RegisterServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).save(any(), any());
-        then(otpRepository).should(never()).save(any(), any(), any());
-        then(emailVerificationPort).should(never()).sendVerificationCode(any(), any());
+        then(otpVerificationSender).should(never()).send(any(), any());
     }
 }
