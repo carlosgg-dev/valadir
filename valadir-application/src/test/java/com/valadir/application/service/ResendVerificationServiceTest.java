@@ -69,15 +69,16 @@ class ResendVerificationServiceTest {
     @Test
     void resend_accountNotPending_doesNothingSilently() {
 
+        var email = new Email(EMAIL);
         var activeAccount = Account.reconstitute(
             AccountId.generate(),
-            new Email(EMAIL),
+            email,
             new HashedPassword("$argon2id$hashed"),
             Role.USER,
             AccountStatus.ACTIVE
         );
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(activeAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
         resendVerificationService.resend(new ResendVerificationCommand(EMAIL));
 

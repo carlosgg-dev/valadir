@@ -15,8 +15,7 @@ class UserProfileDataTest {
     void new_bothValuesProvided_createsUserProfileData() {
 
         FullName fullName = new FullName("Bruce Wayne");
-        GivenName givenName = new GivenName("Bruce");
-
+        GivenName givenName = new GivenName("Batman");
         UserProfileData profileData = new UserProfileData(fullName, givenName);
 
         assertThat(profileData.fullName()).isEqualTo(fullName);
@@ -27,7 +26,6 @@ class UserProfileDataTest {
     void new_nullGivenName_normalizesToEmpty() {
 
         FullName fullName = new FullName("Bruce Wayne");
-
         UserProfileData profileData = new UserProfileData(fullName, null);
 
         assertThat(profileData.givenName()).isEqualTo(GivenName.empty());
@@ -36,7 +34,7 @@ class UserProfileDataTest {
     @Test
     void new_nullFullName_throwsDomainException() {
 
-        GivenName givenName = new GivenName("Bruce");
+        GivenName givenName = new GivenName("Batman");
 
         assertThatThrownBy(() -> new UserProfileData(null, givenName))
             .isInstanceOf(DomainException.class)
@@ -46,7 +44,9 @@ class UserProfileDataTest {
     @Test
     void values_fullNameAndGivenName_returnsBothValues() {
 
-        var profileData = new UserProfileData(new FullName("Bruce Wayne"), new GivenName("Batman"));
+        FullName fullName = new FullName("Bruce Wayne");
+        GivenName givenName = new GivenName("Batman");
+        var profileData = new UserProfileData(fullName, givenName);
 
         assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne", "Batman"));
     }
@@ -54,7 +54,8 @@ class UserProfileDataTest {
     @Test
     void values_noGivenName_returnsOnlyFullName() {
 
-        var profileData = new UserProfileData(new FullName("Bruce Wayne"), null);
+        FullName fullName = new FullName("Bruce Wayne");
+        var profileData = new UserProfileData(fullName, null);
 
         assertThat(profileData.values()).isEqualTo(Set.of("Bruce Wayne"));
     }

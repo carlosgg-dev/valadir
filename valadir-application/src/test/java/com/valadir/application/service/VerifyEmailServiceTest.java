@@ -94,9 +94,10 @@ class VerifyEmailServiceTest {
     @Test
     void verify_accountAlreadyActive_throwsInvalidVerificationOtp() {
 
+        var email = new Email(EMAIL);
         var activeAccount = Account.reconstitute(
             AccountId.generate(),
-            new Email(EMAIL),
+            email,
             new HashedPassword("$argon2id$hashed"),
             Role.USER,
             AccountStatus.ACTIVE
@@ -104,7 +105,7 @@ class VerifyEmailServiceTest {
 
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(activeAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
         assertThatThrownBy(() -> service.verify(command))
             .isInstanceOf(ApplicationException.class)

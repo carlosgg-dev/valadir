@@ -108,17 +108,18 @@ class LoginServiceTest {
     @Test
     void login_accountPendingVerification_throwsAccountPendingVerification() {
 
-        var email = "bruce.wayne@email.com";
+        var emailValue = "bruce.wayne@emailValue.com";
         var password = "SecureP@ss123";
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(emailValue, password);
+        var email = new Email(emailValue);
         var pendingAccount = Account.newPendingVerification(
             AccountId.generate(),
-            new Email(email),
+            email,
             new HashedPassword("$2a$12$hashed"),
             Role.USER
         );
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(pendingAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
 
         assertThatThrownBy(() -> service.login(command))
