@@ -31,7 +31,10 @@ class RedisRateLimiterAdapter implements RateLimiter {
 
         try {
             List<?> result = Objects.requireNonNull(
-                redisTemplate.execute(rateLimitScript, List.of(key), String.valueOf(maxRequests), String.valueOf(windowSeconds)),
+                redisTemplate.execute(rateLimitScript, List.of(key),
+                    String.valueOf(maxRequests),
+                    String.valueOf(windowSeconds),
+                    String.valueOf(System.currentTimeMillis())),
                 "Rate limit script returned no result for key: " + key
             );
 

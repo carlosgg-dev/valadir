@@ -81,11 +81,14 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
         Long ttl = redisTemplate.getExpire(KEY);
 
-        assertThat(ttl).isPositive().isLessThanOrEqualTo(30L);
+        // Sliding window sets EXPIRE to window + 1 to keep entries alive for the full window duration
+        assertThat(ttl)
+            .isPositive()
+            .isLessThanOrEqualTo(31L);
     }
 
     @Test
-    void consume_ttlNotResetOnSubsequentRequests() {
+    void consume_ttlRefreshedOnEachRequest() {
 
         rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
         // Simulates 50 seconds have passed → TTL = 10 seconds
@@ -94,8 +97,22 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
         rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
         Long ttl = redisTemplate.getExpire(KEY);
 
-        // If EXPIRE ran again on the second call, TTL would be back to WINDOW (60s)
-        assertThat(ttl).isLessThanOrEqualTo(10L);
+        // Sliding window always refreshes TTL to keep the sorted set alive while requests keep coming
+        assertThat(ttl).isGreaterThan(10L);
+    }
+
+    @Test
+    void consume_slidingWindow_requestsOutsideWindowDoNotCount() {
+
+        long pastTimestamp = System.currentTimeMillis() - (WINDOW + 10) * 1000L;
+        IntStream.rangeClosed(1, MAX_REQUESTS).forEach(i -> redisTemplate.opsForZSet().add(KEY, String.valueOf(i), pastTimestamp));
+        redisTemplate.opsForValue().set(KEY + ":seq", String.valueOf(MAX_REQUESTS));
+
+        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+
+        // Old entries are evicted by ZREMRANGEBYSCORE — only the current request counts
+        assertThat(result.allowed()).isTrue();
+        assertThat(result.requestCount()).isEqualTo(1L);
     }
 
     @Test
@@ -116,7 +133,8 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
         IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
         assertThat(rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW).allowed()).isFalse();
 
-        redisTemplate.delete(KEY); // simulate window expiry
+        redisTemplate.delete(KEY);
+        redisTemplate.delete(KEY + ":seq");
 
         RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
 
