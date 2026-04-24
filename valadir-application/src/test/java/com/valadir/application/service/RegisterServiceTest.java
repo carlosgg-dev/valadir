@@ -82,12 +82,12 @@ class RegisterServiceTest {
         var fullName = new FullName(fullNameValue);
         var givenName = new GivenName(givenNameValue);
         var hashedOtp = "$argon2id$hashedOtp";
-        var tokenTtl = Duration.ofSeconds(900);
+        var otpTtl = Duration.ofSeconds(900);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
         given(otpHasher.hash(any(String.class))).willReturn(hashedOtp);
-        given(verificationConfig.tokenTtl()).willReturn(tokenTtl);
+        given(verificationConfig.otpTtl()).willReturn(otpTtl);
 
         registerService.register(new RegisterCommand(emailValue, rawPasswordValue, fullNameValue, givenNameValue));
 
@@ -106,7 +106,7 @@ class RegisterServiceTest {
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
 
         then(otpHasher).should().hash(otpCaptor.capture());
-        then(otpRepository).should().save(savedAccount.getId(), hashedOtp, tokenTtl);
+        then(otpRepository).should().save(savedAccount.getId(), hashedOtp, otpTtl);
         then(emailVerificationPort).should().sendVerificationCode(email, otpCaptor.getValue());
     }
 

@@ -66,16 +66,16 @@ class ResendVerificationServiceTest {
 
         var email = new Email(EMAIL);
         var account = buildPendingAccount();
-        var tokenTtl = Duration.ofSeconds(900);
+        var otpTtl = Duration.ofSeconds(900);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpHasher.hash(any(String.class))).willReturn(HASHED_OTP);
-        given(verificationConfig.tokenTtl()).willReturn(tokenTtl);
+        given(verificationConfig.otpTtl()).willReturn(otpTtl);
 
         resendVerificationService.resend(new ResendVerificationCommand(EMAIL));
 
         then(otpHasher).should().hash(otpCaptor.capture());
-        then(otpRepository).should().save(account.getId(), HASHED_OTP, tokenTtl);
+        then(otpRepository).should().save(account.getId(), HASHED_OTP, otpTtl);
         then(emailVerificationPort).should().sendVerificationCode(eq(email), eq(otpCaptor.getValue()));
     }
 

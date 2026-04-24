@@ -38,7 +38,7 @@ notifications:
     from: noreply@valadir.local
 
 verification:
-  token:
+  otp:
     ttl-seconds: 900  # 15 minutes
 
 jwt:
@@ -70,7 +70,7 @@ rate-limit:
       max-requests: 3
       window-seconds: 3600  # 1 hour
 
-    # --- verify-email: OTP brute-force + account enumeration via INVALID_VERIFICATION_TOKEN ---
+    # --- verify-email: OTP brute-force + account enumeration via INVALID_VERIFICATION_OTP ---
     - path: /api/auth/verify-email
       strategy: IP
       max-requests: 10
@@ -78,7 +78,7 @@ rate-limit:
     - path: /api/auth/verify-email
       strategy: EMAIL
       max-requests: 5
-      window-seconds: 900   # matches OTP TTL — window resets when token expires
+      window-seconds: 900   # matches OTP TTL — window resets when OTP expires
 
     # --- resend-verification: email spam ---
     - path: /api/auth/resend-verification

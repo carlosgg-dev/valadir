@@ -93,7 +93,7 @@ public class RegisterService implements RegisterUseCase {
     private void sendOtp(AccountId accountId, Email email) {
 
         var plainCode = OtpGenerator.generate();
-        otpRepository.save(accountId, otpHasher.hash(plainCode), verificationConfig.tokenTtl());
+        otpRepository.save(accountId, otpHasher.hash(plainCode), verificationConfig.otpTtl());
         emailVerificationPort.sendVerificationCode(email, plainCode);
     }
 }

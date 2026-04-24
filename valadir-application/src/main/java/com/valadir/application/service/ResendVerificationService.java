@@ -49,7 +49,7 @@ public class ResendVerificationService implements ResendVerificationUseCase {
                     return;
                 }
                 var plainCode = OtpGenerator.generate();
-                otpRepository.save(account.getId(), otpHasher.hash(plainCode), verificationConfig.tokenTtl());
+                otpRepository.save(account.getId(), otpHasher.hash(plainCode), verificationConfig.otpTtl());
                 emailVerificationPort.sendVerificationCode(email, plainCode);
                 log.info("Verification code resent [account={}]", account.getId().value());
             },
