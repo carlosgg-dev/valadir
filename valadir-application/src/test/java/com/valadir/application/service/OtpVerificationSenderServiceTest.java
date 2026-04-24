@@ -3,7 +3,7 @@ package com.valadir.application.service;
 import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.port.out.EmailVerificationPort;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class OtpVerificationSenderServiceTest {
     @Mock
     private EmailVerificationPort emailVerificationPort;
     @Mock
-    private OtpRepository otpRepository;
+    private OtpStore otpStore;
     @Mock
     private OtpHasher otpHasher;
     @Mock
@@ -53,7 +53,7 @@ class OtpVerificationSenderServiceTest {
         then(otpHasher).should().hash(plainCodeCaptor.capture());
         var capturedCode = plainCodeCaptor.getValue();
 
-        then(otpRepository).should().save(accountId, hashedOtp, otpTtl);
+        then(otpStore).should().save(accountId, hashedOtp, otpTtl);
         then(emailVerificationPort).should().sendVerificationCode(email, capturedCode);
     }
 }

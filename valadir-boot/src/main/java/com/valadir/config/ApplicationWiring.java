@@ -13,7 +13,7 @@ import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.EmailVerificationPort;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.service.LoginService;
@@ -49,7 +49,7 @@ class ApplicationWiring {
     }
 
     @Bean
-    OtpRepository otpRepository(RedisTemplate<String, String> redisTemplate) {
+    OtpStore otpStore(RedisTemplate<String, String> redisTemplate) {
 
         return new OtpRedisAdapter(redisTemplate);
     }
@@ -69,12 +69,12 @@ class ApplicationWiring {
     @Bean
     OtpVerificationSender otpVerificationSender(
         EmailVerificationPort emailVerificationPort,
-        OtpRepository otpRepository,
+        OtpStore otpStore,
         OtpHasher otpHasher,
         VerificationConfig verificationConfig
     ) {
 
-        return new OtpVerificationSenderService(emailVerificationPort, otpRepository, otpHasher, verificationConfig);
+        return new OtpVerificationSenderService(emailVerificationPort, otpStore, otpHasher, verificationConfig);
     }
 
     @Bean
@@ -96,9 +96,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    VerifyEmailUseCase verifyEmailUseCase(AccountRepository accountRepository, OtpRepository otpRepository, OtpHasher otpHasher) {
+    VerifyEmailUseCase verifyEmailUseCase(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
 
-        return new VerifyEmailService(accountRepository, otpRepository, otpHasher);
+        return new VerifyEmailService(accountRepository, otpStore, otpHasher);
     }
 
     @Bean

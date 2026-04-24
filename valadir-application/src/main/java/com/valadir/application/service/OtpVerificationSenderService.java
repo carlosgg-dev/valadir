@@ -3,26 +3,26 @@ package com.valadir.application.service;
 import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.port.out.EmailVerificationPort;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 
 public class OtpVerificationSenderService implements OtpVerificationSender {
 
     private final EmailVerificationPort emailVerificationPort;
-    private final OtpRepository otpRepository;
+    private final OtpStore otpStore;
     private final OtpHasher otpHasher;
     private final VerificationConfig verificationConfig;
 
     public OtpVerificationSenderService(
         EmailVerificationPort emailVerificationPort,
-        OtpRepository otpRepository,
+        OtpStore otpStore,
         OtpHasher otpHasher,
         VerificationConfig verificationConfig
     ) {
 
         this.emailVerificationPort = emailVerificationPort;
-        this.otpRepository = otpRepository;
+        this.otpStore = otpStore;
         this.otpHasher = otpHasher;
         this.verificationConfig = verificationConfig;
     }
@@ -33,7 +33,7 @@ public class OtpVerificationSenderService implements OtpVerificationSender {
         var plainCode = OtpGenerator.generate();
         String hashedOtp = otpHasher.hash(plainCode);
 
-        otpRepository.save(accountId, hashedOtp, verificationConfig.otpTtl());
+        otpStore.save(accountId, hashedOtp, verificationConfig.otpTtl());
         emailVerificationPort.sendVerificationCode(email, plainCode);
     }
 }

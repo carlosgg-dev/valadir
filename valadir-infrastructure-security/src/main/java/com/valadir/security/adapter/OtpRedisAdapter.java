@@ -1,6 +1,6 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
@@ -11,7 +11,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.time.Duration;
 import java.util.Optional;
 
-public class OtpRedisAdapter implements OtpRepository {
+public class OtpRedisAdapter implements OtpStore {
 
     private final RedisTemplate<String, String> redisTemplate;
 

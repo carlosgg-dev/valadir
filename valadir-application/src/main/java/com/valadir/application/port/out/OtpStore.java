@@ -5,7 +5,7 @@ import com.valadir.domain.model.AccountId;
 import java.time.Duration;
 import java.util.Optional;
 
-public interface OtpRepository {
+public interface OtpStore {
 
     void save(AccountId accountId, String hashedOtp, Duration ttl);
 

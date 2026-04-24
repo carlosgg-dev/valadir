@@ -5,7 +5,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.VerifyEmailUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
@@ -17,17 +17,13 @@ public class VerifyEmailService implements VerifyEmailUseCase {
     private static final Logger log = LoggerFactory.getLogger(VerifyEmailService.class);
 
     private final AccountRepository accountRepository;
-    private final OtpRepository otpRepository;
+    private final OtpStore otpStore;
     private final OtpHasher otpHasher;
 
-    public VerifyEmailService(
-        AccountRepository accountRepository,
-        OtpRepository otpRepository,
-        OtpHasher otpHasher
-    ) {
+    public VerifyEmailService(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
 
         this.accountRepository = accountRepository;
-        this.otpRepository = otpRepository;
+        this.otpStore = otpStore;
         this.otpHasher = otpHasher;
     }
 
@@ -40,12 +36,12 @@ public class VerifyEmailService implements VerifyEmailUseCase {
             .filter(found -> found.getStatus() == AccountStatus.PENDING_VERIFICATION)
             .orElseThrow(this::verifyException);
 
-        otpRepository.find(account.getId())
+        otpStore.find(account.getId())
             .filter(hashedOtp -> otpHasher.matches(command.code(), hashedOtp))
             .orElseThrow(this::verifyException);
 
         accountRepository.save(account.activate());
-        otpRepository.delete(account.getId());
+        otpStore.delete(account.getId());
 
         log.info("Email verified successfully [account={}]", account.getId().value());
     }

@@ -4,7 +4,7 @@ import com.valadir.application.command.VerifyEmailCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -35,7 +35,7 @@ class VerifyEmailServiceTest {
     @Mock
     private AccountRepository accountRepository;
     @Mock
-    private OtpRepository otpRepository;
+    private OtpStore otpStore;
     @Mock
     private OtpHasher otpHasher;
     @InjectMocks
@@ -65,14 +65,14 @@ class VerifyEmailServiceTest {
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
-        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
+        given(otpStore.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(true);
 
         service.verify(command);
 
         then(accountRepository).should().save(accountCaptor.capture());
         assertThat(accountCaptor.getValue().isActive()).isTrue();
-        then(otpRepository).should().delete(pendingAccount.getId());
+        then(otpStore).should().delete(pendingAccount.getId());
     }
 
     @Test
@@ -86,9 +86,9 @@ class VerifyEmailServiceTest {
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
-        then(otpRepository).should(never()).find(any());
+        then(otpStore).should(never()).find(any());
         then(accountRepository).should(never()).save(any());
-        then(otpRepository).should(never()).delete(any());
+        then(otpStore).should(never()).delete(any());
     }
 
     @Test
@@ -111,9 +111,9 @@ class VerifyEmailServiceTest {
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
-        then(otpRepository).should(never()).find(any());
+        then(otpStore).should(never()).find(any());
         then(accountRepository).should(never()).save(any());
-        then(otpRepository).should(never()).delete(any());
+        then(otpStore).should(never()).delete(any());
     }
 
     @Test
@@ -123,14 +123,14 @@ class VerifyEmailServiceTest {
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
-        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.empty());
+        given(otpStore.find(pendingAccount.getId())).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.verify(command))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(accountRepository).should(never()).save(any());
-        then(otpRepository).should(never()).delete(any());
+        then(otpStore).should(never()).delete(any());
     }
 
     @Test
@@ -140,7 +140,7 @@ class VerifyEmailServiceTest {
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(account));
-        given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
+        given(otpStore.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(false);
 
         assertThatThrownBy(() -> service.verify(command))
@@ -148,6 +148,6 @@ class VerifyEmailServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(accountRepository).should(never()).save(any());
-        then(otpRepository).should(never()).delete(any());
+        then(otpStore).should(never()).delete(any());
     }
 }
