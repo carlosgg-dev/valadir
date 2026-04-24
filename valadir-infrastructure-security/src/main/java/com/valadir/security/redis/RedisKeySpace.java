@@ -3,16 +3,8 @@ package com.valadir.security.redis;
 public final class RedisKeySpace {
 
     public static final String BLACKLIST_REVOKED_VALUE = "revoked";
-
     private static final String AUTH_SPACE_PREFIX = "auth:";
-    private static final String AUTH_BLACKLIST_PREFIX = AUTH_SPACE_PREFIX + "blacklist:";
-    private static final String AUTH_REFRESH_TOKEN_PREFIX = AUTH_SPACE_PREFIX + "refresh_token:";
-    private static final String AUTH_USER_TOKENS_PREFIX = AUTH_SPACE_PREFIX + "user_tokens:";
-
     private static final String RATE_LIMIT_SPACE_PREFIX = "rate_limit:";
-    private static final String RATE_LIMIT_IP_PREFIX = RATE_LIMIT_SPACE_PREFIX + "ip:";
-    private static final String RATE_LIMIT_EMAIL_PREFIX = RATE_LIMIT_SPACE_PREFIX + "email:";
-    private static final String RATE_LIMIT_USER_PREFIX = RATE_LIMIT_SPACE_PREFIX + "user:";
 
     private RedisKeySpace() {
 
@@ -20,31 +12,36 @@ public final class RedisKeySpace {
 
     public static String forBlacklist(String jti) {
 
-        return AUTH_BLACKLIST_PREFIX + jti;
+        return AUTH_SPACE_PREFIX + "blacklist:" + jti;
     }
 
     public static String forRefreshToken(String token) {
 
-        return AUTH_REFRESH_TOKEN_PREFIX + token;
+        return AUTH_SPACE_PREFIX + "refresh_token:" + token;
     }
 
     public static String forUserTokens(String accountId) {
 
-        return AUTH_USER_TOKENS_PREFIX + accountId;
+        return AUTH_SPACE_PREFIX + "user_tokens:" + accountId;
+    }
+
+    public static String forVerificationOtp(String accountId) {
+
+        return AUTH_SPACE_PREFIX + "verification_otp:" + accountId;
     }
 
     public static String forRateLimitIp(String pathKey, String ip) {
 
-        return RATE_LIMIT_IP_PREFIX + pathKey + ":" + ip;
+        return RATE_LIMIT_SPACE_PREFIX + "ip:" + pathKey + ":" + ip;
     }
 
     public static String forRateLimitEmail(String pathKey, String email) {
 
-        return RATE_LIMIT_EMAIL_PREFIX + pathKey + ":" + email;
+        return RATE_LIMIT_SPACE_PREFIX + "email:" + pathKey + ":" + email;
     }
 
     public static String forRateLimitUser(String accountId) {
 
-        return RATE_LIMIT_USER_PREFIX + accountId;
+        return RATE_LIMIT_SPACE_PREFIX + "user:" + accountId;
     }
 }

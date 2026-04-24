@@ -38,6 +38,20 @@ services:
       timeout: 5s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: valadir_mailpit
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - valadir_network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8025" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   valadir_network:
     driver: bridge

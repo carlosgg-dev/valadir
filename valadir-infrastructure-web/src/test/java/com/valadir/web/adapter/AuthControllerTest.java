@@ -5,16 +5,26 @@ import com.valadir.application.command.LoginCommand;
 import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.command.RegisterCommand;
+import com.valadir.application.command.ResendVerificationCommand;
+import com.valadir.application.command.VerifyEmailCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
+import com.valadir.application.port.in.ResendVerificationUseCase;
+import com.valadir.application.port.in.VerifyEmailUseCase;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.config.SecurityConfig;
+import com.valadir.web.dto.request.LoginRequest;
+import com.valadir.web.dto.request.LogoutRequest;
+import com.valadir.web.dto.request.RefreshRequest;
+import com.valadir.web.dto.request.RegisterRequest;
+import com.valadir.web.dto.request.ResendVerificationRequest;
+import com.valadir.web.dto.request.VerifyEmailRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +61,7 @@ class AuthControllerTest {
     private static final String PASSWORD = "S3cur3P@ss!";
     private static final String FULL_NAME = "Bruce Wayne";
     private static final String GIVEN_NAME = "Batman";
+    private static final String VERIFY_CODE = "123456";
 
     @Autowired
     private MockMvc mockMvc;
@@ -60,6 +71,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private RegisterUseCase registerUseCase;
+
+    @MockitoBean
+    private VerifyEmailUseCase verifyEmailUseCase;
+
+    @MockitoBean
+    private ResendVerificationUseCase resendVerificationUseCase;
 
     @MockitoBean
     private LoginUseCase loginUseCase;
@@ -82,12 +99,12 @@ class AuthControllerTest {
     @Test
     void register_validRequest_returns201() throws Exception {
 
-        given(registerUseCase.register(new RegisterCommand(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))).willReturn(new AuthTokenResult(ACCESS_TOKEN, REFRESH_TOKEN));
-
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
             .andExpect(status().isCreated());
+
+        then(registerUseCase).should().register(new RegisterCommand(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME));
     }
 
     @Test
@@ -95,7 +112,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody("", PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest("", PASSWORD, FULL_NAME, GIVEN_NAME))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -107,7 +124,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody("invalid-email", PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest("invalid-email", PASSWORD, FULL_NAME, GIVEN_NAME))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -119,7 +136,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody(EMAIL, "", FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, "", FULL_NAME, GIVEN_NAME))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -131,7 +148,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody(EMAIL, PASSWORD, "", GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, "", GIVEN_NAME))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -146,9 +163,67 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterBody(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").value(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
+    }
+
+    @Test
+    void verifyEmail_validRequest_returns204() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(EMAIL, VERIFY_CODE))))
+            .andExpect(status().isNoContent());
+
+        then(verifyEmailUseCase).should().verify(new VerifyEmailCommand(EMAIL, VERIFY_CODE));
+    }
+
+    @Test
+    void verifyEmail_blankEmail_returns400() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest("", VERIFY_CODE))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
+
+        then(verifyEmailUseCase).should(never()).verify(any(VerifyEmailCommand.class));
+    }
+
+    @Test
+    void verifyEmail_blankCode_returns400() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(EMAIL, ""))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
+
+        then(verifyEmailUseCase).should(never()).verify(any(VerifyEmailCommand.class));
+    }
+
+    @Test
+    void resendVerification_validRequest_returns204() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.RESEND_VERIFICATION_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new ResendVerificationRequest(EMAIL))))
+            .andExpect(status().isNoContent());
+
+        then(resendVerificationUseCase).should().resend(new ResendVerificationCommand(EMAIL));
+    }
+
+    @Test
+    void resendVerification_blankEmail_returns400() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.RESEND_VERIFICATION_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new ResendVerificationRequest(""))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
+
+        then(resendVerificationUseCase).should(never()).resend(any(ResendVerificationCommand.class));
     }
 
     @Test
@@ -158,7 +233,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginBody(EMAIL, PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, PASSWORD))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken").value(ACCESS_TOKEN))
             .andExpect(jsonPath("$.refreshToken").value(REFRESH_TOKEN));
@@ -172,7 +247,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginBody(EMAIL, PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, PASSWORD))))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
     }
@@ -182,7 +257,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginBody("", PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("", PASSWORD))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -193,7 +268,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginBody("bad-email", PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bad-email", PASSWORD))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -204,7 +279,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginBody(EMAIL, ""))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, ""))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -217,7 +292,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REFRESH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RefreshBody(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new RefreshRequest(REFRESH_TOKEN))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken").value(ACCESS_TOKEN))
             .andExpect(jsonPath("$.refreshToken").value(REFRESH_TOKEN));
@@ -228,7 +303,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REFRESH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RefreshBody(""))))
+                            .content(objectMapper.writeValueAsString(new RefreshRequest(""))))
             .andExpect(status().isBadRequest());
 
         then(refreshTokenUseCase).should(never()).refresh(any(RefreshTokenCommand.class));
@@ -242,7 +317,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.REFRESH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RefreshBody(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new RefreshRequest(REFRESH_TOKEN))))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_TOKEN.getCode()));
     }
@@ -257,7 +332,7 @@ class AuthControllerTest {
                                 .expiresAt(java.time.Instant.now().plusSeconds(900)))
                             )
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LogoutBody(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new LogoutRequest(REFRESH_TOKEN))))
             .andExpect(status().isNoContent());
 
         then(logoutUseCase).should().logout(logoutCommandCaptor.capture());
@@ -279,7 +354,7 @@ class AuthControllerTest {
                                 .expiresAt(java.time.Instant.now().plusSeconds(900)))
                             )
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LogoutBody(""))))
+                            .content(objectMapper.writeValueAsString(new LogoutRequest(""))))
             .andExpect(status().isBadRequest());
 
         then(logoutUseCase).should(never()).logout(any(LogoutCommand.class));
@@ -290,27 +365,9 @@ class AuthControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.LOGOUT_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LogoutBody(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new LogoutRequest(REFRESH_TOKEN))))
             .andExpect(status().isUnauthorized());
 
         then(logoutUseCase).should(never()).logout(any(LogoutCommand.class));
-    }
-
-    // --- local request body records ---
-
-    private record RegisterBody(String email, String password, String fullName, String givenName) {
-
-    }
-
-    private record LoginBody(String email, String password) {
-
-    }
-
-    private record RefreshBody(String refreshToken) {
-
-    }
-
-    private record LogoutBody(String refreshToken) {
-
     }
 }

@@ -24,6 +24,7 @@
         <module>valadir-boot</module>
         <module>valadir-common</module>
         <module>valadir-domain</module>
+        <module>valadir-infrastructure-notifications</module>
         <module>valadir-infrastructure-persistence</module>
         <module>valadir-infrastructure-security</module>
         <module>valadir-infrastructure-web</module>
@@ -103,6 +104,12 @@
             <dependency>
                 <groupId>com.valadir</groupId>
                 <artifactId>valadir-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.valadir</groupId>
+                <artifactId>valadir-infrastructure-notifications</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

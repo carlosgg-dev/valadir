@@ -17,6 +17,11 @@
         <!-- Project modules -->
         <dependency>
             <groupId>com.valadir</groupId>
+            <artifactId>valadir-infrastructure-notifications</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.valadir</groupId>
             <artifactId>valadir-infrastructure-persistence</artifactId>
         </dependency>
 

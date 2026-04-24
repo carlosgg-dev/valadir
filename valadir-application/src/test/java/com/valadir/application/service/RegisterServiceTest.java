@@ -1,12 +1,13 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.RegisterCommand;
+import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.EmailVerificationPort;
+import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.RegisterPersistence;
-import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -29,6 +30,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,78 +52,86 @@ class RegisterServiceTest {
     @Mock
     private RegisterPersistence registerPersistence;
     @Mock
-    private AuthTokenIssuer authTokenIssuer;
+    private EmailVerificationPort emailVerificationPort;
     @Mock
-    private RefreshTokenStore refreshTokenStore;
+    private OtpRepository otpRepository;
+    @Mock
+    private OtpHasher otpHasher;
+    @Mock
+    private VerificationConfig verificationConfig;
     @InjectMocks
-    private RegisterService service;
+    private RegisterService registerService;
+
     @Captor
     private ArgumentCaptor<Account> accountCaptor;
     @Captor
     private ArgumentCaptor<User> userCaptor;
+    @Captor
+    private ArgumentCaptor<String> otpCaptor;
 
     @Test
-    void register_validData_savesAccountAndUserAndReturnsTokens() {
+    void register_validData_persistsAccountAndUserAndSendsVerificationCode() {
 
-        var email = "bruce.wayne@email.com";
-        var password = "SecureP@ss123";
+        var emailValue = "bruce.wayne@emailValue.com";
+        var email = new Email(emailValue);
+        var rawPasswordValue = "SecureP@ss123";
+        var rawPassword = new RawPassword(rawPasswordValue);
         var hashedPassword = new HashedPassword("$2a$12$hashed");
         var fullNameValue = "Bruce Wayne";
         var givenNameValue = "Bruce";
         var fullName = new FullName(fullNameValue);
         var givenName = new GivenName(givenNameValue);
-        var expectedTokens = new AuthTokenResult("access-token", "refresh-token");
+        var hashedOtp = "$argon2id$hashedOtp";
+        var tokenTtl = Duration.ofSeconds(900);
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
-        given(passwordHasher.hash(new RawPassword(password))).willReturn(hashedPassword);
-        given(authTokenIssuer.issue(any(), any())).willReturn(expectedTokens);
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
+        given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
+        given(otpHasher.hash(any(String.class))).willReturn(hashedOtp);
+        given(verificationConfig.tokenTtl()).willReturn(tokenTtl);
 
-        AuthTokenResult result = service.register(new RegisterCommand(email, password, fullNameValue, givenNameValue));
+        registerService.register(new RegisterCommand(emailValue, rawPasswordValue, fullNameValue, givenNameValue));
 
-        then(passwordSecurityService).should().validatePassword(
-            new RawPassword(password),
-            new Email(email),
-            new UserProfileData(fullName, givenName)
-        );
-
+        then(passwordSecurityService).should().validatePassword(rawPassword, email, new UserProfileData(fullName, givenName));
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
 
         var savedAccount = accountCaptor.getValue();
-        assertThat(savedAccount.getEmail()).isEqualTo(new Email(email));
+        assertThat(savedAccount.getEmail()).isEqualTo(email);
         assertThat(savedAccount.getPassword()).isEqualTo(hashedPassword);
         assertThat(savedAccount.getRole()).isEqualTo(Role.USER);
+        assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
 
         var savedUser = userCaptor.getValue();
         assertThat(savedUser.getFullName()).isEqualTo(fullName);
         assertThat(savedUser.getGivenName()).isEqualTo(givenName);
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
 
-        then(authTokenIssuer).should().issue(savedAccount.getId(), Role.USER);
-        then(refreshTokenStore).should().save(expectedTokens.refreshToken(), savedAccount.getId());
-        assertThat(result).isEqualTo(expectedTokens);
+        then(otpHasher).should().hash(otpCaptor.capture());
+        then(otpRepository).should().save(savedAccount.getId(), hashedOtp, tokenTtl);
+        then(emailVerificationPort).should().sendVerificationCode(email, otpCaptor.getValue());
     }
 
     @Test
-    void register_emailAlreadyExists_throwsApplicationException() {
+    void register_emailAlreadyExists_throwsEmailAlreadyExists() {
 
-        var email = "bruce.wayne@email.com";
-        var password = "SecureP@ss123";
+        var emailValue = "bruce.wayne@email.com";
+        var email = new Email(emailValue);
         var existing = Account.reconstitute(
             AccountId.generate(),
-            new Email(email),
-            new HashedPassword("$2a$12$hashed"),
+            email,
+            new HashedPassword("$argon2id$hashed"),
             Role.USER,
             AccountStatus.ACTIVE
         );
 
-        RegisterCommand command = new RegisterCommand(email, password, "Bruce Wayne", "Bruce");
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(existing));
-
-        assertThatThrownBy(() -> service.register(command))
+        RegisterCommand command = new RegisterCommand(emailValue, "SecureP@ss123", "Bruce Wayne", "Bruce");
+        assertThatThrownBy(() -> registerService.register(command))
             .isInstanceOf(ApplicationException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).save(any(), any());
+        then(otpRepository).should(never()).save(any(), any(), any());
+        then(emailVerificationPort).should(never()).sendVerificationCode(any(), any());
     }
 }

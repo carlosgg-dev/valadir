@@ -90,7 +90,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                                  ApiRoutes.Auth.REGISTER_PATH,
                                  ApiRoutes.Auth.LOGIN_PATH,
-                                 ApiRoutes.Auth.REFRESH_PATH
+                                 ApiRoutes.Auth.REFRESH_PATH,
+                                 ApiRoutes.Auth.VERIFY_EMAIL_PATH,
+                                 ApiRoutes.Auth.RESEND_VERIFICATION_PATH
                 ).permitAll()
                 .anyRequest().authenticated()
             )

@@ -1,13 +1,14 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.RegisterCommand;
+import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.EmailVerificationPort;
+import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.RegisterPersistence;
-import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
@@ -34,51 +35,65 @@ public class RegisterService implements RegisterUseCase {
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final RegisterPersistence registerPersistence;
-    private final AuthTokenIssuer authTokenIssuer;
-    private final RefreshTokenStore refreshTokenStore;
+    private final EmailVerificationPort emailVerificationPort;
+    private final OtpRepository otpRepository;
+    private final OtpHasher otpHasher;
+    private final VerificationConfig verificationConfig;
 
     public RegisterService(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
-        AuthTokenIssuer authTokenIssuer,
-        RefreshTokenStore refreshTokenStore
+        EmailVerificationPort emailVerificationPort,
+        OtpRepository otpRepository,
+        OtpHasher otpHasher,
+        VerificationConfig verificationConfig
     ) {
 
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.registerPersistence = registerPersistence;
-        this.authTokenIssuer = authTokenIssuer;
-        this.refreshTokenStore = refreshTokenStore;
+        this.emailVerificationPort = emailVerificationPort;
+        this.otpRepository = otpRepository;
+        this.otpHasher = otpHasher;
+        this.verificationConfig = verificationConfig;
     }
 
     @Override
-    public AuthTokenResult register(RegisterCommand command) {
+    public void register(RegisterCommand command) {
 
         var email = new Email(command.email());
         var rawPassword = new RawPassword(command.password());
         var fullName = new FullName(command.fullName());
         var givenName = new GivenName(command.givenName());
 
-        if (accountRepository.findByEmail(email).isPresent()) {
-            throw new ApplicationException("Email already exists", ErrorCode.EMAIL_ALREADY_EXISTS);
-        }
+        accountRepository.findByEmail(email).ifPresent(existing -> {
+            log.warn("Registration attempt with already-registered email [account={}]", existing.getId().value());
+            throw new ApplicationException("Email already registered", ErrorCode.EMAIL_ALREADY_EXISTS);
+        });
 
         var accountId = AccountId.generate();
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
-        var hashedPassword = passwordHasher.hash(rawPassword);
+
         var profileData = new UserProfileData(fullName, givenName);
         passwordSecurityService.validatePassword(rawPassword, email, profileData);
 
-        Account account = Account.newPendingVerification(accountId, email, hashedPassword, Role.USER);
-        User user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
+        var hashedPassword = passwordHasher.hash(rawPassword);
+        var account = Account.newPendingVerification(accountId, email, hashedPassword, Role.USER);
+        var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
         registerPersistence.save(account, user);
 
-        AuthTokenResult tokens = authTokenIssuer.issue(accountId, Role.USER);
-        refreshTokenStore.save(tokens.refreshToken(), accountId);
-        log.info("Registration successful");
-        return tokens;
+        sendOtp(accountId, email);
+
+        log.info("Registration successful, pending email verification");
+    }
+
+    private void sendOtp(AccountId accountId, Email email) {
+
+        var plainCode = OtpGenerator.generate();
+        otpRepository.save(accountId, otpHasher.hash(plainCode), verificationConfig.tokenTtl());
+        emailVerificationPort.sendVerificationCode(email, plainCode);
     }
 }

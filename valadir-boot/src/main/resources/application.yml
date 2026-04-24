@@ -26,6 +26,20 @@ spring:
       host: localhost
       port: 6379
       password: ${REDIS_PASSWORD}
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+notifications:
+  mail:
+    from: noreply@valadir.local
+
+verification:
+  token:
+    ttl-seconds: 900  # 15 minutes
 
 jwt:
   private-key: ${JWT_PRIVATE_KEY}
@@ -35,7 +49,8 @@ jwt:
 rate-limit:
   enabled: true
   rules:
-    # --- Public auth endpoints: per-IP limit per endpoint ---
+    # public endpoints
+    # --- login: brute-force + credential stuffing ---
     - path: /api/auth/login
       strategy: IP
       max-requests: 10
@@ -44,15 +59,44 @@ rate-limit:
       strategy: EMAIL
       max-requests: 5
       window-seconds: 900   # 15 minutes
+
+    # --- register: email enumeration via EMAIL_ALREADY_EXISTS ---
     - path: /api/auth/register
       strategy: IP
       max-requests: 5
       window-seconds: 3600  # 1 hour
+    - path: /api/auth/register
+      strategy: EMAIL
+      max-requests: 3
+      window-seconds: 3600  # 1 hour
+
+    # --- verify-email: OTP brute-force + account enumeration via INVALID_VERIFICATION_TOKEN ---
+    - path: /api/auth/verify-email
+      strategy: IP
+      max-requests: 10
+      window-seconds: 60
+    - path: /api/auth/verify-email
+      strategy: EMAIL
+      max-requests: 5
+      window-seconds: 900   # matches OTP TTL — window resets when token expires
+
+    # --- resend-verification: email spam ---
+    - path: /api/auth/resend-verification
+      strategy: IP
+      max-requests: 5
+      window-seconds: 3600  # 1 hour
+    - path: /api/auth/resend-verification
+      strategy: EMAIL
+      max-requests: 3
+      window-seconds: 3600  # 1 hour
+
+    # --- refresh: token replay abuse ---
     - path: /api/auth/refresh
       strategy: IP
       max-requests: 30
       window-seconds: 60
-    # --- Authenticated endpoints: per-user limit ---
+
+    # --- authenticated endpoints: per-user global limit ---
     - path: /api/**
       strategy: USER
       max-requests: 100
