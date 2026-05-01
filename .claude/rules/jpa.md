@@ -25,6 +25,14 @@
   (e.g. "deleting a user deletes their account"). That logic belongs in the use case.
   The DB schema enforces referential integrity; the use case orchestrates the order of deletions.
 
+## Optimistic locking
+- Use `@Version` on entities that are subject to concurrent modifications.
+- Never catch `OptimisticLockException` silently — propagate it or translate it into a meaningful domain error.
+
+## Pagination
+- Use `Pageable` and `Page<T>` for any query that may return unbounded result sets.
+- Never load a full collection into memory to paginate in-memory.
+
 ## Query hygiene
 - Prefer derived query methods or JPQL for simple queries.
 - Use native queries only when JPQL cannot express the operation or performance requires it.

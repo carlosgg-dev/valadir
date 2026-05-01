@@ -41,6 +41,17 @@ verification:
   otp:
     ttl-seconds: 900  # 15 minutes
 
+login:
+  lockout:
+    window-seconds: 3600  # 1 hour — sliding window for counting failed attempts
+    thresholds:
+      - min-failures: 5
+        lockout-seconds: 60
+      - min-failures: 10
+        lockout-seconds: 300    # 5 minutes
+      - min-failures: 15
+        lockout-seconds: 1800   # 30 minutes
+
 jwt:
   private-key: ${JWT_PRIVATE_KEY}
   access-token-ttl-seconds: 900     # 15 minutes

@@ -3,6 +3,8 @@ package com.valadir.security.redis;
 public final class RedisKeySpace {
 
     public static final String BLACKLIST_REVOKED_VALUE = "revoked";
+    public static final String LOGIN_LOCKOUT_VALUE = "locked";
+
     private static final String AUTH_SPACE_PREFIX = "auth:";
     private static final String RATE_LIMIT_SPACE_PREFIX = "rate_limit:";
 
@@ -43,5 +45,15 @@ public final class RedisKeySpace {
     public static String forRateLimitUser(String accountId) {
 
         return RATE_LIMIT_SPACE_PREFIX + "user:" + accountId;
+    }
+
+    public static String forLoginAttempts(String email) {
+
+        return AUTH_SPACE_PREFIX + "login_attempts:" + email;
+    }
+
+    public static String forLoginLockout(String email) {
+
+        return AUTH_SPACE_PREFIX + "login_lockout:" + email;
     }
 }

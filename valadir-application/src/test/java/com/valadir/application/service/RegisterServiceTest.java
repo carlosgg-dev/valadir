@@ -92,7 +92,7 @@ class RegisterServiceTest {
     }
 
     @Test
-    void register_emailAlreadyExists_throwsEmailAlreadyExists() {
+    void register_emailAlreadyExists_throwsApplicationException() {
 
         var emailValue = "bruce.wayne@email.com";
         var email = new Email(emailValue);

@@ -3,6 +3,7 @@ package com.valadir.web.exception;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.exception.AccountLockedException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.web.dto.response.ErrorResponse;
 import org.slf4j.Logger;
@@ -85,6 +86,17 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity
             .status(status)
+            .body(new ErrorResponse(e.getErrorCode().getCode()));
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    ResponseEntity<ErrorResponse> handleAccountLocked(AccountLockedException e) {
+
+        log.warn("Account temporarily locked: {}", e.getMessage());
+
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", String.valueOf(e.retryAfterSeconds()))
             .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
 

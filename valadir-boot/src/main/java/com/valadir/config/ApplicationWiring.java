@@ -11,6 +11,7 @@ import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.EmailVerificationPort;
+import com.valadir.application.port.out.LoginAttemptStore;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
@@ -24,13 +25,17 @@ import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendVerificationService;
 import com.valadir.application.service.VerifyEmailService;
+import com.valadir.domain.policy.LoginLockoutPolicy;
+import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.security.adapter.Argon2OtpHasher;
 import com.valadir.security.adapter.BlacklistAwareJwtDecoder;
+import com.valadir.security.adapter.LoginAttemptRedisAdapter;
 import com.valadir.security.adapter.OtpRedisAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,8 +43,10 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import java.time.Duration;
+import java.util.List;
 
 @Configuration
+@EnableConfigurationProperties(LoginLockoutProperties.class)
 class ApplicationWiring {
 
     @Bean
@@ -108,14 +115,31 @@ class ApplicationWiring {
     }
 
     @Bean
+    LoginLockoutPolicy loginLockoutPolicy(LoginLockoutProperties properties) {
+
+        List<LoginLockoutThreshold> thresholds = properties.thresholds().stream()
+            .map(threshold -> new LoginLockoutThreshold(threshold.minFailures(), Duration.ofSeconds(threshold.lockoutSeconds())))
+            .toList();
+
+        return new LoginLockoutPolicy(Duration.ofSeconds(properties.windowSeconds()), thresholds);
+    }
+
+    @Bean
+    LoginAttemptStore loginAttemptStore(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy loginLockoutPolicy) {
+
+        return new LoginAttemptRedisAdapter(redisTemplate, loginLockoutPolicy);
+    }
+
+    @Bean
     LoginUseCase loginUseCase(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         AuthTokenIssuer authTokenIssuer,
-        RefreshTokenStore refreshTokenStore
+        RefreshTokenStore refreshTokenStore,
+        LoginAttemptStore loginAttemptStore
     ) {
 
-        return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenStore);
+        return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenStore, loginAttemptStore);
     }
 
     @Bean

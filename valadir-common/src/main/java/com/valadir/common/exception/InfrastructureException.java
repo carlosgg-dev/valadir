@@ -6,6 +6,12 @@ public class InfrastructureException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
+    public InfrastructureException(String message) {
+
+        super(message);
+        this.errorCode = ErrorCode.INFRASTRUCTURE_UNAVAILABLE;
+    }
+
     public InfrastructureException(String message, Throwable cause) {
 
         super(message, cause);

@@ -3,6 +3,7 @@ package com.valadir.web.exception;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.exception.AccountLockedException;
 import com.valadir.domain.exception.DomainException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,6 +118,15 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleAccountLocked_accountLockedException_returns429WithRetryAfterHeader() throws Exception {
+
+        mockMvc.perform(get("/account-locked"))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(header().string("Retry-After", "30"))
+            .andExpect(jsonPath("$.code").value(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED.getCode()));
+    }
+
+    @Test
     void handleInfrastructure_infrastructureException_returns503WithInfraCode() throws Exception {
 
         mockMvc.perform(get("/infrastructure"))
@@ -183,6 +194,12 @@ class GlobalExceptionHandlerTest {
         void applicationServerError() {
 
             throw new ApplicationException("revocation failed", ErrorCode.TOKEN_REVOCATION_FAILED);
+        }
+
+        @GetMapping("/account-locked")
+        void accountLocked() {
+
+            throw new AccountLockedException(30L);
         }
 
         @GetMapping("/infrastructure")

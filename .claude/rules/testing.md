@@ -1,7 +1,5 @@
 # Testing Standards — Java / Spring Boot
 
-Activate this rule when: writing, reviewing, or discussing tests of any kind.
-
 ## Pyramid and scope
 
 | Layer | Scope | Target coverage |
@@ -31,15 +29,18 @@ that gives meaningful coverage.
 ## Integration tests — slice
 
 - Test each layer in isolation using the project's available slice annotations or equivalent.
-- Mock the layers above or below the one under test.
+- Prefer constructor-injected test doubles over `@MockBean` — `@MockBean` forces a Spring context reload and slows the suite.
 - Never load the full application context in a slice test.
 
 ## Integration tests — full stack
 
-- Use real infrastructure for full integration tests (containerized DB, queues, etc.).
-  Never rely on a shared external environment for automated tests.
+- Use Testcontainers for real infrastructure (DB, queues, caches). Never rely on a shared external environment.
 - Keep full integration tests separated from unit tests in the build lifecycle.
 - Run full integration tests in CI, not on every local compile.
+
+## Test data
+- Use builder methods or Object Mother factories for complex fixtures. Centralize them in dedicated classes under `src/test/` (e.g. `UserTestData`, `OrderBuilder`).
+- Never duplicate fixture construction inline across multiple tests — a single change should only require one update.
 
 ## General rules
 

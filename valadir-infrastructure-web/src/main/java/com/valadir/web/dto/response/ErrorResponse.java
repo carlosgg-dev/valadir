@@ -11,7 +11,9 @@ public record ErrorResponse(
         this(code, null);
     }
 
-    public record FieldError(String field, String message) {
+    public record FieldError(
+        String field,
+        String message) {
 
     }
 }

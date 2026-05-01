@@ -23,6 +23,10 @@
 - Avoid verifying every mock call — it couples tests to implementation details.
 - Use `then(...).shouldHaveNoMoreInteractions()` sparingly and only when strict interaction control is required.
 
+## Static mocking
+- Use `MockedStatic` only as a last resort — static dependencies are a design smell.
+- Always open `MockedStatic` in a try-with-resources block to avoid leaking the mock across tests.
+
 ## Argument matching
 - Prefer exact argument matching over `any()` when the argument value is meaningful to the test.
 - Use `ArgumentCaptor` to assert on complex objects passed to a mock instead of overusing `any()`.

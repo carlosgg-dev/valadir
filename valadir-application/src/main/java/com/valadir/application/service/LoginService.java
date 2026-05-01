@@ -5,10 +5,12 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.LoginAttemptStore;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.AccountLockedException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
@@ -27,18 +29,21 @@ public class LoginService implements LoginUseCase {
     private final PasswordHasher passwordHasher;
     private final AuthTokenIssuer authTokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
+    private final LoginAttemptStore loginAttemptStore;
 
     public LoginService(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         AuthTokenIssuer authTokenIssuer,
-        RefreshTokenStore refreshTokenStore
+        RefreshTokenStore refreshTokenStore,
+        LoginAttemptStore loginAttemptStore
     ) {
 
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.authTokenIssuer = authTokenIssuer;
         this.refreshTokenStore = refreshTokenStore;
+        this.loginAttemptStore = loginAttemptStore;
     }
 
     @Override
@@ -46,6 +51,10 @@ public class LoginService implements LoginUseCase {
 
         var email = new Email(command.email());
         var rawPassword = new RawPassword(command.password());
+
+        loginAttemptStore.findActiveLockout(email).ifPresent(remaining -> {
+            throw new AccountLockedException(remaining.toSeconds());
+        });
 
         Optional<Account> found = accountRepository.findByEmail(email);
         if (found.isEmpty()) {
@@ -56,6 +65,7 @@ public class LoginService implements LoginUseCase {
         var account = found.get();
         MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
         if (!passwordHasher.matches(rawPassword, account.getPassword())) {
+            loginAttemptStore.recordFailedAttempt(email);
             throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
         }
 
@@ -63,9 +73,11 @@ public class LoginService implements LoginUseCase {
             throw new ApplicationException("Account pending verification", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
         }
 
+        loginAttemptStore.clearAttempts(email);
         AuthTokenResult result = authTokenIssuer.issue(account.getId(), account.getRole());
         refreshTokenStore.save(result.refreshToken(), account.getId());
         log.info("Login successful");
+
         return result;
     }
 }

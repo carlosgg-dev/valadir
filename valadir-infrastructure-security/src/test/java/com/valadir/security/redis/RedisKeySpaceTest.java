@@ -56,4 +56,18 @@ class RedisKeySpaceTest {
         assertThat(RedisKeySpace.forRateLimitUser(accountId))
             .isEqualTo("rate_limit:user:" + accountId);
     }
+
+    @Test
+    void forLoginAttempts_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forLoginAttempts(EMAIL))
+            .isEqualTo("auth:login_attempts:" + EMAIL);
+    }
+
+    @Test
+    void forLoginLockout_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forLoginLockout(EMAIL))
+            .isEqualTo("auth:login_lockout:" + EMAIL);
+    }
 }

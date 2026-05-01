@@ -76,7 +76,7 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_accountNotFound_throwsInvalidVerificationOtp() {
+    void verify_accountNotFound_throwsApplicationException() {
 
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
 
@@ -92,7 +92,7 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_accountAlreadyActive_throwsInvalidVerificationOtp() {
+    void verify_accountAlreadyActive_throwsApplicationException() {
 
         var email = new Email(EMAIL);
         var activeAccount = Account.reconstitute(
@@ -117,7 +117,7 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_codeNotFound_throwsInvalidVerificationOtp() {
+    void verify_codeNotFound_throwsApplicationException() {
 
         var pendingAccount = buildPendingAccount();
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
@@ -134,7 +134,7 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_wrongCode_throwsInvalidVerificationOtp() {
+    void verify_wrongCode_throwsApplicationException() {
 
         var account = buildPendingAccount();
         var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
