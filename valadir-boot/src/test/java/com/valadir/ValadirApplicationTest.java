@@ -1,7 +1,5 @@
 package com.valadir;
 
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,32 +10,19 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
-
 @SpringBootTest
 @ActiveProfiles("test")
 class ValadirApplicationTest {
 
     private static final PostgreSQLContainer<?> POSTGRES;
     private static final RedisContainer REDIS;
-    private static final ECKey EC_KEY;
 
     static {
-        try {
-            POSTGRES = createPostgreSQLContainer();
-            POSTGRES.start();
+        POSTGRES = createPostgreSQLContainer();
+        POSTGRES.start();
 
-            REDIS = new RedisContainer(DockerImageName.parse("redis:7.4-alpine"));
-            REDIS.start();
-
-            EC_KEY = buildEcKey();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        REDIS = new RedisContainer(DockerImageName.parse("redis:7.4-alpine"));
+        REDIS.start();
     }
 
     @SuppressWarnings("resource")
@@ -53,17 +38,6 @@ class ValadirApplicationTest {
             );
     }
 
-    private static ECKey buildEcKey() throws NoSuchAlgorithmException {
-
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC");
-        kpg.initialize(256);
-        KeyPair keyPair = kpg.generateKeyPair();
-
-        return new ECKey.Builder(Curve.P_256, (ECPublicKey) keyPair.getPublic())
-            .privateKey((ECPrivateKey) keyPair.getPrivate())
-            .build();
-    }
-
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
 
@@ -72,7 +46,6 @@ class ValadirApplicationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", REDIS::getFirstMappedPort);
-        registry.add("jwt.private-key", EC_KEY::toJSONString);
     }
 
     @Test

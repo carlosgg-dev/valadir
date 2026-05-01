@@ -68,7 +68,7 @@ class ApplicationWiring {
     }
 
     @Bean
-    VerificationConfig verificationConfig(@Value("${verification.otp.ttl-seconds}") long ttlSeconds) {
+    VerificationConfig verificationConfig(@Value("${auth.otp.ttl-seconds}") long ttlSeconds) {
 
         return new VerificationConfig(Duration.ofSeconds(ttlSeconds));
     }

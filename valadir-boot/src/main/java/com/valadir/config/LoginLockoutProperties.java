@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
 
-@ConfigurationProperties("login.lockout")
+@ConfigurationProperties("auth.lockout")
 public record LoginLockoutProperties(
     long windowSeconds,
     List<ThresholdProperties> thresholds) {
@@ -12,7 +12,7 @@ public record LoginLockoutProperties(
     public LoginLockoutProperties {
 
         if (thresholds == null || thresholds.isEmpty()) {
-            throw new IllegalArgumentException("login.lockout.thresholds requires at least one threshold entry in application.yml");
+            throw new IllegalArgumentException("auth.lockout.thresholds requires at least one threshold entry in application.yml");
         }
 
         thresholds = List.copyOf(thresholds);
