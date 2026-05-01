@@ -35,7 +35,7 @@ class EmailTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideBlankEmails")
+    @MethodSource("blankEmails")
     void new_blankValue_throwsDomainException(String blankEmail) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -61,7 +61,7 @@ class EmailTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] provideBlankEmails() {
+    private static String[] blankEmails() {
 
         return new String[]{null, "", "   "};
     }

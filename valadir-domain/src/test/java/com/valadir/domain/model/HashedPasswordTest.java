@@ -21,7 +21,7 @@ class HashedPasswordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideBlankHashedPasswords")
+    @MethodSource("blankHashedPasswords")
     void new_blankHash_throwsDomainException(String blankHash) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -29,7 +29,7 @@ class HashedPasswordTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
-    private static String[] provideBlankHashedPasswords() {
+    private static String[] blankHashedPasswords() {
 
         return new String[]{null, "", "   "};
     }

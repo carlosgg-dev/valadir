@@ -37,7 +37,7 @@ class RawPasswordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideNullAndBlankPasswords")
+    @MethodSource("nullAndBlankPasswords")
     void new_nullOrBlankValue_throwsDomainException(String invalidPassword) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -62,7 +62,7 @@ class RawPasswordTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
-    private static String[] provideNullAndBlankPasswords() {
+    private static String[] nullAndBlankPasswords() {
 
         return new String[]{null, "", " "};
     }

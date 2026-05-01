@@ -19,7 +19,7 @@ class GivenNameTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideBlankGivenNames")
+    @MethodSource("blankGivenNames")
     void new_blankValue_storesNull(String blankGivenName) {
 
         GivenName givenName = new GivenName(blankGivenName);
@@ -50,7 +50,7 @@ class GivenNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] provideBlankGivenNames() {
+    private static String[] blankGivenNames() {
 
         return new String[]{null, "", "   "};
     }

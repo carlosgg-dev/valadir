@@ -19,7 +19,7 @@ class FullNameTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideBlankFullNames")
+    @MethodSource("blankFullNames")
     void new_blankValue_throwsDomainException(String blankFullName) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -59,7 +59,7 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] provideBlankFullNames() {
+    private static String[] blankFullNames() {
 
         return new String[]{null, "", "   "};
     }

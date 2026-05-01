@@ -28,7 +28,7 @@ class PostgresInfrastructureTest extends PostgresTestContainer {
     }
 
     @ParameterizedTest(name = "{1} should be created by init.sql")
-    @MethodSource("provideSchemaObjectQueries")
+    @MethodSource("schemaObjectQueries")
     @DisplayName("init.sql should create all schema objects")
     void initSql_allExpectedSchemaObjects_exist(String query, String description) throws Exception {
 
@@ -40,7 +40,7 @@ class PostgresInfrastructureTest extends PostgresTestContainer {
         }
     }
 
-    private static Stream<Arguments> provideSchemaObjectQueries() {
+    private static Stream<Arguments> schemaObjectQueries() {
 
         return Stream.of(
             Arguments.of("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'accounts')", "Table 'accounts'"),
