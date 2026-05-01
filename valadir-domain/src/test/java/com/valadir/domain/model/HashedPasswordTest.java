@@ -7,7 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class HashedPasswordTest {
 
@@ -24,8 +24,8 @@ class HashedPasswordTest {
     @MethodSource("provideBlankHashedPasswords")
     void new_blankHash_throwsDomainException(String blankHash) {
 
-        assertThatThrownBy(() -> new HashedPassword(blankHash))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new HashedPassword(blankHash))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 

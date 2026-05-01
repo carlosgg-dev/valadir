@@ -7,7 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class FullNameTest {
 
@@ -22,8 +22,8 @@ class FullNameTest {
     @MethodSource("provideBlankFullNames")
     void new_blankValue_throwsDomainException(String blankFullName) {
 
-        assertThatThrownBy(() -> new FullName(blankFullName))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(blankFullName))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
@@ -37,8 +37,8 @@ class FullNameTest {
     @Test
     void new_valueTooShort_throwsDomainException() {
 
-        assertThatThrownBy(() -> new FullName("W"))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName("W"))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
@@ -54,8 +54,8 @@ class FullNameTest {
 
         var tooLong = "a".repeat(256);
 
-        assertThatThrownBy(() -> new FullName(tooLong))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(tooLong))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 

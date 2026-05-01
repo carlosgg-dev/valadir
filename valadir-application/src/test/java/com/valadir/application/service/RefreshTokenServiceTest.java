@@ -14,7 +14,6 @@ import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -84,8 +83,8 @@ class RefreshTokenServiceTest {
         given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(new AuthTokenResult("new-access", newRefreshToken));
         given(refreshTokenStore.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(false);
 
-        assertThatThrownBy(() -> service.refresh(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.refresh(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
     }
 
@@ -99,8 +98,8 @@ class RefreshTokenServiceTest {
         given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.refresh(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.refresh(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_FAILED);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
@@ -116,8 +115,8 @@ class RefreshTokenServiceTest {
 
         given(refreshTokenStore.validate(oldRefreshToken)).willReturn(invalidToken);
 
-        assertThatThrownBy(() -> service.refresh(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.refresh(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_TOKEN);
 
         then(accountRepository).should(never()).findById(any());

@@ -9,7 +9,7 @@ import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.UserProfileData;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class PasswordSecurityServiceTest {
@@ -86,8 +86,8 @@ class PasswordSecurityServiceTest {
         GivenName userGivenName = new GivenName(givenName);
         UserProfileData userProfileData = new UserProfileData(userFullName, userGivenName);
 
-        assertThatThrownBy(() -> securityService.validatePassword(password, userEmail, userProfileData))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> securityService.validatePassword(password, userEmail, userProfileData))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INSECURE_PASSWORD);
     }
 }

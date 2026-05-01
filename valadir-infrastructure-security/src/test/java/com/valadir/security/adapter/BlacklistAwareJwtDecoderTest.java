@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -53,8 +53,8 @@ class BlacklistAwareJwtDecoderTest {
         given(delegate.decode("token")).willReturn(buildJwt(jti));
         given(accessTokenBlacklist.isRevoked(jti)).willReturn(true);
 
-        assertThatThrownBy(() -> decoder.decode("token"))
-            .isInstanceOf(BadJwtException.class);
+        assertThatExceptionOfType(BadJwtException.class)
+            .isThrownBy(() -> decoder.decode("token"));
     }
 
     @Test

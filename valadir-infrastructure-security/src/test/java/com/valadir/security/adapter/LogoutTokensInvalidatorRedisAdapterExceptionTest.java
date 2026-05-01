@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,8 +45,9 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
         String refreshToken = UUID.randomUUID().toString();
         String accountId = AccountId.generate().toString();
 
-        assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -57,7 +59,8 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
         String refreshToken = UUID.randomUUID().toString();
         String accountId = AccountId.generate().toString();
 
-        assertThatThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 }

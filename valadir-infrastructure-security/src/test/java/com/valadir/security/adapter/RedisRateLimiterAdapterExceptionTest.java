@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,7 +9,7 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,8 +38,9 @@ class RedisRateLimiterAdapterExceptionTest {
 
         var adapter = new RedisRateLimiterAdapter(connectionFailureTemplate());
 
-        assertThatThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -46,7 +48,8 @@ class RedisRateLimiterAdapterExceptionTest {
 
         var adapter = new RedisRateLimiterAdapter(systemErrorTemplate());
 
-        assertThatThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 }

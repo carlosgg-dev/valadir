@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -11,8 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
 
-import static com.valadir.common.error.ErrorCode.INFRASTRUCTURE_UNAVAILABLE;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,9 +42,9 @@ class OtpRedisAdapterExceptionTest {
         var hashedOtp = "$argon2id$hashedOtp";
         var otpTtl = Duration.ofMinutes(10);
 
-        assertThatThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -55,9 +55,9 @@ class OtpRedisAdapterExceptionTest {
         var hashedOtp = "$argon2id$hashedOtp";
         var otpTtl = Duration.ofMinutes(10);
 
-        assertThatThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -66,9 +66,9 @@ class OtpRedisAdapterExceptionTest {
         var adapter = new OtpRedisAdapter(connectionFailureTemplate());
         var accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.find(accountId))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.find(accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -77,9 +77,9 @@ class OtpRedisAdapterExceptionTest {
         var adapter = new OtpRedisAdapter(systemErrorTemplate());
         var accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.find(accountId))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.find(accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -88,9 +88,9 @@ class OtpRedisAdapterExceptionTest {
         var adapter = new OtpRedisAdapter(connectionFailureTemplate());
         var accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.delete(accountId))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.delete(accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -99,8 +99,8 @@ class OtpRedisAdapterExceptionTest {
         var adapter = new OtpRedisAdapter(systemErrorTemplate());
         var accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.delete(accountId))
-            .isInstanceOf(InfrastructureException.class)
-            .hasFieldOrPropertyWithValue("errorCode", INFRASTRUCTURE_UNAVAILABLE);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.delete(accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 }

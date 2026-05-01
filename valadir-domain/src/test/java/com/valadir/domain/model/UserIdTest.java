@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class UserIdTest {
 
@@ -37,8 +37,8 @@ class UserIdTest {
     @Test
     void from_nullUuid_throwsDomainException() {
 
-        assertThatThrownBy(() -> UserId.from(null))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> UserId.from(null))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 }

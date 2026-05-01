@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -82,8 +82,8 @@ class VerifyEmailServiceTest {
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.verify(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(otpStore).should(never()).find(any());
@@ -107,8 +107,8 @@ class VerifyEmailServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
-        assertThatThrownBy(() -> service.verify(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(otpStore).should(never()).find(any());
@@ -125,8 +125,8 @@ class VerifyEmailServiceTest {
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
         given(otpStore.find(pendingAccount.getId())).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.verify(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(accountRepository).should(never()).save(any());
@@ -143,8 +143,8 @@ class VerifyEmailServiceTest {
         given(otpStore.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(false);
 
-        assertThatThrownBy(() -> service.verify(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(accountRepository).should(never()).save(any());

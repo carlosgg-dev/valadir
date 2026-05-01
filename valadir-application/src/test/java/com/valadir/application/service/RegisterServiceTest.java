@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -107,8 +107,8 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
         RegisterCommand command = new RegisterCommand(emailValue, "SecureP@ss123", "Bruce Wayne", "Bruce");
-        assertThatThrownBy(() -> registerService.register(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).save(any(), any());

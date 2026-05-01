@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 
@@ -42,8 +42,8 @@ class LogoutServiceTest {
         willThrow(new RuntimeException("Redis down"))
             .given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
 
-        assertThatThrownBy(() -> service.logout(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.logout(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOKEN_REVOCATION_FAILED);
     }
 }

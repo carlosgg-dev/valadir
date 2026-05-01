@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class EmailTest {
 
@@ -29,17 +29,17 @@ class EmailTest {
     })
     void new_invalidFormat_throwsDomainException(String invalidEmail) {
 
-        assertThatThrownBy(() -> new Email(invalidEmail))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new Email(invalidEmail))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
     @ParameterizedTest
     @MethodSource("provideBlankEmails")
-    void new_blankValue_throwsDomainException(String invalidEmail) {
+    void new_blankValue_throwsDomainException(String blankEmail) {
 
-        assertThatThrownBy(() -> new Email(invalidEmail))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new Email(blankEmail))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
@@ -56,8 +56,8 @@ class EmailTest {
 
         String localPart = "a".repeat(245);
 
-        assertThatThrownBy(() -> new Email(localPart + "@domain.com"))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new Email(localPart + "@domain.com"))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 

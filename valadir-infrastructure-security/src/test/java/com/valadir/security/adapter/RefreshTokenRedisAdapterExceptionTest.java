@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
@@ -13,7 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -47,8 +48,9 @@ class RefreshTokenRedisAdapterExceptionTest {
         var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
 
-        assertThatThrownBy(() -> adapter.validate(token))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.validate(token))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -57,8 +59,9 @@ class RefreshTokenRedisAdapterExceptionTest {
         var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
 
-        assertThatThrownBy(() -> adapter.validate(token))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.validate(token))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -69,8 +72,9 @@ class RefreshTokenRedisAdapterExceptionTest {
         String token = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.save(token, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.save(token, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -81,8 +85,9 @@ class RefreshTokenRedisAdapterExceptionTest {
         String token = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.save(token, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.save(token, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -94,8 +99,9 @@ class RefreshTokenRedisAdapterExceptionTest {
         String newToken = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
     @Test
@@ -107,7 +113,8 @@ class RefreshTokenRedisAdapterExceptionTest {
         String newToken = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
-        assertThatThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
-            .isInstanceOf(InfrastructureException.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 }

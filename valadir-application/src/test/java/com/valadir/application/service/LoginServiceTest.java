@@ -27,7 +27,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -85,8 +85,8 @@ class LoginServiceTest {
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
         then(passwordHasher).should().guardTiming(new RawPassword(password));
@@ -103,8 +103,8 @@ class LoginServiceTest {
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(false);
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
@@ -127,8 +127,8 @@ class LoginServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
@@ -145,10 +145,10 @@ class LoginServiceTest {
 
         given(loginAttemptStore.findActiveLockout(new Email(email))).willReturn(Optional.of(remainingLockout));
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(AccountLockedException.class)
+        assertThatExceptionOfType(AccountLockedException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_TEMPORARILY_LOCKED)
-            .satisfies(e -> assertThat(((AccountLockedException) e).retryAfterSeconds()).isEqualTo(30L));
+            .satisfies(e -> assertThat(e.retryAfterSeconds()).isEqualTo(30L));
 
         then(accountRepository).should(never()).findByEmail(any());
     }
@@ -165,8 +165,8 @@ class LoginServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(false);
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
         then(loginAttemptStore).should().recordFailedAttempt(email);
@@ -182,8 +182,8 @@ class LoginServiceTest {
 
         given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
         then(loginAttemptStore).should(never()).recordFailedAttempt(any());
@@ -206,8 +206,8 @@ class LoginServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
 
-        assertThatThrownBy(() -> service.login(command))
-            .isInstanceOf(ApplicationException.class)
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
 
         then(loginAttemptStore).should(never()).recordFailedAttempt(any());

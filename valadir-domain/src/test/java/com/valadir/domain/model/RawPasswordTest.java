@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class RawPasswordTest {
 
@@ -30,9 +30,9 @@ class RawPasswordTest {
     })
     void new_complexityRequirementsNotMet_throwsDomainException(String invalidPassword) {
 
-        assertThatThrownBy(() -> new RawPassword(invalidPassword))
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new RawPassword(invalidPassword))
             .as("Password '%s' should be considered invalid", invalidPassword)
-            .isInstanceOf(DomainException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
@@ -40,8 +40,8 @@ class RawPasswordTest {
     @MethodSource("provideNullAndBlankPasswords")
     void new_nullOrBlankValue_throwsDomainException(String invalidPassword) {
 
-        assertThatThrownBy(() -> new RawPassword(invalidPassword))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new RawPassword(invalidPassword))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
@@ -57,8 +57,8 @@ class RawPasswordTest {
     void new_valueTooLong_throwsDomainException() {
 
         String password = "Aa1!" + "a".repeat(69);
-        assertThatThrownBy(() -> new RawPassword(password))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new RawPassword(password))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 

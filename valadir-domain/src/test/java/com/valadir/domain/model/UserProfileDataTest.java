@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class UserProfileDataTest {
 
@@ -36,8 +36,8 @@ class UserProfileDataTest {
 
         GivenName givenName = new GivenName("Batman");
 
-        assertThatThrownBy(() -> new UserProfileData(null, givenName))
-            .isInstanceOf(DomainException.class)
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new UserProfileData(null, givenName))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 

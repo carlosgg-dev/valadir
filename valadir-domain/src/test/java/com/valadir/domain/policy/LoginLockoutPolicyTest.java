@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LoginLockoutPolicyTest {
 
@@ -38,8 +38,8 @@ class LoginLockoutPolicyTest {
         var thresholds = POLICY.thresholds();
         var extra = new LoginLockoutThreshold(10, Duration.ofSeconds(1000));
 
-        assertThatThrownBy(() -> thresholds.add(extra))
-            .isInstanceOf(UnsupportedOperationException.class);
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+            .isThrownBy(() -> thresholds.add(extra));
     }
 
     @ParameterizedTest
