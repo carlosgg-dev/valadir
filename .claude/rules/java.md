@@ -6,6 +6,13 @@
 - **`final` on local variables and parameters**: avoid by default. Use only when it prevents a real ambiguity: a parameter that must not be reassigned in a complex method, or a local variable whose immutability is non-obvious from context.
 - **Java Records** for DTOs, events, and value objects.
 - **`Optional<T>`** for absent values. Never return `null` for optional results. Never use `Optional` as a method parameter.
+- **`java.time` for all time values**:
+  - `Duration` — intervals without an anchor: TTLs, timeouts, lockout durations, rate-limit windows.
+  - `Instant` — absolute points in time (UTC): `createdAt`, `expiresAt`, event timestamps.
+  - `LocalDate` / `LocalDateTime` — dates or date-times without a time zone (business domain dates).
+  - `ZonedDateTime` / `OffsetDateTime` — date-times with a time zone (user-facing or API serialization).
+  - `long` (epoch seconds/millis) — **only** at infrastructure boundaries where the external protocol requires it: Redis Lua scripts, HTTP headers (`Retry-After`, `X-RateLimit-Reset`), Kafka timestamps.
+  - Never use `java.util.Date`, `java.sql.Timestamp`, or raw `long`/`int` fields to represent durations or timestamps anywhere else.
 - **`var`** for local variables when the type is unambiguous without navigation: instantiation with `new` where variable and constructor type are identical, or when the type is immediately obvious from the right-hand side. Never use `var` when the type requires navigating to another file to be understood.
 - **Factory method naming conventions:**
   - `from` — construction from parameters or a specific source (`User.from(id, name)`, `User.fromSafetyData(...)`).
