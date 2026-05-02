@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -23,7 +24,8 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
 
     private static final String KEY = "test:rate_limit:key";
     private static final int MAX_REQUESTS = 5;
-    private static final int WINDOW = 60;
+    private static final int WINDOW_SECONDS = 60;
+    private static final Duration WINDOW = Duration.ofSeconds(WINDOW_SECONDS);
 
     @Autowired
     private RateLimiter rateLimiter;
@@ -77,7 +79,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
     @Test
     void consume_ttlIsSet() {
 
-        rateLimiter.consume(KEY, MAX_REQUESTS, 30);
+        rateLimiter.consume(KEY, MAX_REQUESTS, Duration.ofSeconds(30));
 
         Long ttl = redisTemplate.getExpire(KEY);
 
@@ -104,7 +106,7 @@ class RedisRateLimiterAdapterTest extends RedisTestContainer {
     @Test
     void consume_slidingWindow_requestsOutsideWindowDoNotCount() {
 
-        long pastTimestamp = System.currentTimeMillis() - (WINDOW + 10) * 1000L;
+        long pastTimestamp = System.currentTimeMillis() - (WINDOW_SECONDS + 10) * 1000L;
         IntStream.rangeClosed(1, MAX_REQUESTS).forEach(i -> redisTemplate.opsForZSet().add(KEY, String.valueOf(i), pastTimestamp));
         redisTemplate.opsForValue().set(KEY + ":seq", String.valueOf(MAX_REQUESTS));
 

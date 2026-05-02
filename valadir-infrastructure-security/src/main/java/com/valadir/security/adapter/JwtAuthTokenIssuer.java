@@ -48,7 +48,7 @@ public class JwtAuthTokenIssuer implements AuthTokenIssuer {
             .subject(accountId.value().toString())
             .claim(ROLE_CLAIM, role.name())
             .issuedAt(now)
-            .expiresAt(now.plusSeconds(jwtProperties.accessTokenTtlSeconds()))
+            .expiresAt(now.plus(jwtProperties.accessTokenTtl()))
             .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

@@ -9,11 +9,15 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class RedisRateLimiterAdapterExceptionTest {
+
+    private static final Duration WINDOW = Duration.ofSeconds(60);
 
     // Throws RedisConnectionFailureException on any call — avoids varargs stubbing issues
     @SuppressWarnings("unchecked")
@@ -39,7 +43,7 @@ class RedisRateLimiterAdapterExceptionTest {
         var adapter = new RedisRateLimiterAdapter(connectionFailureTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
+            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 
@@ -49,7 +53,7 @@ class RedisRateLimiterAdapterExceptionTest {
         var adapter = new RedisRateLimiterAdapter(systemErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, 60))
+            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
     }
 }

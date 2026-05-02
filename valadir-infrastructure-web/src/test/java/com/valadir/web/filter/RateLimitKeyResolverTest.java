@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +33,7 @@ class RateLimitKeyResolverTest {
     private static final String PATH = "/api/auth/login/";
     private static final String NORMALIZED_PATH = "api_auth_login";
     private static final int MAX_REQUESTS = 10;
-    private static final int WINDOW = 60;
+    private static final Duration WINDOW = Duration.ofSeconds(60);
 
     private RateLimitKeyResolver resolver;
     private final ObjectMapper objectMapper = new ObjectMapper();

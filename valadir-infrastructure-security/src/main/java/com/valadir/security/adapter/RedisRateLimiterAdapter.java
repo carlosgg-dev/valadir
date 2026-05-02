@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,13 +28,13 @@ class RedisRateLimiterAdapter implements RateLimiter {
     }
 
     @Override
-    public RateLimitResult consume(String key, int maxRequests, int windowSeconds) {
+    public RateLimitResult consume(String key, int maxRequests, Duration window) {
 
         try {
             List<?> result = Objects.requireNonNull(
                 redisTemplate.execute(rateLimitScript, List.of(key),
                     String.valueOf(maxRequests),
-                    String.valueOf(windowSeconds),
+                    String.valueOf(window.getSeconds()),
                     String.valueOf(System.currentTimeMillis())),
                 "Rate limit script returned no result for key: " + key
             );

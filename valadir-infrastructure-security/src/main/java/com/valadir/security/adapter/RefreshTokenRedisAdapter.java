@@ -55,7 +55,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
                 saveRefreshTokenScript,
                 List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
                 accountIdStr,
-                String.valueOf(jwtProperties.refreshTokenTtlSeconds()),
+                String.valueOf(jwtProperties.refreshTokenTtl().getSeconds()),
                 token
             );
         } catch (RedisConnectionFailureException | RedisSystemException e) {
@@ -79,7 +79,7 @@ public class RefreshTokenRedisAdapter implements RefreshTokenStore {
                 oldToken,
                 newToken,
                 accountIdStr,
-                String.valueOf(jwtProperties.refreshTokenTtlSeconds())
+                String.valueOf(jwtProperties.refreshTokenTtl().getSeconds())
             );
             return Long.valueOf(1L).equals(result);
         } catch (RedisConnectionFailureException | RedisSystemException e) {

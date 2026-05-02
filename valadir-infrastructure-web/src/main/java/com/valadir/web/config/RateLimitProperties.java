@@ -2,6 +2,7 @@ package com.valadir.web.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.util.List;
 
 @ConfigurationProperties("rate-limit")
@@ -20,7 +21,7 @@ public record RateLimitProperties(
         String path,
         Strategy strategy,
         int maxRequests,
-        int windowSeconds) {
+        Duration window) {
 
     }
 

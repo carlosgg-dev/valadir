@@ -39,20 +39,20 @@ notifications:
 
 auth:
   otp:
-    ttl-seconds: 900  # 15 minutes
+    ttl: 15m
   lockout:
-    window-seconds: 3600  # 1 hour — sliding window for counting failed attempts
+    window: 1h  # sliding window for counting failed attempts
     thresholds:
       - min-failures: 5
-        lockout-seconds: 60
+        lockout: 60s
       - min-failures: 10
-        lockout-seconds: 300    # 5 minutes
+        lockout: 5m
       - min-failures: 15
-        lockout-seconds: 1800   # 30 minutes
+        lockout: 30m
   jwt:
     private-key: ${JWT_PRIVATE_KEY}
-    access-token-ttl-seconds: 900     # 15 minutes
-    refresh-token-ttl-seconds: 604800 # 7 days
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
 
 rate-limit:
   enabled: true
@@ -62,50 +62,50 @@ rate-limit:
     - path: /api/auth/login
       strategy: IP
       max-requests: 10
-      window-seconds: 60
+      window: 60s
     - path: /api/auth/login
       strategy: EMAIL
       max-requests: 5
-      window-seconds: 900   # 15 minutes
+      window: 15m
 
     # --- register: email enumeration via EMAIL_ALREADY_EXISTS ---
     - path: /api/auth/register
       strategy: IP
       max-requests: 5
-      window-seconds: 3600  # 1 hour
+      window: 1h
     - path: /api/auth/register
       strategy: EMAIL
       max-requests: 3
-      window-seconds: 3600  # 1 hour
+      window: 1h
 
     # --- verify-email: OTP brute-force + account enumeration via INVALID_VERIFICATION_OTP ---
     - path: /api/auth/verify-email
       strategy: IP
       max-requests: 10
-      window-seconds: 60
+      window: 60s
     - path: /api/auth/verify-email
       strategy: EMAIL
       max-requests: 5
-      window-seconds: 900   # matches OTP TTL — window resets when OTP expires
+      window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- resend-verification: email spam ---
     - path: /api/auth/resend-verification
       strategy: IP
       max-requests: 5
-      window-seconds: 3600  # 1 hour
+      window: 1h
     - path: /api/auth/resend-verification
       strategy: EMAIL
       max-requests: 3
-      window-seconds: 3600  # 1 hour
+      window: 1h
 
     # --- refresh: token replay abuse ---
     - path: /api/auth/refresh
       strategy: IP
       max-requests: 30
-      window-seconds: 60
+      window: 60s
 
     # --- authenticated endpoints: per-user global limit ---
     - path: /api/**
       strategy: USER
       max-requests: 100
-      window-seconds: 60
+      window: 60s

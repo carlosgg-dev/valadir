@@ -2,11 +2,12 @@ package com.valadir.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.util.List;
 
 @ConfigurationProperties("auth.lockout")
 public record LoginLockoutProperties(
-    long windowSeconds,
+    Duration window,
     List<ThresholdProperties> thresholds) {
 
     public LoginLockoutProperties {
@@ -20,7 +21,7 @@ public record LoginLockoutProperties(
 
     public record ThresholdProperties(
         int minFailures,
-        long lockoutSeconds) {
+        Duration lockout) {
 
     }
 }

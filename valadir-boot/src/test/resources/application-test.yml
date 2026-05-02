@@ -10,5 +10,5 @@ auth:
   jwt:
     # EC P-256 private key in JWK format — for tests only, never use in production
     private-key: '{"kty":"EC","d":"Nsu0ZvoYVbDdkee5bJaQ1KdfH2GcVC9LELTq304iYaY","crv":"P-256","x":"RNn89yLqxIweFTJRkEEh194oyz8KP6ZyaQrkZ4KvHko","y":"krUkNRsQMc6XXfziuG7_XPxE89VMero0OKckw9BU_-s"}'
-    access-token-ttl-seconds: 900
-    refresh-token-ttl-seconds: 604800
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d

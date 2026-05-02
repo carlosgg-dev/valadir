@@ -21,6 +21,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.time.Duration;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +47,7 @@ class JwtAuthTokenIssuerTest {
             .privateKey((ECPrivateKey) keyPair.getPrivate())
             .build();
 
-        var properties = new JwtProperties(ecKey.toJSONString(), ACCESS_TTL, REFRESH_TTL);
+        var properties = new JwtProperties(ecKey.toJSONString(), Duration.ofSeconds(ACCESS_TTL), Duration.ofSeconds(REFRESH_TTL));
         var jwtEncoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
         issuer = new JwtAuthTokenIssuer(jwtEncoder, properties);
 

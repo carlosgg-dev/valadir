@@ -68,9 +68,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    VerificationConfig verificationConfig(@Value("${auth.otp.ttl-seconds}") long ttlSeconds) {
+    VerificationConfig verificationConfig(@Value("${auth.otp.ttl}") Duration otpTtl) {
 
-        return new VerificationConfig(Duration.ofSeconds(ttlSeconds));
+        return new VerificationConfig(otpTtl);
     }
 
     @Bean
@@ -118,10 +118,10 @@ class ApplicationWiring {
     LoginLockoutPolicy loginLockoutPolicy(LoginLockoutProperties properties) {
 
         List<LoginLockoutThreshold> thresholds = properties.thresholds().stream()
-            .map(threshold -> new LoginLockoutThreshold(threshold.minFailures(), Duration.ofSeconds(threshold.lockoutSeconds())))
+            .map(threshold -> new LoginLockoutThreshold(threshold.minFailures(), threshold.lockout()))
             .toList();
 
-        return new LoginLockoutPolicy(Duration.ofSeconds(properties.windowSeconds()), thresholds);
+        return new LoginLockoutPolicy(properties.window(), thresholds);
     }
 
     @Bean

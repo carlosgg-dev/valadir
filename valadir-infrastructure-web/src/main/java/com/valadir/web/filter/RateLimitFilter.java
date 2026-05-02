@@ -92,7 +92,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (redisKey.isPresent()) {
                 RateLimitResult result;
                 try {
-                    result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.windowSeconds());
+                    result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.window());
                 } catch (InfrastructureException e) {
                     log.warn("Rate limiter unavailable, failing open: {}", e.getMessage());
                     continue;
