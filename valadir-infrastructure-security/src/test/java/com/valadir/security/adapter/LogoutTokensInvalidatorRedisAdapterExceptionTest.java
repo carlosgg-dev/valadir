@@ -10,6 +10,7 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -41,7 +42,7 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
         var adapter = new LogoutTokensInvalidatorRedisAdapter(connectionFailureTemplate());
         String jti = UUID.randomUUID().toString();
-        long remainingTtlSeconds = 600L;
+        Duration remainingTtlSeconds = Duration.ofMinutes(10);
         String refreshToken = UUID.randomUUID().toString();
         String accountId = AccountId.generate().toString();
 
@@ -55,7 +56,7 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
         var adapter = new LogoutTokensInvalidatorRedisAdapter(systemErrorTemplate());
         String jti = UUID.randomUUID().toString();
-        long remainingTtlSeconds = 600L;
+        Duration remainingTtlSeconds = Duration.ofMinutes(10);
         String refreshToken = UUID.randomUUID().toString();
         String accountId = AccountId.generate().toString();
 

@@ -1,10 +1,12 @@
 package com.valadir.common.ratelimit;
 
+import java.time.Duration;
+
 public record RateLimitResult(
     boolean allowed,
     long requestCount,
     int maxRequests,
-    long remainingTtl) {
+    Duration remainingTtl) {
 
     public long remaining() {
 

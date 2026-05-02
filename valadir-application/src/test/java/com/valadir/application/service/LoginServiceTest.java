@@ -148,7 +148,7 @@ class LoginServiceTest {
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_TEMPORARILY_LOCKED)
-            .satisfies(e -> assertThat(e.retryAfterSeconds()).isEqualTo(30L));
+            .satisfies(e -> assertThat(e.lockout()).isEqualTo(Duration.ofSeconds(30)));
 
         then(accountRepository).should(never()).findByEmail(any());
     }

@@ -4,6 +4,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.AccountLockedException;
+import java.time.Duration;
 import com.valadir.domain.exception.DomainException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -199,7 +200,7 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/account-locked")
         void accountLocked() {
 
-            throw new AccountLockedException(30L);
+            throw new AccountLockedException(Duration.ofSeconds(30));
         }
 
         @GetMapping("/infrastructure")

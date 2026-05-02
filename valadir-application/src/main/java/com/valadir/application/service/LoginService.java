@@ -53,7 +53,7 @@ public class LoginService implements LoginUseCase {
         var rawPassword = new RawPassword(command.password());
 
         loginAttemptStore.findActiveLockout(email).ifPresent(remaining -> {
-            throw new AccountLockedException(remaining.toSeconds());
+            throw new AccountLockedException(remaining);
         });
 
         Optional<Account> found = accountRepository.findByEmail(email);

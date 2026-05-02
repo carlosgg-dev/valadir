@@ -2,18 +2,20 @@ package com.valadir.domain.exception;
 
 import com.valadir.common.error.ErrorCode;
 
+import java.time.Duration;
+
 public class AccountLockedException extends DomainException {
 
-    private final long retryAfterSeconds;
+    private final Duration lockout;
 
-    public AccountLockedException(long retryAfterSeconds) {
+    public AccountLockedException(Duration lockout) {
 
         super("Account temporarily locked", ErrorCode.ACCOUNT_TEMPORARILY_LOCKED);
-        this.retryAfterSeconds = retryAfterSeconds;
+        this.lockout = lockout;
     }
 
-    public long retryAfterSeconds() {
+    public Duration lockout() {
 
-        return retryAfterSeconds;
+        return lockout;
     }
 }

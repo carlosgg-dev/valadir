@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -26,7 +27,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
 
     // Atomic: blacklists the access token and removes the refresh token from the user token set
     @Override
-    public void invalidate(String jti, long remainingTtlSeconds, String refreshToken, String accountId) {
+    public void invalidate(String jti, Duration remainingTtl, String refreshToken, String accountId) {
 
         try {
             redisTemplate.execute(
@@ -37,7 +38,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
                     RedisKeySpace.forUserTokens(accountId)
                 ),
                 RedisKeySpace.BLACKLIST_REVOKED_VALUE,
-                String.valueOf(remainingTtlSeconds),
+                String.valueOf(remainingTtl.getSeconds()),
                 refreshToken
             );
         } catch (RedisConnectionFailureException | RedisSystemException e) {

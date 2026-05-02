@@ -92,7 +92,7 @@ class RateLimitFilterTest {
     @Test
     void doFilter_allowed_delegatesToWriteAllowedHeadersAndPassesThrough() throws Exception {
 
-        var allowedResult = new RateLimitResult(true, 3L, 10, 45L);
+        var allowedResult = new RateLimitResult(true, 3L, 10, Duration.ofSeconds(45));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(allowedResult);
 
@@ -111,7 +111,7 @@ class RateLimitFilterTest {
     @Test
     void doFilter_blocked_delegatesToWriteBlockedResponseAndStopsChain() throws Exception {
 
-        var blockedResult = new RateLimitResult(false, 11L, 10, 30L);
+        var blockedResult = new RateLimitResult(false, 11L, 10, Duration.ofSeconds(30));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(blockedResult);
 
@@ -149,7 +149,7 @@ class RateLimitFilterTest {
     void doFilter_emailStrategy_wrapsRequestSoBodyIsReadableByController() throws Exception {
 
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
-        given(rateLimiter.consume(IP_REDIS_KEY, 5, EMAIL_WINDOW)).willReturn(new RateLimitResult(true, 1L, 5, 900L));
+        given(rateLimiter.consume(IP_REDIS_KEY, 5, EMAIL_WINDOW)).willReturn(new RateLimitResult(true, 1L, 5, EMAIL_WINDOW));
 
         RateLimitFilter filter = buildFilter(true, List.of(EMAIL_RULE));
         MockHttpServletRequest request = buildRequest(PATH_LOGIN);
@@ -169,8 +169,8 @@ class RateLimitFilterTest {
     @Test
     void doFilter_multipleRules_passesTheMostRestrictiveResultToWriteAllowedHeaders() throws Exception {
 
-        var ipResult = new RateLimitResult(true, 8L, 10, 55L);    // 2 remaining
-        var emailResult = new RateLimitResult(true, 2L, 5, 800L);    // 3 remaining
+        var ipResult = new RateLimitResult(true, 8L, 10, Duration.ofSeconds(55));    // 2 remaining
+        var emailResult = new RateLimitResult(true, 2L, 5, Duration.ofSeconds(800));    // 3 remaining
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(ipResult);
@@ -191,8 +191,8 @@ class RateLimitFilterTest {
     @Test
     void doFilter_multipleRulesSecondRuleBlocked_writesBlockedResponseForBlockedRuleOnly() throws Exception {
 
-        var allowedResult = new RateLimitResult(true, 3L, 10, 45L);
-        var blockedResult = new RateLimitResult(false, 6L, 5, 30L);
+        var allowedResult = new RateLimitResult(true, 3L, 10, Duration.ofSeconds(45));
+        var blockedResult = new RateLimitResult(false, 6L, 5, Duration.ofSeconds(30));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(allowedResult);
@@ -214,7 +214,7 @@ class RateLimitFilterTest {
     @Test
     void doFilter_multipleRules_failFastOnFirstBlockedRule() throws Exception {
 
-        var blockedResult = new RateLimitResult(false, 11L, 10, 30L);
+        var blockedResult = new RateLimitResult(false, 11L, 10, Duration.ofSeconds(30));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(blockedResult);
 
@@ -252,7 +252,7 @@ class RateLimitFilterTest {
     @Test
     void doFilter_rateLimiterUnavailableOnFirstRule_evaluatesRemainingRules() throws Exception {
 
-        var emailResult = new RateLimitResult(true, 1L, 5, 900L);
+        var emailResult = new RateLimitResult(true, 1L, 5, EMAIL_WINDOW);
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));

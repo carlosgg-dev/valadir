@@ -40,7 +40,7 @@ class RedisRateLimiterAdapter implements RateLimiter {
             );
 
             long requestCount = (Long) result.get(0);
-            long remainingTtl = (Long) result.get(1);
+            Duration remainingTtl = Duration.ofSeconds((Long) result.get(1));
 
             return new RateLimitResult(requestCount <= maxRequests, requestCount, maxRequests, remainingTtl);
         } catch (RedisConnectionFailureException | RedisSystemException e) {

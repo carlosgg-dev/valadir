@@ -11,6 +11,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -45,11 +46,11 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
         var accountIdStr = accountId.value().toString();
         var jti = UUID.randomUUID().toString();
         var refreshToken = UUID.randomUUID().toString();
-        long ttl = 600L;
+        Duration remainingTtl = Duration.ofMinutes(10);
 
         refreshTokenAdapter.save(refreshToken, accountId);
 
-        tokenInvalidatorAdapter.invalidate(jti, ttl, refreshToken, accountIdStr);
+        tokenInvalidatorAdapter.invalidate(jti, remainingTtl, refreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
         assertThat(redisTemplate.getExpire(RedisKeySpace.forBlacklist(jti))).isPositive();
@@ -64,9 +65,9 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
         var accountIdStr = accountId.value().toString();
         var jti = UUID.randomUUID().toString();
         var nonExistingRefreshToken = UUID.randomUUID().toString();
-        long ttl = 600L;
+        Duration remainingTtl = Duration.ofMinutes(10);
 
-        tokenInvalidatorAdapter.invalidate(jti, ttl, nonExistingRefreshToken, accountIdStr);
+        tokenInvalidatorAdapter.invalidate(jti, remainingTtl, nonExistingRefreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
     }
@@ -81,7 +82,7 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
 
         refreshTokenAdapter.save(refreshToken, accountId);
 
-        tokenInvalidatorAdapter.invalidate(jti, 0L, refreshToken, accountIdStr);
+        tokenInvalidatorAdapter.invalidate(jti, Duration.ZERO, refreshToken, accountIdStr);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isNull();
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();

@@ -340,7 +340,7 @@ class AuthControllerTest {
         var command = logoutCommandCaptor.getValue();
         assertThat(command.accessTokenJti()).isEqualTo("jti-value");
         assertThat(command.refreshToken()).isEqualTo(REFRESH_TOKEN);
-        assertThat(command.accessTokenRemainingTtlSeconds()).isPositive();
+        assertThat(command.accessTokenRemainingTtl()).isPositive();
         assertThat(command.accountId()).isEqualTo(ACCOUNT_ID);
     }
 

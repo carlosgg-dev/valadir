@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -108,7 +109,7 @@ class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void logout(@Valid @RequestBody LogoutRequest request, @AuthenticationPrincipal Jwt jwt) {
 
-        long remainingTtl = Objects.requireNonNull(jwt.getExpiresAt()).getEpochSecond() - Instant.now().getEpochSecond();
+        Duration remainingTtl = Duration.between(Instant.now(), Objects.requireNonNull(jwt.getExpiresAt()));
 
         logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), jwt.getSubject()));
     }

@@ -96,7 +96,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity
             .status(HttpStatus.TOO_MANY_REQUESTS)
-            .header("Retry-After", String.valueOf(e.retryAfterSeconds()))
+            .header("Retry-After", String.valueOf(e.lockout().toSeconds()))
             .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
 

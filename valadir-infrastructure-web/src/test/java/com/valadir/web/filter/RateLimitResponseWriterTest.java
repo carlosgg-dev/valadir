@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RateLimitResponseWriterTest {
@@ -18,7 +20,7 @@ class RateLimitResponseWriterTest {
     private static final String HEADER_RETRY_AFTER = "Retry-After";
 
     private static final int MAX_REQUESTS = 10;
-    private static final long REMAINING_TTL = 30L;
+    private static final Duration REMAINING_TTL = Duration.ofSeconds(30);
 
     private final RateLimitResponseWriter writer = new RateLimitResponseWriter(new ObjectMapper());
 
@@ -53,7 +55,7 @@ class RateLimitResponseWriterTest {
     void writeAllowedRequestHeaders_setsRateLimitHeaders() {
 
         var response = new MockHttpServletResponse();
-        var result = new RateLimitResult(true, 3L, MAX_REQUESTS, 45L);
+        var result = new RateLimitResult(true, 3L, MAX_REQUESTS, Duration.ofSeconds(45));
 
         writer.writeAllowedRequestHeaders(response, result);
 
@@ -66,7 +68,7 @@ class RateLimitResponseWriterTest {
     void writeAllowedRequestHeaders_remainingFlooredAtZero_whenRequestCountExceedsLimit() {
 
         var response = new MockHttpServletResponse();
-        var result = new RateLimitResult(true, 15L, MAX_REQUESTS, 45L);
+        var result = new RateLimitResult(true, 15L, MAX_REQUESTS, Duration.ofSeconds(45));
 
         writer.writeAllowedRequestHeaders(response, result);
 

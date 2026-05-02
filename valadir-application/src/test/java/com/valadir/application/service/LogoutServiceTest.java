@@ -10,6 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
+
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
@@ -25,7 +27,7 @@ class LogoutServiceTest {
     private static final String ACCESS_TOKEN_JTI = "access-jti";
     private static final String REFRESH_TOKEN = "refresh-token";
     private static final String ACCOUNT_ID = "account-uuid";
-    private static final long REMAINING_TTL = 600L;
+    private static final Duration REMAINING_TTL = Duration.ofMinutes(10);
 
     @Test
     void logout_success_invalidatesBothTokens() {
