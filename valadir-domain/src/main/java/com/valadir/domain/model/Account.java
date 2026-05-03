@@ -37,6 +37,11 @@ public class Account {
         return AccountStatus.ACTIVE.equals(status);
     }
 
+    public boolean isPendingVerification() {
+
+        return AccountStatus.PENDING_VERIFICATION.equals(status);
+    }
+
     public AccountId getId() {
 
         return id;

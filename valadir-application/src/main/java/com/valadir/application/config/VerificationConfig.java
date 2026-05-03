@@ -3,6 +3,7 @@ package com.valadir.application.config;
 import java.time.Duration;
 
 public record VerificationConfig(
-    Duration otpTtl) {
+    Duration otpTtl,
+    Duration accountGracePeriod) {
 
 }

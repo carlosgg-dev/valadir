@@ -25,3 +25,4 @@ CREATE TABLE IF NOT EXISTS users (
 -- Indexes for performance
 CREATE INDEX index_accounts_email ON accounts(email);
 CREATE INDEX index_users_account_id ON users(account_id);
+CREATE INDEX index_accounts_pending_created_at ON accounts(created_at) WHERE status = 'PENDING_VERIFICATION';

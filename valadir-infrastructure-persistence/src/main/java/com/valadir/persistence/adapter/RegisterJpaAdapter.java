@@ -2,6 +2,7 @@ package com.valadir.persistence.adapter;
 
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.User;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
@@ -26,5 +27,18 @@ public class RegisterJpaAdapter implements RegisterPersistence {
 
         accountJpaRepository.save(AccountMapper.toEntity(account));
         userJpaRepository.save(UserMapper.toEntity(user));
+    }
+
+    @Override
+    @Transactional
+    public void replacePendingAndSave(AccountId pendingAccountId, Account newAccount, User newUser) {
+
+        userJpaRepository.deleteByAccountId(pendingAccountId.value());
+        accountJpaRepository.deleteById(pendingAccountId.value());
+
+        accountJpaRepository.flush(); // force DELETE before INSERT to avoid unique constraint violation on email
+
+        accountJpaRepository.save(AccountMapper.toEntity(newAccount));
+        userJpaRepository.save(UserMapper.toEntity(newUser));
     }
 }

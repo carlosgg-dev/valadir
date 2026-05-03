@@ -41,14 +41,41 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
     @Test
     void save_validAccountAndUser_persistsBoth() {
 
-        AccountId accountId = AccountId.generate();
-        Account account = buildAccount(accountId);
-        User user = buildUser(accountId);
+        var accountId = AccountId.generate();
+        var account = buildAccount(accountId);
+        var user = buildUser(accountId);
 
         adapter.save(account, user);
 
         assertThat(accountJpaRepository.findById(accountId.value())).isPresent();
         assertThat(userJpaRepository.findById(user.getId().value())).isPresent();
+    }
+
+    @Test
+    void replacePendingAndSave_deletesOldAndPersistsNew() {
+
+        var oldAccountId = AccountId.generate();
+        var oldAccount = buildAccount(oldAccountId);
+        var oldUser = buildUser(oldAccountId);
+
+        adapter.save(oldAccount, oldUser);
+
+        var newAccountId = AccountId.generate();
+        var newAccount = Account.newPendingVerification(
+            newAccountId,
+            new Email("bruce.wayne@email.com"),
+            new HashedPassword("$2a$12$newhash"),
+            Role.USER
+        );
+        var newUser = buildUser(newAccountId);
+
+        adapter.replacePendingAndSave(oldAccountId, newAccount, newUser);
+
+        assertThat(accountJpaRepository.findById(oldAccountId.value())).isEmpty();
+        assertThat(userJpaRepository.findById(oldUser.getId().value())).isEmpty();
+
+        assertThat(accountJpaRepository.findById(newAccountId.value())).isPresent();
+        assertThat(userJpaRepository.findById(newUser.getId().value())).isPresent();
     }
 
     private Account buildAccount(AccountId accountId) {

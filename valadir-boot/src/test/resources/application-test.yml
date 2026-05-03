@@ -6,6 +6,11 @@ spring:
     redis:
       password: ""
 
+scheduler:
+  pending-account:
+    grace-period: 72h
+    purge-cron: "-"
+
 auth:
   jwt:
     # EC P-256 private key in JWK format — for tests only, never use in production

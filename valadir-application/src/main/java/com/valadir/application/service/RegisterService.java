@@ -56,24 +56,39 @@ public class RegisterService implements RegisterUseCase {
         var fullName = new FullName(command.fullName());
         var givenName = new GivenName(command.givenName());
 
-        accountRepository.findByEmail(email).ifPresent(existing -> {
-            log.warn("Registration attempt with already-registered email [account={}]", existing.getId().value());
-            throw new ApplicationException("Email already registered", ErrorCode.EMAIL_ALREADY_EXISTS);
-        });
-
-        var accountId = AccountId.generate();
-        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
+        var existingAccountId = accountRepository.findByEmail(email)
+            .map(this::resolveExistingAccountId);
 
         var profileData = new UserProfileData(fullName, givenName);
         passwordSecurityService.validatePassword(rawPassword, email, profileData);
 
+        var accountId = AccountId.generate();
+        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
+
         var hashedPassword = passwordHasher.hash(rawPassword);
         var account = Account.newPendingVerification(accountId, email, hashedPassword, Role.USER);
         var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
-        registerPersistence.save(account, user);
+
+        if (existingAccountId.isPresent()) {
+            log.info("Re-registration: replacing stale PENDING_VERIFICATION");
+            registerPersistence.replacePendingAndSave(existingAccountId.get(), account, user);
+        } else {
+            registerPersistence.save(account, user);
+        }
 
         otpVerificationSender.send(accountId, email);
 
         log.info("Registration successful, pending email verification");
+    }
+
+    private AccountId resolveExistingAccountId(Account existing) {
+
+        return switch (existing.getStatus()) {
+            case PENDING_VERIFICATION -> existing.getId();
+            case ACTIVE -> {
+                log.warn("Registration attempt with already-registered email, existingAccountId={}", existing.getId().value());
+                throw new ApplicationException("Email already registered", ErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+        };
     }
 }

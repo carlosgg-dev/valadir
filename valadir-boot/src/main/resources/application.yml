@@ -54,6 +54,11 @@ auth:
     access-token-ttl: 15m
     refresh-token-ttl: 7d
 
+scheduler:
+  pending-account:
+    grace-period: 72h
+    purge-cron: "0 0 0 * * *"  # once a day at midnight
+
 rate-limit:
   enabled: true
   rules:

@@ -31,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -57,7 +58,7 @@ class RegisterServiceTest {
     private ArgumentCaptor<User> userCaptor;
 
     @Test
-    void register_validData_persistsAccountAndUserAndSendsVerificationCode() {
+    void register_emailNotExist_persistsDataAndSendsOtp() {
 
         var emailValue = "bruce.wayne@emailValue.com";
         var email = new Email(emailValue);
@@ -76,6 +77,7 @@ class RegisterServiceTest {
 
         then(passwordSecurityService).should().validatePassword(rawPassword, email, new UserProfileData(fullName, givenName));
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
+        then(registerPersistence).should(never()).replacePendingAndSave(any(), any(), any());
 
         var savedAccount = accountCaptor.getValue();
         assertThat(savedAccount.getEmail()).isEqualTo(email);
@@ -92,7 +94,7 @@ class RegisterServiceTest {
     }
 
     @Test
-    void register_emailAlreadyExists_throwsApplicationException() {
+    void register_activeEmailExists_throwsApplicationException() {
 
         var emailValue = "bruce.wayne@email.com";
         var email = new Email(emailValue);
@@ -111,7 +113,39 @@ class RegisterServiceTest {
             .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
+        then(registerPersistence).should(never()).replacePendingAndSave(any(), any(), any());
         then(registerPersistence).should(never()).save(any(), any());
         then(otpVerificationSender).should(never()).send(any(), any());
+    }
+
+    @Test
+    void register_pendingEmailExists_replacesPending() {
+
+        var emailValue = "bruce.wayne@email.com";
+        var email = new Email(emailValue);
+        var staleAccountId = AccountId.generate();
+        var staleAccount = Account.newPendingVerification(
+            staleAccountId,
+            email,
+            new HashedPassword("$argon2id$old"),
+            Role.USER
+        );
+        var rawPasswordValue = "SecureP@ss123";
+        var hashedPassword = new HashedPassword("$argon2id$new");
+
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(staleAccount));
+        given(passwordHasher.hash(new RawPassword(rawPasswordValue))).willReturn(hashedPassword);
+
+        registerService.register(new RegisterCommand(emailValue, rawPasswordValue, "Bruce Wayne", "Bruce"));
+
+        then(registerPersistence).should().replacePendingAndSave(eq(staleAccountId), accountCaptor.capture(), userCaptor.capture());
+        then(registerPersistence).should(never()).save(any(), any());
+
+        var newAccount = accountCaptor.getValue();
+        var newUser = userCaptor.getValue();
+        assertThat(newAccount.getId()).isNotEqualTo(staleAccountId);
+        assertThat(newAccount.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
+        assertThat(newUser.getAccountId()).isEqualTo(newAccount.getId());
+        then(otpVerificationSender).should().send(newAccount.getId(), email);
     }
 }

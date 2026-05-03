@@ -3,6 +3,7 @@ package com.valadir.config;
 import com.valadir.application.config.VerificationConfig;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
+import com.valadir.application.port.in.PurgeExpiredPendingAccountsUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendVerificationUseCase;
@@ -11,6 +12,7 @@ import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.EmailVerificationPort;
+import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
 import com.valadir.application.port.out.LoginAttemptStore;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
@@ -21,6 +23,7 @@ import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutService;
 import com.valadir.application.service.OtpVerificationSender;
 import com.valadir.application.service.OtpVerificationSenderService;
+import com.valadir.application.service.PurgeExpiredPendingAccountsService;
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendVerificationService;
@@ -42,6 +45,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
@@ -68,9 +72,28 @@ class ApplicationWiring {
     }
 
     @Bean
-    VerificationConfig verificationConfig(@Value("${auth.otp.ttl}") Duration otpTtl) {
+    Clock systemClock() {
 
-        return new VerificationConfig(otpTtl);
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    VerificationConfig verificationConfig(
+        @Value("${auth.otp.ttl}") Duration otpTtl,
+        @Value("${scheduler.pending-account.grace-period}") Duration accountGracePeriod
+    ) {
+
+        return new VerificationConfig(otpTtl, accountGracePeriod);
+    }
+
+    @Bean
+    PurgeExpiredPendingAccountsUseCase purgeExpiredPendingAccountsUseCase(
+        ExpiredPendingAccountCleaner expiredPendingAccountCleaner,
+        VerificationConfig verificationConfig,
+        Clock clock
+    ) {
+
+        return new PurgeExpiredPendingAccountsService(expiredPendingAccountCleaner, verificationConfig, clock);
     }
 
     @Bean

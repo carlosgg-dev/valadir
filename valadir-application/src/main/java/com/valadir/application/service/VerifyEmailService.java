@@ -7,7 +7,7 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.model.AccountStatus;
+import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public class VerifyEmailService implements VerifyEmailUseCase {
         var email = new Email(command.email());
 
         var account = accountRepository.findByEmail(email)
-            .filter(found -> found.getStatus() == AccountStatus.PENDING_VERIFICATION)
+            .filter(Account::isPendingVerification)
             .orElseThrow(this::verifyException);
 
         otpStore.find(account.getId())
