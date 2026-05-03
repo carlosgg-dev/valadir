@@ -29,11 +29,11 @@ public class ResendVerificationService implements ResendVerificationUseCase {
         accountRepository.findByEmail(email).ifPresentOrElse(
             account -> {
                 if (account.getStatus() != AccountStatus.PENDING_VERIFICATION) {
-                    log.warn("Resend verification attempted for non-pending account [account={}]", account.getId().value());
+                    log.warn("Resend verification attempted for non-pending account, accountId={}", account.getId().value());
                     return;
                 }
                 otpVerificationSender.send(account.getId(), email);
-                log.info("Verification code resent [account={}]", account.getId().value());
+                log.info("Verification code resent, accountId={}", account.getId().value());
             },
             () -> log.warn("Resend verification attempted for unknown email")
         );

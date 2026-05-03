@@ -43,7 +43,7 @@ public class VerifyEmailService implements VerifyEmailUseCase {
         accountRepository.save(account.activate());
         otpStore.delete(account.getId());
 
-        log.info("Email verified successfully [account={}]", account.getId().value());
+        log.info("Email verified successfully, accountId={}", account.getId().value());
     }
 
     private ApplicationException verifyException() {
