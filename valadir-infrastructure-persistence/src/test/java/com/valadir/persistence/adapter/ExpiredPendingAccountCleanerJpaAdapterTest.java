@@ -50,7 +50,7 @@ class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
     @BeforeEach
     void setUp() {
 
-        adapter = new ExpiredPendingAccountCleanerJpaAdapter(userJpaRepository, accountJpaRepository);
+        adapter = new ExpiredPendingAccountCleanerJpaAdapter(accountJpaRepository);
     }
 
     @Test

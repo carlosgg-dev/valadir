@@ -27,8 +27,8 @@ class PersistenceWiring {
     }
 
     @Bean
-    ExpiredPendingAccountCleaner expiredPendingAccountCleaner(UserJpaRepository userJpaRepository, AccountJpaRepository accountJpaRepository) {
+    ExpiredPendingAccountCleaner expiredPendingAccountCleaner(AccountJpaRepository accountJpaRepository) {
 
-        return new ExpiredPendingAccountCleanerJpaAdapter(userJpaRepository, accountJpaRepository);
+        return new ExpiredPendingAccountCleanerJpaAdapter(accountJpaRepository);
     }
 }

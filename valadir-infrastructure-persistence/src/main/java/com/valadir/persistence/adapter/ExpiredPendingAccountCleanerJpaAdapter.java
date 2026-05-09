@@ -2,19 +2,16 @@ package com.valadir.persistence.adapter;
 
 import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
 import com.valadir.persistence.repository.AccountJpaRepository;
-import com.valadir.persistence.repository.UserJpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
 public class ExpiredPendingAccountCleanerJpaAdapter implements ExpiredPendingAccountCleaner {
 
-    private final UserJpaRepository userJpaRepository;
     private final AccountJpaRepository accountJpaRepository;
 
-    public ExpiredPendingAccountCleanerJpaAdapter(UserJpaRepository userJpaRepository, AccountJpaRepository accountJpaRepository) {
+    public ExpiredPendingAccountCleanerJpaAdapter(AccountJpaRepository accountJpaRepository) {
 
-        this.userJpaRepository = userJpaRepository;
         this.accountJpaRepository = accountJpaRepository;
     }
 
@@ -22,7 +19,7 @@ public class ExpiredPendingAccountCleanerJpaAdapter implements ExpiredPendingAcc
     @Transactional
     public int delete(Instant cutoff) {
 
-        userJpaRepository.deleteExpiredPendingVerifications(cutoff);
+        // users rows are removed automatically via ON DELETE CASCADE on users.account_id
         return accountJpaRepository.deleteExpiredPendingVerification(cutoff);
     }
 }
