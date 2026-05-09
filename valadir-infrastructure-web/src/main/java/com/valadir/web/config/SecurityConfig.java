@@ -29,6 +29,13 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
+    private static final String[] POST_PUBLIC_ROUTES = {
+        ApiRoutes.Auth.REGISTER_PATH,
+        ApiRoutes.Auth.LOGIN_PATH,
+        ApiRoutes.Auth.REFRESH_PATH,
+        ApiRoutes.Auth.VERIFY_EMAIL_PATH,
+        ApiRoutes.Auth.RESEND_VERIFICATION_PATH};
+
     private final ObjectMapper objectMapper;
     private final RateLimiter rateLimiter;
     private final RateLimitProperties rateLimitProperties;
@@ -87,13 +94,7 @@ public class SecurityConfig {
                             BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.POST,
-                                 ApiRoutes.Auth.REGISTER_PATH,
-                                 ApiRoutes.Auth.LOGIN_PATH,
-                                 ApiRoutes.Auth.REFRESH_PATH,
-                                 ApiRoutes.Auth.VERIFY_EMAIL_PATH,
-                                 ApiRoutes.Auth.RESEND_VERIFICATION_PATH
-                ).permitAll()
+                .requestMatchers(HttpMethod.POST, POST_PUBLIC_ROUTES).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
