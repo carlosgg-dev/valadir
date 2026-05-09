@@ -7,10 +7,12 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class VerifyEmailService implements VerifyEmailUseCase {
 
@@ -36,6 +38,8 @@ public class VerifyEmailService implements VerifyEmailUseCase {
             .filter(Account::isPendingVerification)
             .orElseThrow(this::verifyException);
 
+        MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
+
         otpStore.find(account.getId())
             .filter(hashedOtp -> otpHasher.matches(command.code(), hashedOtp))
             .orElseThrow(this::verifyException);
@@ -43,7 +47,7 @@ public class VerifyEmailService implements VerifyEmailUseCase {
         accountRepository.save(account.activate());
         otpStore.delete(account.getId());
 
-        log.info("Email verified successfully, accountId={}", account.getId().value());
+        log.info("Email verified successfully");
     }
 
     private ApplicationException verifyException() {

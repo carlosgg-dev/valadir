@@ -3,10 +3,12 @@ package com.valadir.application.service;
 import com.valadir.application.command.ResendVerificationCommand;
 import com.valadir.application.port.in.ResendVerificationUseCase;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class ResendVerificationService implements ResendVerificationUseCase {
 
@@ -28,12 +30,13 @@ public class ResendVerificationService implements ResendVerificationUseCase {
 
         accountRepository.findByEmail(email).ifPresentOrElse(
             account -> {
+                MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
                 if (account.getStatus() != AccountStatus.PENDING_VERIFICATION) {
-                    log.warn("Resend verification attempted for non-pending account, accountId={}", account.getId().value());
+                    log.warn("Resend verification attempted for non-pending account");
                     return;
                 }
                 otpVerificationSender.send(account.getId(), email);
-                log.info("Verification code resent, accountId={}", account.getId().value());
+                log.info("Verification code resent");
             },
             () -> log.warn("Resend verification attempted for unknown email")
         );
