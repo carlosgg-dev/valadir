@@ -1,5 +1,6 @@
 package com.valadir.persistence.repository;
 
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.persistence.entity.AccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,6 +16,6 @@ public interface AccountJpaRepository extends JpaRepository<AccountEntity, UUID>
     Optional<AccountEntity> findByEmail(String email);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("DELETE FROM AccountEntity a WHERE a.status = 'PENDING_VERIFICATION' AND a.createdAt < :cutoff")
-    int deleteExpiredPendingVerification(@Param("cutoff") Instant cutoff);
+    @Query("DELETE FROM AccountEntity a WHERE a.status = :status AND a.createdAt < :cutoff")
+    int deleteByStatusOlderThan(@Param("status") AccountStatus status, @Param("cutoff") Instant cutoff);
 }

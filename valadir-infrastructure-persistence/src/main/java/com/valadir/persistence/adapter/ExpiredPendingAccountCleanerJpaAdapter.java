@@ -1,6 +1,7 @@
 package com.valadir.persistence.adapter;
 
 import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,6 @@ public class ExpiredPendingAccountCleanerJpaAdapter implements ExpiredPendingAcc
     public int delete(Instant cutoff) {
 
         // users rows are removed automatically via ON DELETE CASCADE on users.account_id
-        return accountJpaRepository.deleteExpiredPendingVerification(cutoff);
+        return accountJpaRepository.deleteByStatusOlderThan(AccountStatus.PENDING_VERIFICATION, cutoff);
     }
 }
