@@ -12,5 +12,5 @@ public interface AccountRepository {
 
     Optional<Account> findByEmail(Email email);
 
-    void save(Account account);
+    void activate(AccountId accountId);
 }

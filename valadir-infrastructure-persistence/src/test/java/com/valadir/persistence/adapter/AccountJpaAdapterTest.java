@@ -7,6 +7,7 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.persistence.PostgresTestContainer;
+import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     void findById_existingAccount_returnsAccount() {
 
         Account account = buildAccount();
-        adapter.save(account);
+        jpaRepository.save(AccountMapper.toEntity(account));
 
         Optional<Account> result = adapter.findById(account.getId());
 
@@ -63,7 +64,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     void findByEmail_existingAccount_returnsAccount() {
 
         Account account = buildAccount();
-        adapter.save(account);
+        jpaRepository.save(AccountMapper.toEntity(account));
 
         Optional<Account> result = adapter.findByEmail(account.getEmail());
 
@@ -85,13 +86,23 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     }
 
     @Test
-    void save_validAccount_persistsToDatabase() {
+    void activate_pendingAccount_updatesStatusToActive() {
 
-        Account account = buildAccount();
+        var pendingAccount = Account.newPendingVerification(
+            AccountId.generate(),
+            new Email("pending@email.com"),
+            new HashedPassword("$2a$12$hashedpassword"),
+            Role.USER
+        );
 
-        adapter.save(account);
+        jpaRepository.save(AccountMapper.toEntity(pendingAccount));
+        adapter.activate(pendingAccount.getId());
 
-        assertThat(jpaRepository.findByEmail(account.getEmail().value())).isPresent();
+        var result = adapter.findById(pendingAccount.getId());
+        
+        assertThat(result)
+            .isPresent()
+            .hasValueSatisfying(account -> assertThat(account.isActive()).isTrue());
     }
 
     private Account buildAccount() {

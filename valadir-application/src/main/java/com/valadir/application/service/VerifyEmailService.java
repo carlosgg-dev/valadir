@@ -44,7 +44,7 @@ public class VerifyEmailService implements VerifyEmailUseCase {
             .filter(hashedOtp -> otpHasher.matches(command.code(), hashedOtp))
             .orElseThrow(this::verifyException);
 
-        accountRepository.save(account.activate());
+        accountRepository.activate(account.getId());
         otpStore.delete(account.getId());
 
         log.info("Email verified successfully");

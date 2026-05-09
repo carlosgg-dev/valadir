@@ -3,6 +3,7 @@ package com.valadir.persistence.adapter;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -33,8 +34,8 @@ public class AccountJpaAdapter implements AccountRepository {
     }
 
     @Override
-    public void save(Account account) {
+    public void activate(AccountId accountId) {
 
-        jpaRepository.save(AccountMapper.toEntity(account));
+        jpaRepository.updateStatusById(accountId.value(), AccountStatus.ACTIVE);
     }
 }

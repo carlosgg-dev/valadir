@@ -14,15 +14,12 @@ import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -40,9 +37,6 @@ class VerifyEmailServiceTest {
     private OtpHasher otpHasher;
     @InjectMocks
     private VerifyEmailService service;
-
-    @Captor
-    private ArgumentCaptor<Account> accountCaptor;
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PLAIN_CODE = "123456";
@@ -70,8 +64,7 @@ class VerifyEmailServiceTest {
 
         service.verify(command);
 
-        then(accountRepository).should().save(accountCaptor.capture());
-        assertThat(accountCaptor.getValue().isActive()).isTrue();
+        then(accountRepository).should().activate(pendingAccount.getId());
         then(otpStore).should().delete(pendingAccount.getId());
     }
 
@@ -87,7 +80,7 @@ class VerifyEmailServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(otpStore).should(never()).find(any());
-        then(accountRepository).should(never()).save(any());
+        then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
     }
 
@@ -112,7 +105,7 @@ class VerifyEmailServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
         then(otpStore).should(never()).find(any());
-        then(accountRepository).should(never()).save(any());
+        then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
     }
 
@@ -129,7 +122,7 @@ class VerifyEmailServiceTest {
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
-        then(accountRepository).should(never()).save(any());
+        then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
     }
 
@@ -147,7 +140,7 @@ class VerifyEmailServiceTest {
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
 
-        then(accountRepository).should(never()).save(any());
+        then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
     }
 }
