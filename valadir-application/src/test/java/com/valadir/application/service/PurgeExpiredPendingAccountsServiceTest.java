@@ -1,6 +1,6 @@
 package com.valadir.application.service;
 
-import com.valadir.application.config.VerificationConfig;
+import com.valadir.application.config.PendingAccountPurgeConfig;
 import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class PurgeExpiredPendingAccountsServiceTest {
     @BeforeEach
     void setUp() {
 
-        var config = new VerificationConfig(Duration.ofMinutes(15), GRACE_PERIOD);
+        var config = new PendingAccountPurgeConfig(GRACE_PERIOD);
         var clock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
         service = new PurgeExpiredPendingAccountsService(cleaner, config, clock);
     }

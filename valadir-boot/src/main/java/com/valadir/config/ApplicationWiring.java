@@ -1,6 +1,7 @@
 package com.valadir.config;
 
-import com.valadir.application.config.VerificationConfig;
+import com.valadir.application.config.EmailVerificationConfig;
+import com.valadir.application.config.PendingAccountPurgeConfig;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.PurgeExpiredPendingAccountsUseCase;
@@ -78,22 +79,25 @@ class ApplicationWiring {
     }
 
     @Bean
-    VerificationConfig verificationConfig(
-        @Value("${auth.email-verification.otp.ttl}") Duration otpTtl,
-        @Value("${scheduler.pending-account.grace-period}") Duration accountGracePeriod
-    ) {
+    EmailVerificationConfig emailVerificationConfig(@Value("${auth.email-verification.otp.ttl}") Duration otpTtl) {
 
-        return new VerificationConfig(otpTtl, accountGracePeriod);
+        return new EmailVerificationConfig(otpTtl);
+    }
+
+    @Bean
+    PendingAccountPurgeConfig pendingAccountPurgeConfig(@Value("${scheduler.pending-account.grace-period}") Duration accountGracePeriod) {
+
+        return new PendingAccountPurgeConfig(accountGracePeriod);
     }
 
     @Bean
     PurgeExpiredPendingAccountsUseCase purgeExpiredPendingAccountsUseCase(
         ExpiredPendingAccountCleaner expiredPendingAccountCleaner,
-        VerificationConfig verificationConfig,
+        PendingAccountPurgeConfig pendingAccountPurgeConfig,
         Clock clock
     ) {
 
-        return new PurgeExpiredPendingAccountsService(expiredPendingAccountCleaner, verificationConfig, clock);
+        return new PurgeExpiredPendingAccountsService(expiredPendingAccountCleaner, pendingAccountPurgeConfig, clock);
     }
 
     @Bean
@@ -101,10 +105,10 @@ class ApplicationWiring {
         EmailVerificationPort emailVerificationPort,
         OtpStore otpStore,
         OtpHasher otpHasher,
-        VerificationConfig verificationConfig
+        EmailVerificationConfig emailVerificationConfig
     ) {
 
-        return new OtpVerificationSenderService(emailVerificationPort, otpStore, otpHasher, verificationConfig);
+        return new OtpVerificationSenderService(emailVerificationPort, otpStore, otpHasher, emailVerificationConfig);
     }
 
     @Bean

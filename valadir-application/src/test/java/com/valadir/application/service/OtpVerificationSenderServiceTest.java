@@ -1,6 +1,6 @@
 package com.valadir.application.service;
 
-import com.valadir.application.config.VerificationConfig;
+import com.valadir.application.config.EmailVerificationConfig;
 import com.valadir.application.port.out.EmailVerificationPort;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
@@ -30,7 +30,7 @@ class OtpVerificationSenderServiceTest {
     @Mock
     private OtpHasher otpHasher;
     @Mock
-    private VerificationConfig verificationConfig;
+    private EmailVerificationConfig emailVerificationConfig;
     @InjectMocks
     private OtpVerificationSenderService otpVerificationSenderService;
 
@@ -46,7 +46,7 @@ class OtpVerificationSenderServiceTest {
         var otpTtl = Duration.ofSeconds(900);
 
         given(otpHasher.hash(anyString())).willReturn(hashedOtp);
-        given(verificationConfig.otpTtl()).willReturn(otpTtl);
+        given(emailVerificationConfig.otpTtl()).willReturn(otpTtl);
 
         otpVerificationSenderService.send(accountId, email);
 

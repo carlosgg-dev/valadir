@@ -1,6 +1,6 @@
 package com.valadir.application.service;
 
-import com.valadir.application.config.VerificationConfig;
+import com.valadir.application.config.EmailVerificationConfig;
 import com.valadir.application.port.out.EmailVerificationPort;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
@@ -12,19 +12,19 @@ public class OtpVerificationSenderService implements OtpVerificationSender {
     private final EmailVerificationPort emailVerificationPort;
     private final OtpStore otpStore;
     private final OtpHasher otpHasher;
-    private final VerificationConfig verificationConfig;
+    private final EmailVerificationConfig emailVerificationConfig;
 
     public OtpVerificationSenderService(
         EmailVerificationPort emailVerificationPort,
         OtpStore otpStore,
         OtpHasher otpHasher,
-        VerificationConfig verificationConfig
+        EmailVerificationConfig emailVerificationConfig
     ) {
 
         this.emailVerificationPort = emailVerificationPort;
         this.otpStore = otpStore;
         this.otpHasher = otpHasher;
-        this.verificationConfig = verificationConfig;
+        this.emailVerificationConfig = emailVerificationConfig;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class OtpVerificationSenderService implements OtpVerificationSender {
         var plainCode = OtpGenerator.generate();
         String hashedOtp = otpHasher.hash(plainCode);
 
-        otpStore.save(accountId, hashedOtp, verificationConfig.otpTtl());
+        otpStore.save(accountId, hashedOtp, emailVerificationConfig.otpTtl());
         emailVerificationPort.sendVerificationCode(email, plainCode);
     }
 }
