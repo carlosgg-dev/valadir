@@ -79,7 +79,7 @@ class ApplicationWiring {
 
     @Bean
     VerificationConfig verificationConfig(
-        @Value("${auth.otp.ttl}") Duration otpTtl,
+        @Value("${auth.email-verification.otp.ttl}") Duration otpTtl,
         @Value("${scheduler.pending-account.grace-period}") Duration accountGracePeriod
     ) {
 

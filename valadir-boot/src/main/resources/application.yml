@@ -38,8 +38,9 @@ notifications:
     from: noreply@valadir.local
 
 auth:
-  otp:
-    ttl: 15m
+  email-verification:
+    otp:
+      ttl: 15m
   lockout:
     window: 1h  # sliding window for counting failed attempts
     thresholds:
