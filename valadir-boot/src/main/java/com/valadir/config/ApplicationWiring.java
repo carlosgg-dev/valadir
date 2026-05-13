@@ -85,7 +85,7 @@ class ApplicationWiring {
     }
 
     @Bean
-    PendingActivationAccountPurgeConfig pendingAccountPurgeConfig(
+    PendingActivationAccountPurgeConfig pendingActivationAccountPurgeConfig(
         @Value("${scheduler.pending-activation-account.grace-period}") Duration accountGracePeriod
     ) {
 
@@ -93,7 +93,7 @@ class ApplicationWiring {
     }
 
     @Bean
-    PurgeExpiredPendingActivationAccountsUseCase purgeExpiredPendingAccountsUseCase(
+    PurgeExpiredPendingActivationAccountsUseCase purgeExpiredPendingActivationAccountsUseCase(
         ExpiredPendingActivationAccountCleaner expiredPendingActivationAccountCleaner,
         PendingActivationAccountPurgeConfig pendingActivationAccountPurgeConfig,
         Clock clock
