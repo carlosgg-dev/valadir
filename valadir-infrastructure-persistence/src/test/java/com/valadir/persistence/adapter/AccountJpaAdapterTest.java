@@ -86,9 +86,9 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
     }
 
     @Test
-    void activate_pendingAccount_updatesStatusToActive() {
+    void activate_pendingActivationAccount_updatesStatusToActive() {
 
-        var pendingAccount = Account.newPendingVerification(
+        var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
             new Email("pending@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),
@@ -99,7 +99,7 @@ class AccountJpaAdapterTest extends PostgresTestContainer {
         adapter.activate(pendingAccount.getId());
 
         var result = adapter.findById(pendingAccount.getId());
-        
+
         assertThat(result)
             .isPresent()
             .hasValueSatisfying(account -> assertThat(account.isActive()).isTrue());

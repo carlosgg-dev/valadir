@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class JavaMailEmailVerificationAdapterTest {
+class JavaMailAccountActivationAdapterTest {
 
     @Mock
     private JavaMailSender mailSender;
@@ -23,7 +23,7 @@ class JavaMailEmailVerificationAdapterTest {
     @Captor
     private ArgumentCaptor<SimpleMailMessage> messageCaptor;
 
-    private JavaMailEmailVerificationAdapter adapter;
+    private JavaMailAccountActivationAdapter adapter;
 
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final String TO_ADDRESS = "user@example.com";
@@ -32,19 +32,19 @@ class JavaMailEmailVerificationAdapterTest {
     @BeforeEach
     void setUp() {
 
-        adapter = new JavaMailEmailVerificationAdapter(mailSender, FROM_ADDRESS);
+        adapter = new JavaMailAccountActivationAdapter(mailSender, FROM_ADDRESS);
     }
 
     @Test
-    void sendVerificationCode_validInput_sendsMessageWithCorrectFields() {
+    void sendActivationCode_validInput_sendsMessageWithCorrectFields() {
 
-        adapter.sendVerificationCode(new Email(TO_ADDRESS), CODE);
+        adapter.sendActivationCode(new Email(TO_ADDRESS), CODE);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
         assertThat(message.getFrom()).isEqualTo(FROM_ADDRESS);
         assertThat(message.getTo()).containsExactly(TO_ADDRESS);
-        assertThat(message.getSubject()).isEqualTo("Valadir - register verification code");
+        assertThat(message.getSubject()).isEqualTo("Valadir - account activation code");
         assertThat(message.getText()).contains(CODE);
     }
 }

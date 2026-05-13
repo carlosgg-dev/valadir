@@ -1,7 +1,7 @@
 package com.valadir.application.service;
 
-import com.valadir.application.config.EmailVerificationConfig;
-import com.valadir.application.port.out.EmailVerificationPort;
+import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.port.out.AccountActivationPort;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.domain.model.AccountId;
@@ -21,18 +21,18 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class OtpVerificationSenderServiceTest {
+class AccountActivationOtpSenderServiceTest {
 
     @Mock
-    private EmailVerificationPort emailVerificationPort;
+    private AccountActivationPort accountActivationPort;
     @Mock
     private OtpStore otpStore;
     @Mock
     private OtpHasher otpHasher;
     @Mock
-    private EmailVerificationConfig emailVerificationConfig;
+    private AccountActivationConfig accountActivationConfig;
     @InjectMocks
-    private OtpVerificationSenderService otpVerificationSenderService;
+    private AccountActivationOtpSenderService accountActivationOtpSenderService;
 
     @Captor
     private ArgumentCaptor<String> plainCodeCaptor;
@@ -46,14 +46,14 @@ class OtpVerificationSenderServiceTest {
         var otpTtl = Duration.ofSeconds(900);
 
         given(otpHasher.hash(anyString())).willReturn(hashedOtp);
-        given(emailVerificationConfig.otpTtl()).willReturn(otpTtl);
+        given(accountActivationConfig.otpTtl()).willReturn(otpTtl);
 
-        otpVerificationSenderService.send(accountId, email);
+        accountActivationOtpSenderService.send(accountId, email);
 
         then(otpHasher).should().hash(plainCodeCaptor.capture());
         var capturedCode = plainCodeCaptor.getValue();
 
         then(otpStore).should().save(accountId, hashedOtp, otpTtl);
-        then(emailVerificationPort).should().sendVerificationCode(email, capturedCode);
+        then(accountActivationPort).should().sendActivationCode(email, capturedCode);
     }
 }

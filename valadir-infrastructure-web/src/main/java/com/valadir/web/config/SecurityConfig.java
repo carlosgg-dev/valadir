@@ -33,8 +33,9 @@ public class SecurityConfig {
         ApiRoutes.Auth.REGISTER_PATH,
         ApiRoutes.Auth.LOGIN_PATH,
         ApiRoutes.Auth.REFRESH_PATH,
-        ApiRoutes.Auth.VERIFY_EMAIL_PATH,
-        ApiRoutes.Auth.RESEND_VERIFICATION_PATH};
+        ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH,
+        ApiRoutes.Auth.AccountActivation.RESEND_PATH
+    };
 
     private final ObjectMapper objectMapper;
     private final RateLimiter rateLimiter;

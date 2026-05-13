@@ -7,7 +7,7 @@ spring:
       password: ""
 
 scheduler:
-  pending-account:
+  pending-activation-account:
     grace-period: 72h
     purge-cron: "-"
 

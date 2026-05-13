@@ -1,6 +1,6 @@
 package com.valadir.scheduler;
 
-import com.valadir.application.port.in.PurgeExpiredPendingAccountsUseCase;
+import com.valadir.application.port.in.PurgeExpiredPendingActivationAccountsUseCase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,18 +10,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class PendingAccountPurgeSchedulerTest {
+class PendingActivationAccountPurgeSchedulerTest {
 
     @Mock
-    private PurgeExpiredPendingAccountsUseCase purgeUseCase;
+    private PurgeExpiredPendingActivationAccountsUseCase purgeUseCase;
 
     @InjectMocks
-    private PendingAccountPurgeScheduler scheduler;
+    private PendingActivationAccountPurgeScheduler scheduler;
 
     @Test
-    void purgeExpiredPendingAccounts_delegatesToUseCase() {
+    void purgeExpiredPendingActivationAccounts_delegatesToUseCase() {
 
-        scheduler.purgeExpiredPendingAccounts();
+        scheduler.purgeExpiredPendingActivationAccounts();
 
         then(purgeUseCase).should().purge();
     }

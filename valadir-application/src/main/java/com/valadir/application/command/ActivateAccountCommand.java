@@ -1,6 +1,6 @@
 package com.valadir.application.command;
 
-public record VerifyEmailCommand(
+public record ActivateAccountCommand(
     String email,
     String code) {
 

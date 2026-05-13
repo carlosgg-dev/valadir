@@ -18,13 +18,19 @@ public final class ApiRoutes {
         public static final String LOGIN_PATH = BASE + LOGIN;
         public static final String REFRESH_PATH = BASE + REFRESH;
         public static final String LOGOUT_PATH = BASE + LOGOUT;
-        
-        // Verify email
-        public static final String VERIFY_EMAIL = "/verify-email";
-        public static final String RESEND_VERIFICATION = "/resend-verification";
 
-        public static final String VERIFY_EMAIL_PATH = BASE + VERIFY_EMAIL;
-        public static final String RESEND_VERIFICATION_PATH = BASE + RESEND_VERIFICATION;
+        // Account activation
+        public static final class AccountActivation {
+
+            public static final String ACTIVATE = "/account-activation";
+            public static final String RESEND = ACTIVATE + "/resend";
+            public static final String ACTIVATE_PATH = Auth.BASE + ACTIVATE;
+            public static final String RESEND_PATH = Auth.BASE + RESEND;
+
+            private AccountActivation() {
+
+            }
+        }
 
         private Auth() {
 

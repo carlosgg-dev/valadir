@@ -12,22 +12,22 @@ class AccountTest {
     private static final Role ROLE = Role.USER;
 
     @Test
-    void newPendingVerification_validData_createsAccountWithPendingVerification() {
+    void newPendingActivation_validData_createsAccountPendingActivation() {
 
-        Account account = Account.newPendingVerification(ID, EMAIL, PASSWORD, ROLE);
+        var account = Account.newPendingActivation(ID, EMAIL, PASSWORD, ROLE);
 
         assertThat(account.getId()).isEqualTo(ID);
         assertThat(account.getEmail()).isEqualTo(EMAIL);
         assertThat(account.getPassword()).isEqualTo(PASSWORD);
         assertThat(account.getRole()).isEqualTo(ROLE);
-        assertThat(account.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
+        assertThat(account.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(account.isActive()).isFalse();
     }
 
     @Test
     void reconstitute_validData_reconstitutesAccount() {
 
-        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
+        var account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
 
         assertThat(account.getId()).isEqualTo(ID);
         assertThat(account.getEmail()).isEqualTo(EMAIL);
@@ -37,30 +37,44 @@ class AccountTest {
     }
 
     @Test
-    void activate_pendingAccount_returnsNewInstanceWithActiveStatus() {
+    void activate_pendingActivationAccount_returnsNewInstanceWithActiveStatus() {
 
-        Account pending = Account.newPendingVerification(ID, EMAIL, PASSWORD, ROLE);
-
+        var pending = Account.newPendingActivation(ID, EMAIL, PASSWORD, ROLE);
         Account activated = pending.activate();
 
         assertThat(activated.isActive()).isTrue();
-        assertThat(activated.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(pending.isActive()).isFalse();
     }
 
     @Test
     void isActive_activeAccount_returnsTrue() {
 
-        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
+        var account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
 
         assertThat(account.isActive()).isTrue();
     }
 
     @Test
-    void isActive_pendingAccount_returnsFalse() {
+    void isActive_pendingActivationAccount_returnsFalse() {
 
-        Account account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.PENDING_VERIFICATION);
+        var account = Account.newPendingActivation(ID, EMAIL, PASSWORD, ROLE);
 
         assertThat(account.isActive()).isFalse();
+    }
+
+    @Test
+    void isPendingActivation_activeAccount_returnsFalse() {
+
+        var account = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE);
+
+        assertThat(account.isPendingActivation()).isFalse();
+    }
+
+    @Test
+    void isPendingActivation_pendingActivationAccount_returnsTrue() {
+
+        var account = Account.newPendingActivation(ID, EMAIL, PASSWORD, ROLE);
+
+        assertThat(account.isPendingActivation()).isTrue();
     }
 }

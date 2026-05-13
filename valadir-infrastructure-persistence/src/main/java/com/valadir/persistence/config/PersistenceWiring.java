@@ -1,10 +1,10 @@
 package com.valadir.persistence.config;
 
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
+import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.persistence.adapter.AccountJpaAdapter;
-import com.valadir.persistence.adapter.ExpiredPendingAccountCleanerJpaAdapter;
+import com.valadir.persistence.adapter.ExpiredPendingActivationAccountCleanerJpaAdapter;
 import com.valadir.persistence.adapter.RegisterJpaAdapter;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
@@ -27,8 +27,8 @@ class PersistenceWiring {
     }
 
     @Bean
-    ExpiredPendingAccountCleaner expiredPendingAccountCleaner(AccountJpaRepository accountJpaRepository) {
+    ExpiredPendingActivationAccountCleaner expiredPendingAccountCleaner(AccountJpaRepository accountJpaRepository) {
 
-        return new ExpiredPendingAccountCleanerJpaAdapter(accountJpaRepository);
+        return new ExpiredPendingActivationAccountCleanerJpaAdapter(accountJpaRepository);
     }
 }

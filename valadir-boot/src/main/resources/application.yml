@@ -38,7 +38,7 @@ notifications:
     from: noreply@valadir.local
 
 auth:
-  email-verification:
+  account-activation:
     otp:
       ttl: 15m
   lockout:
@@ -56,7 +56,7 @@ auth:
     refresh-token-ttl: 7d
 
 scheduler:
-  pending-account:
+  pending-activation-account:
     grace-period: 72h
     purge-cron: "0 0 0 * * *"  # once a day at midnight
 
@@ -84,22 +84,22 @@ rate-limit:
       max-requests: 3
       window: 1h
 
-    # --- verify-email: OTP brute-force + account enumeration via INVALID_VERIFICATION_OTP ---
-    - path: /api/auth/verify-email
+    # --- account-activation: OTP brute-force + account enumeration via INVALID_ACCOUNT_ACTIVATION_OTP ---
+    - path: /api/auth/account-activation
       strategy: IP
       max-requests: 10
       window: 60s
-    - path: /api/auth/verify-email
+    - path: /api/auth/account-activation
       strategy: EMAIL
       max-requests: 5
       window: 15m  # matches OTP TTL — window resets when OTP expires
 
-    # --- resend-verification: email spam ---
-    - path: /api/auth/resend-verification
+    # --- account-activation/resend: email spam ---
+    - path: /api/auth/account-activation/resend
       strategy: IP
       max-requests: 5
       window: 1h
-    - path: /api/auth/resend-verification
+    - path: /api/auth/account-activation/resend
       strategy: EMAIL
       max-requests: 3
       window: 1h

@@ -1,34 +1,34 @@
 package com.valadir.config;
 
-import com.valadir.application.config.EmailVerificationConfig;
-import com.valadir.application.config.PendingAccountPurgeConfig;
+import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.config.PendingActivationAccountPurgeConfig;
+import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
-import com.valadir.application.port.in.PurgeExpiredPendingAccountsUseCase;
+import com.valadir.application.port.in.PurgeExpiredPendingActivationAccountsUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
-import com.valadir.application.port.in.ResendVerificationUseCase;
-import com.valadir.application.port.in.VerifyEmailUseCase;
+import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.out.AccessTokenBlacklist;
+import com.valadir.application.port.out.AccountActivationPort;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.EmailVerificationPort;
-import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
+import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.LoginAttemptStore;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.service.AccountActivationOtpSender;
+import com.valadir.application.service.AccountActivationOtpSenderService;
+import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutService;
-import com.valadir.application.service.OtpVerificationSender;
-import com.valadir.application.service.OtpVerificationSenderService;
-import com.valadir.application.service.PurgeExpiredPendingAccountsService;
+import com.valadir.application.service.PurgeExpiredPendingActivationAccountsService;
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
-import com.valadir.application.service.ResendVerificationService;
-import com.valadir.application.service.VerifyEmailService;
+import com.valadir.application.service.ResendAccountActivationCodeService;
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
@@ -79,36 +79,38 @@ class ApplicationWiring {
     }
 
     @Bean
-    EmailVerificationConfig emailVerificationConfig(@Value("${auth.email-verification.otp.ttl}") Duration otpTtl) {
+    AccountActivationConfig accountActivationConfig(@Value("${auth.account-activation.otp.ttl}") Duration otpTtl) {
 
-        return new EmailVerificationConfig(otpTtl);
+        return new AccountActivationConfig(otpTtl);
     }
 
     @Bean
-    PendingAccountPurgeConfig pendingAccountPurgeConfig(@Value("${scheduler.pending-account.grace-period}") Duration accountGracePeriod) {
+    PendingActivationAccountPurgeConfig pendingAccountPurgeConfig(
+        @Value("${scheduler.pending-activation-account.grace-period}") Duration accountGracePeriod
+    ) {
 
-        return new PendingAccountPurgeConfig(accountGracePeriod);
+        return new PendingActivationAccountPurgeConfig(accountGracePeriod);
     }
 
     @Bean
-    PurgeExpiredPendingAccountsUseCase purgeExpiredPendingAccountsUseCase(
-        ExpiredPendingAccountCleaner expiredPendingAccountCleaner,
-        PendingAccountPurgeConfig pendingAccountPurgeConfig,
+    PurgeExpiredPendingActivationAccountsUseCase purgeExpiredPendingAccountsUseCase(
+        ExpiredPendingActivationAccountCleaner expiredPendingActivationAccountCleaner,
+        PendingActivationAccountPurgeConfig pendingActivationAccountPurgeConfig,
         Clock clock
     ) {
 
-        return new PurgeExpiredPendingAccountsService(expiredPendingAccountCleaner, pendingAccountPurgeConfig, clock);
+        return new PurgeExpiredPendingActivationAccountsService(expiredPendingActivationAccountCleaner, pendingActivationAccountPurgeConfig, clock);
     }
 
     @Bean
-    OtpVerificationSender otpVerificationSender(
-        EmailVerificationPort emailVerificationPort,
+    AccountActivationOtpSender accountActivationOtpSender(
+        AccountActivationPort accountActivationPort,
         OtpStore otpStore,
         OtpHasher otpHasher,
-        EmailVerificationConfig emailVerificationConfig
+        AccountActivationConfig accountActivationConfig
     ) {
 
-        return new OtpVerificationSenderService(emailVerificationPort, otpStore, otpHasher, emailVerificationConfig);
+        return new AccountActivationOtpSenderService(accountActivationPort, otpStore, otpHasher, accountActivationConfig);
     }
 
     @Bean
@@ -117,7 +119,7 @@ class ApplicationWiring {
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
-        OtpVerificationSender otpVerificationSender
+        AccountActivationOtpSender accountActivationOtpSender
     ) {
 
         return new RegisterService(
@@ -125,20 +127,23 @@ class ApplicationWiring {
             passwordHasher,
             passwordSecurityService,
             registerPersistence,
-            otpVerificationSender
+            accountActivationOtpSender
         );
     }
 
     @Bean
-    VerifyEmailUseCase verifyEmailUseCase(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
+    ActivateAccountUseCase activateAccountUseCase(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
 
-        return new VerifyEmailService(accountRepository, otpStore, otpHasher);
+        return new ActivateAccountService(accountRepository, otpStore, otpHasher);
     }
 
     @Bean
-    ResendVerificationUseCase resendVerificationUseCase(AccountRepository accountRepository, OtpVerificationSender otpVerificationSender) {
+    ResendAccountActivationCodeUseCase resendAccountActivationCodeUseCase(
+        AccountRepository accountRepository,
+        AccountActivationOtpSender accountActivationOtpSender
+    ) {
 
-        return new ResendVerificationService(accountRepository, otpVerificationSender);
+        return new ResendAccountActivationCodeService(accountRepository, accountActivationOtpSender);
     }
 
     @Bean

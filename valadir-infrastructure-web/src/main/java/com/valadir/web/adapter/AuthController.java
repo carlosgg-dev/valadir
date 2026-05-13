@@ -1,25 +1,25 @@
 package com.valadir.web.adapter;
 
+import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.command.LoginCommand;
 import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.command.RegisterCommand;
-import com.valadir.application.command.ResendVerificationCommand;
-import com.valadir.application.command.VerifyEmailCommand;
+import com.valadir.application.command.ResendAccountActivationCodeCommand;
+import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
-import com.valadir.application.port.in.ResendVerificationUseCase;
-import com.valadir.application.port.in.VerifyEmailUseCase;
+import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.web.config.ApiRoutes;
+import com.valadir.web.dto.request.ActivateAccountRequest;
 import com.valadir.web.dto.request.LoginRequest;
 import com.valadir.web.dto.request.LogoutRequest;
 import com.valadir.web.dto.request.RefreshRequest;
 import com.valadir.web.dto.request.RegisterRequest;
-import com.valadir.web.dto.request.ResendVerificationRequest;
-import com.valadir.web.dto.request.VerifyEmailRequest;
+import com.valadir.web.dto.request.ResendAccountActivationCodeRequest;
 import com.valadir.web.dto.response.AuthResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,24 +40,24 @@ import java.util.Objects;
 class AuthController {
 
     private final RegisterUseCase registerUseCase;
-    private final VerifyEmailUseCase verifyEmailUseCase;
-    private final ResendVerificationUseCase resendVerificationUseCase;
+    private final ActivateAccountUseCase activateAccountUseCase;
+    private final ResendAccountActivationCodeUseCase resendAccountActivationCodeUseCase;
     private final LoginUseCase loginUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
 
     AuthController(
         RegisterUseCase registerUseCase,
-        VerifyEmailUseCase verifyEmailUseCase,
-        ResendVerificationUseCase resendVerificationUseCase,
+        ActivateAccountUseCase activateAccountUseCase,
+        ResendAccountActivationCodeUseCase resendAccountActivationCodeUseCase,
         LoginUseCase loginUseCase,
         RefreshTokenUseCase refreshTokenUseCase,
         LogoutUseCase logoutUseCase
     ) {
 
         this.registerUseCase = registerUseCase;
-        this.verifyEmailUseCase = verifyEmailUseCase;
-        this.resendVerificationUseCase = resendVerificationUseCase;
+        this.activateAccountUseCase = activateAccountUseCase;
+        this.resendAccountActivationCodeUseCase = resendAccountActivationCodeUseCase;
         this.loginUseCase = loginUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
@@ -75,18 +75,18 @@ class AuthController {
         ));
     }
 
-    @PostMapping(ApiRoutes.Auth.VERIFY_EMAIL)
+    @PostMapping(ApiRoutes.Auth.AccountActivation.ACTIVATE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+    void activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
 
-        verifyEmailUseCase.verify(new VerifyEmailCommand(request.email(), request.code()));
+        activateAccountUseCase.activate(new ActivateAccountCommand(request.email(), request.code()));
     }
 
-    @PostMapping(ApiRoutes.Auth.RESEND_VERIFICATION)
+    @PostMapping(ApiRoutes.Auth.AccountActivation.RESEND)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+    void resendAccountActivationCode(@Valid @RequestBody ResendAccountActivationCodeRequest request) {
 
-        resendVerificationUseCase.resend(new ResendVerificationCommand(request.email()));
+        resendAccountActivationCodeUseCase.resend(new ResendAccountActivationCodeCommand(request.email()));
     }
 
     @PostMapping(ApiRoutes.Auth.LOGIN)

@@ -2,7 +2,7 @@ package com.valadir.application.config;
 
 import java.time.Duration;
 
-public record EmailVerificationConfig(
+public record AccountActivationConfig(
     Duration otpTtl) {
 
 }

@@ -17,9 +17,9 @@ public class Account {
         this.status = status;
     }
 
-    public static Account newPendingVerification(AccountId id, Email email, HashedPassword password, Role role) {
+    public static Account newPendingActivation(AccountId id, Email email, HashedPassword password, Role role) {
 
-        return new Account(id, email, password, role, AccountStatus.PENDING_VERIFICATION);
+        return new Account(id, email, password, role, AccountStatus.PENDING_ACTIVATION);
     }
 
     public static Account reconstitute(AccountId id, Email email, HashedPassword hashedPassword, Role role, AccountStatus status) {
@@ -37,9 +37,9 @@ public class Account {
         return AccountStatus.ACTIVE.equals(status);
     }
 
-    public boolean isPendingVerification() {
+    public boolean isPendingActivation() {
 
-        return AccountStatus.PENDING_VERIFICATION.equals(status);
+        return AccountStatus.PENDING_ACTIVATION.equals(status);
     }
 
     public AccountId getId() {

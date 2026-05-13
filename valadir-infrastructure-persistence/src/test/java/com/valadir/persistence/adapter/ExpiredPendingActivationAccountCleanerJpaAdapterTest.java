@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
+class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestContainer {
 
     private static final Instant CUTOFF = Instant.now().minus(72, ChronoUnit.HOURS);
     private static final Instant EXPIRED_CREATED_AT = CUTOFF.minus(8, ChronoUnit.HOURS);
@@ -45,18 +45,18 @@ class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private ExpiredPendingAccountCleanerJpaAdapter adapter;
+    private ExpiredPendingActivationAccountCleanerJpaAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new ExpiredPendingAccountCleanerJpaAdapter(accountJpaRepository);
+        adapter = new ExpiredPendingActivationAccountCleanerJpaAdapter(accountJpaRepository);
     }
 
     @Test
-    void delete_pendingAccount_deletesAccountAndUser() {
+    void delete_pendingActivationAccount_deletesAccountAndUser() {
 
-        AccountId accountId = savePendingAccountAndUser("expired@email.com", EXPIRED_CREATED_AT);
+        AccountId accountId = savePendingActivationAccountAndUser("expired@email.com", EXPIRED_CREATED_AT);
 
         int deleted = adapter.delete(CUTOFF);
 
@@ -66,9 +66,9 @@ class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
     }
 
     @Test
-    void delete_recentPendingAccount_doesNotDelete() {
+    void delete_recentPendingActivationAccount_doesNotDelete() {
 
-        AccountId accountId = savePendingAccountAndUser("recent@email.com", RECENT_CREATED_AT);
+        AccountId accountId = savePendingActivationAccountAndUser("recent@email.com", RECENT_CREATED_AT);
 
         int deleted = adapter.delete(CUTOFF);
 
@@ -109,9 +109,9 @@ class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
     @Test
     void delete_multipleAccounts_deletesAll() {
 
-        savePendingAccountAndUser("expired1@email.com", EXPIRED_CREATED_AT);
-        savePendingAccountAndUser("expired2@email.com", EXPIRED_CREATED_AT);
-        AccountId recentId = savePendingAccountAndUser("recent@email.com", RECENT_CREATED_AT);
+        savePendingActivationAccountAndUser("expired1@email.com", EXPIRED_CREATED_AT);
+        savePendingActivationAccountAndUser("expired2@email.com", EXPIRED_CREATED_AT);
+        AccountId recentId = savePendingActivationAccountAndUser("recent@email.com", RECENT_CREATED_AT);
 
         int deleted = adapter.delete(CUTOFF);
 
@@ -120,10 +120,10 @@ class ExpiredPendingAccountCleanerJpaAdapterTest extends PostgresTestContainer {
         assertThat(accountJpaRepository.findById(recentId.value())).isPresent();
     }
 
-    private AccountId savePendingAccountAndUser(String email, Instant createdAt) {
+    private AccountId savePendingActivationAccountAndUser(String email, Instant createdAt) {
 
         AccountId accountId = AccountId.generate();
-        Account account = Account.newPendingVerification(accountId, new Email(email), new HashedPassword("$2a$12$hash"), Role.USER);
+        Account account = Account.newPendingActivation(accountId, new Email(email), new HashedPassword("$2a$12$hash"), Role.USER);
         AccountEntity accountEntity = AccountMapper.toEntity(account);
 
         accountJpaRepository.saveAndFlush(accountEntity);

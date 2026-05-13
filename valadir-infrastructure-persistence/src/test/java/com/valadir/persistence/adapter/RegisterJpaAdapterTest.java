@@ -61,7 +61,7 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
         adapter.save(oldAccount, oldUser);
 
         var newAccountId = AccountId.generate();
-        var newAccount = Account.newPendingVerification(
+        var pendingAccount = Account.newPendingActivation(
             newAccountId,
             new Email("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$newhash"),
@@ -69,7 +69,7 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
         );
         var newUser = buildUser(newAccountId);
 
-        adapter.replacePendingAndSave(oldAccountId, newAccount, newUser);
+        adapter.replacePendingAndSave(oldAccountId, pendingAccount, newUser);
 
         assertThat(accountJpaRepository.findById(oldAccountId.value())).isEmpty();
         assertThat(userJpaRepository.findById(oldUser.getId().value())).isEmpty();
@@ -80,7 +80,7 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
 
     private Account buildAccount(AccountId accountId) {
 
-        return Account.newPendingVerification(
+        return Account.newPendingActivation(
             accountId,
             new Email("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),

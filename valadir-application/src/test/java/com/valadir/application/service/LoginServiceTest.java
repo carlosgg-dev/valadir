@@ -111,13 +111,13 @@ class LoginServiceTest {
     }
 
     @Test
-    void login_accountPendingVerification_throwsApplicationException() {
+    void login_accountPendingActivation_throwsApplicationException() {
 
         var emailValue = "bruce.wayne@emailValue.com";
         var password = "SecureP@ss123";
         var command = new LoginCommand(emailValue, password);
         var email = new Email(emailValue);
-        var pendingAccount = Account.newPendingVerification(
+        var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
             email,
             new HashedPassword("$2a$12$hashed"),
@@ -129,7 +129,7 @@ class LoginServiceTest {
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
         then(loginAttemptStore).should(never()).clearAttempts(any());
@@ -190,13 +190,13 @@ class LoginServiceTest {
     }
 
     @Test
-    void login_accountPendingVerification_doesNotRecordFailedAttempt() {
+    void login_accountPendingActivation_doesNotRecordFailedAttempt() {
 
         var emailValue = "bruce.wayne@emailValue.com";
         var email = new Email(emailValue);
         var password = "SecureP@ss123";
         var command = new LoginCommand(emailValue, password);
-        var pendingAccount = Account.newPendingVerification(
+        var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
             email,
             new HashedPassword("$2a$12$hashed"),
@@ -208,7 +208,7 @@ class LoginServiceTest {
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
 
         then(loginAttemptStore).should(never()).recordFailedAttempt(any());
     }

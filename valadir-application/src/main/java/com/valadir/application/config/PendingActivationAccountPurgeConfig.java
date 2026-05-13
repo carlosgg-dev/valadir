@@ -2,7 +2,7 @@ package com.valadir.application.config;
 
 import java.time.Duration;
 
-public record PendingAccountPurgeConfig(
+public record PendingActivationAccountPurgeConfig(
     Duration accountGracePeriod) {
 
 }

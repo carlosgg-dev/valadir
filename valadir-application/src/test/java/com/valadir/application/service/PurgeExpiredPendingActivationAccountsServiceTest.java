@@ -1,7 +1,7 @@
 package com.valadir.application.service;
 
-import com.valadir.application.config.PendingAccountPurgeConfig;
-import com.valadir.application.port.out.ExpiredPendingAccountCleaner;
+import com.valadir.application.config.PendingActivationAccountPurgeConfig;
+import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,23 +17,23 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class PurgeExpiredPendingAccountsServiceTest {
+class PurgeExpiredPendingActivationAccountsServiceTest {
 
     private static final Instant FIXED_NOW = Instant.parse("2026-05-02T12:00:00Z");
     private static final Duration GRACE_PERIOD = Duration.ofHours(72);
     private static final Instant EXPECTED_CUTOFF = FIXED_NOW.minus(GRACE_PERIOD);
 
     @Mock
-    private ExpiredPendingAccountCleaner cleaner;
+    private ExpiredPendingActivationAccountCleaner cleaner;
 
-    private PurgeExpiredPendingAccountsService service;
+    private PurgeExpiredPendingActivationAccountsService service;
 
     @BeforeEach
     void setUp() {
 
-        var config = new PendingAccountPurgeConfig(GRACE_PERIOD);
+        var config = new PendingActivationAccountPurgeConfig(GRACE_PERIOD);
         var clock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
-        service = new PurgeExpiredPendingAccountsService(cleaner, config, clock);
+        service = new PurgeExpiredPendingActivationAccountsService(cleaner, config, clock);
     }
 
     @Test

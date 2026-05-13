@@ -1,6 +1,6 @@
 package com.valadir.application.service;
 
-import com.valadir.application.command.VerifyEmailCommand;
+import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
@@ -27,7 +27,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
-class VerifyEmailServiceTest {
+class ActivateAccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
@@ -36,48 +36,38 @@ class VerifyEmailServiceTest {
     @Mock
     private OtpHasher otpHasher;
     @InjectMocks
-    private VerifyEmailService service;
+    private ActivateAccountService service;
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PLAIN_CODE = "123456";
     private static final String HASHED_CODE = "$argon2id$hashedOtp";
 
-    private Account buildPendingAccount() {
-
-        return Account.newPendingVerification(
-            AccountId.generate(),
-            new Email(EMAIL),
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER
-        );
-    }
-
     @Test
-    void verify_validCode_activatesAccountAndDeletesToken() {
+    void activate_validCode_activatesAccountAndDeletesToken() {
 
-        var pendingAccount = buildPendingAccount();
-        var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
+        var pendingAccount = buildPendingActivationAccount();
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
         given(otpStore.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(true);
 
-        service.verify(command);
+        service.activate(command);
 
         then(accountRepository).should().activate(pendingAccount.getId());
         then(otpStore).should().delete(pendingAccount.getId());
     }
 
     @Test
-    void verify_accountNotFound_throwsApplicationException() {
+    void activate_accountNotFound_throwsApplicationException() {
 
-        var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.verify(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
+            .isThrownBy(() -> service.activate(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(otpStore).should(never()).find(any());
         then(accountRepository).should(never()).activate(any());
@@ -85,7 +75,7 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_accountAlreadyActive_throwsApplicationException() {
+    void activate_accountAlreadyActive_throwsApplicationException() {
 
         var email = new Email(EMAIL);
         var activeAccount = Account.reconstitute(
@@ -96,13 +86,13 @@ class VerifyEmailServiceTest {
             AccountStatus.ACTIVE
         );
 
-        var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
         assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.verify(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
+            .isThrownBy(() -> service.activate(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(otpStore).should(never()).find(any());
         then(accountRepository).should(never()).activate(any());
@@ -110,37 +100,47 @@ class VerifyEmailServiceTest {
     }
 
     @Test
-    void verify_codeNotFound_throwsApplicationException() {
+    void activate_codeNotFound_throwsApplicationException() {
 
-        var pendingAccount = buildPendingAccount();
-        var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
+        var pendingAccount = buildPendingActivationAccount();
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
         given(otpStore.find(pendingAccount.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.verify(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
+            .isThrownBy(() -> service.activate(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
     }
 
     @Test
-    void verify_wrongCode_throwsApplicationException() {
+    void activate_wrongCode_throwsApplicationException() {
 
-        var account = buildPendingAccount();
-        var command = new VerifyEmailCommand(EMAIL, PLAIN_CODE);
+        var account = buildPendingActivationAccount();
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(account));
         given(otpStore.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.verify(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_VERIFICATION_OTP);
+            .isThrownBy(() -> service.activate(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(accountRepository).should(never()).activate(any());
         then(otpStore).should(never()).delete(any());
+    }
+
+    private Account buildPendingActivationAccount() {
+
+        return Account.newPendingActivation(
+            AccountId.generate(),
+            new Email(EMAIL),
+            new HashedPassword("$argon2id$hashed"),
+            Role.USER
+        );
     }
 }

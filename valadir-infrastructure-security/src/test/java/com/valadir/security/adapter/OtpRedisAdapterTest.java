@@ -40,7 +40,7 @@ class OtpRedisAdapterTest extends RedisTestContainer {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forVerificationOtp(accountId.value().toString());
+        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, Duration.ofMinutes(10));
 
@@ -52,7 +52,7 @@ class OtpRedisAdapterTest extends RedisTestContainer {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forVerificationOtp(accountId.value().toString());
+        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, Duration.ofMinutes(10));
 

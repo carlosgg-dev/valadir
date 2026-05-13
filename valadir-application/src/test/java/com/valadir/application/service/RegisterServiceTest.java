@@ -48,7 +48,7 @@ class RegisterServiceTest {
     @Mock
     private RegisterPersistence registerPersistence;
     @Mock
-    private OtpVerificationSender otpVerificationSender;
+    private AccountActivationOtpSender accountActivationOtpSender;
     @InjectMocks
     private RegisterService registerService;
 
@@ -83,14 +83,14 @@ class RegisterServiceTest {
         assertThat(savedAccount.getEmail()).isEqualTo(email);
         assertThat(savedAccount.getPassword()).isEqualTo(hashedPassword);
         assertThat(savedAccount.getRole()).isEqualTo(Role.USER);
-        assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
+        assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
         var savedUser = userCaptor.getValue();
         assertThat(savedUser.getFullName()).isEqualTo(fullName);
         assertThat(savedUser.getGivenName()).isEqualTo(givenName);
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
 
-        then(otpVerificationSender).should().send(savedAccount.getId(), email);
+        then(accountActivationOtpSender).should().send(savedAccount.getId(), email);
     }
 
     @Test
@@ -115,7 +115,7 @@ class RegisterServiceTest {
 
         then(registerPersistence).should(never()).replacePendingAndSave(any(), any(), any());
         then(registerPersistence).should(never()).save(any(), any());
-        then(otpVerificationSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any(), any());
     }
 
     @Test
@@ -124,7 +124,7 @@ class RegisterServiceTest {
         var emailValue = "bruce.wayne@email.com";
         var email = new Email(emailValue);
         var staleAccountId = AccountId.generate();
-        var staleAccount = Account.newPendingVerification(
+        var staleAccount = Account.newPendingActivation(
             staleAccountId,
             email,
             new HashedPassword("$argon2id$old"),
@@ -144,8 +144,8 @@ class RegisterServiceTest {
         var newAccount = accountCaptor.getValue();
         var newUser = userCaptor.getValue();
         assertThat(newAccount.getId()).isNotEqualTo(staleAccountId);
-        assertThat(newAccount.getStatus()).isEqualTo(AccountStatus.PENDING_VERIFICATION);
+        assertThat(newAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(newUser.getAccountId()).isEqualTo(newAccount.getId());
-        then(otpVerificationSender).should().send(newAccount.getId(), email);
+        then(accountActivationOtpSender).should().send(newAccount.getId(), email);
     }
 }

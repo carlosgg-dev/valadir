@@ -27,9 +27,9 @@ public final class RedisKeySpace {
         return AUTH_SPACE_PREFIX + "user_tokens:" + accountId;
     }
 
-    public static String forVerificationOtp(String accountId) {
+    public static String forAccountActivationOtp(String accountId) {
 
-        return AUTH_SPACE_PREFIX + "verification_otp:" + accountId;
+        return AUTH_SPACE_PREFIX + "account_activation_otp:" + accountId;
     }
 
     public static String forRateLimitIp(String pathKey, String ip) {

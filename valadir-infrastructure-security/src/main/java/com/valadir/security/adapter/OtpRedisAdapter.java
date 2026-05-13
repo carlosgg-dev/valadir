@@ -52,6 +52,6 @@ public class OtpRedisAdapter implements OtpStore {
 
     private String key(AccountId accountId) {
 
-        return RedisKeySpace.forVerificationOtp(accountId.value().toString());
+        return RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
     }
 }

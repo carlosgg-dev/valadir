@@ -1,30 +1,30 @@
 package com.valadir.web.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.command.LoginCommand;
 import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.command.RegisterCommand;
-import com.valadir.application.command.ResendVerificationCommand;
-import com.valadir.application.command.VerifyEmailCommand;
+import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.exception.ApplicationException;
+import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
-import com.valadir.application.port.in.ResendVerificationUseCase;
-import com.valadir.application.port.in.VerifyEmailUseCase;
+import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.config.SecurityConfig;
+import com.valadir.web.dto.request.ActivateAccountRequest;
 import com.valadir.web.dto.request.LoginRequest;
 import com.valadir.web.dto.request.LogoutRequest;
 import com.valadir.web.dto.request.RefreshRequest;
 import com.valadir.web.dto.request.RegisterRequest;
-import com.valadir.web.dto.request.ResendVerificationRequest;
-import com.valadir.web.dto.request.VerifyEmailRequest;
+import com.valadir.web.dto.request.ResendAccountActivationCodeRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -61,7 +61,7 @@ class AuthControllerTest {
     private static final String PASSWORD = "S3cur3P@ss!";
     private static final String FULL_NAME = "Bruce Wayne";
     private static final String GIVEN_NAME = "Batman";
-    private static final String VERIFY_CODE = "123456";
+    private static final String ACCOUNT_ACTIVATION_CODE = "123456";
 
     @Autowired
     private MockMvc mockMvc;
@@ -73,10 +73,10 @@ class AuthControllerTest {
     private RegisterUseCase registerUseCase;
 
     @MockitoBean
-    private VerifyEmailUseCase verifyEmailUseCase;
+    private ActivateAccountUseCase activateAccountUseCase;
 
     @MockitoBean
-    private ResendVerificationUseCase resendVerificationUseCase;
+    private ResendAccountActivationCodeUseCase resendAccountActivationCodeUseCase;
 
     @MockitoBean
     private LoginUseCase loginUseCase;
@@ -169,61 +169,61 @@ class AuthControllerTest {
     }
 
     @Test
-    void verifyEmail_validRequest_returns204() throws Exception {
+    void activateAccount_validRequest_returns204() throws Exception {
 
-        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+        mockMvc.perform(post(ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(EMAIL, VERIFY_CODE))))
+                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest(EMAIL, ACCOUNT_ACTIVATION_CODE))))
             .andExpect(status().isNoContent());
 
-        then(verifyEmailUseCase).should().verify(new VerifyEmailCommand(EMAIL, VERIFY_CODE));
+        then(activateAccountUseCase).should().activate(new ActivateAccountCommand(EMAIL, ACCOUNT_ACTIVATION_CODE));
     }
 
     @Test
-    void verifyEmail_blankEmail_returns400() throws Exception {
+    void activateAccount_blankEmail_returns400() throws Exception {
 
-        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+        mockMvc.perform(post(ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest("", VERIFY_CODE))))
+                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest("", ACCOUNT_ACTIVATION_CODE))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
-        then(verifyEmailUseCase).should(never()).verify(any(VerifyEmailCommand.class));
+        then(activateAccountUseCase).should(never()).activate(any(ActivateAccountCommand.class));
     }
 
     @Test
-    void verifyEmail_blankCode_returns400() throws Exception {
+    void activateAccount_blankCode_returns400() throws Exception {
 
-        mockMvc.perform(post(ApiRoutes.Auth.VERIFY_EMAIL_PATH)
+        mockMvc.perform(post(ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(EMAIL, ""))))
+                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest(EMAIL, ""))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
-        then(verifyEmailUseCase).should(never()).verify(any(VerifyEmailCommand.class));
+        then(activateAccountUseCase).should(never()).activate(any(ActivateAccountCommand.class));
     }
 
     @Test
-    void resendVerification_validRequest_returns204() throws Exception {
+    void resendAccountActivationCode_validRequest_returns204() throws Exception {
 
-        mockMvc.perform(post(ApiRoutes.Auth.RESEND_VERIFICATION_PATH)
+        mockMvc.perform(post(ApiRoutes.Auth.AccountActivation.RESEND_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ResendVerificationRequest(EMAIL))))
+                            .content(objectMapper.writeValueAsString(new ResendAccountActivationCodeRequest(EMAIL))))
             .andExpect(status().isNoContent());
 
-        then(resendVerificationUseCase).should().resend(new ResendVerificationCommand(EMAIL));
+        then(resendAccountActivationCodeUseCase).should().resend(new ResendAccountActivationCodeCommand(EMAIL));
     }
 
     @Test
-    void resendVerification_blankEmail_returns400() throws Exception {
+    void resendAccountActivationCode_blankEmail_returns400() throws Exception {
 
-        mockMvc.perform(post(ApiRoutes.Auth.RESEND_VERIFICATION_PATH)
+        mockMvc.perform(post(ApiRoutes.Auth.AccountActivation.RESEND_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ResendVerificationRequest(""))))
+                            .content(objectMapper.writeValueAsString(new ResendAccountActivationCodeRequest(""))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
-        then(resendVerificationUseCase).should(never()).resend(any(ResendVerificationCommand.class));
+        then(resendAccountActivationCodeUseCase).should(never()).resend(any(ResendAccountActivationCodeCommand.class));
     }
 
     @Test

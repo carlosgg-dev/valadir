@@ -31,21 +31,21 @@ public class RegisterService implements RegisterUseCase {
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final RegisterPersistence registerPersistence;
-    private final OtpVerificationSender otpVerificationSender;
+    private final AccountActivationOtpSender accountActivationOtpSender;
 
     public RegisterService(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
-        OtpVerificationSender otpVerificationSender
+        AccountActivationOtpSender accountActivationOtpSender
     ) {
 
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.registerPersistence = registerPersistence;
-        this.otpVerificationSender = otpVerificationSender;
+        this.accountActivationOtpSender = accountActivationOtpSender;
     }
 
     @Override
@@ -66,25 +66,25 @@ public class RegisterService implements RegisterUseCase {
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
         var hashedPassword = passwordHasher.hash(rawPassword);
-        var account = Account.newPendingVerification(accountId, email, hashedPassword, Role.USER);
+        var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER);
         var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
 
         if (existingAccountId.isPresent()) {
-            log.info("Re-registration: replacing stale PENDING_VERIFICATION");
+            log.info("Re-registration: replacing an account pending activation");
             registerPersistence.replacePendingAndSave(existingAccountId.get(), account, user);
         } else {
             registerPersistence.save(account, user);
         }
 
-        otpVerificationSender.send(accountId, email);
+        accountActivationOtpSender.send(accountId, email);
 
-        log.info("Registration successful, pending email verification");
+        log.info("Registration successful, pending account activation");
     }
 
     private AccountId resolveExistingAccountId(Account existing) {
 
         return switch (existing.getStatus()) {
-            case PENDING_VERIFICATION -> existing.getId();
+            case PENDING_ACTIVATION -> existing.getId();
             case ACTIVE -> {
                 log.warn("Registration attempt with already-registered email, existingAccountId={}", existing.getId().value());
                 throw new ApplicationException("Email already registered", ErrorCode.EMAIL_ALREADY_EXISTS);

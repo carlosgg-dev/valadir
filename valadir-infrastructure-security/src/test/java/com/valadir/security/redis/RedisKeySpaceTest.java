@@ -35,6 +35,13 @@ class RedisKeySpaceTest {
     }
 
     @Test
+    void forAccountActivationOtp_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forAccountActivationOtp(ACCOUNT_UUID.toString()))
+            .isEqualTo("auth:account_activation_otp:" + ACCOUNT_UUID);
+    }
+
+    @Test
     void forRateLimitIp_returnsExpectedKey() {
 
         assertThat(RedisKeySpace.forRateLimitIp(PATH_KEY, IP))

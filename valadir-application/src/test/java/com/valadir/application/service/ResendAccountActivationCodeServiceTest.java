@@ -1,6 +1,6 @@
 package com.valadir.application.service;
 
-import com.valadir.application.command.ResendVerificationCommand;
+import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -22,38 +22,28 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
-class ResendVerificationServiceTest {
+class ResendAccountActivationCodeServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
     @Mock
-    private OtpVerificationSender otpVerificationSender;
+    private AccountActivationOtpSender accountActivationOtpSender;
     @InjectMocks
-    private ResendVerificationService resendVerificationService;
+    private ResendAccountActivationCodeService resendAccountActivationCodeService;
 
     private static final String EMAIL = "bruce.wayne@email.com";
 
-    private Account buildPendingAccount() {
-
-        return Account.newPendingVerification(
-            AccountId.generate(),
-            new Email(EMAIL),
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER
-        );
-    }
-
     @Test
-    void resend_pendingAccount_sendsVerificationCode() {
+    void resend_pendingActivationAccount_sendsActivationCode() {
 
         var email = new Email(EMAIL);
-        var account = buildPendingAccount();
+        var account = buildPendingActivationAccount();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
 
-        resendVerificationService.resend(new ResendVerificationCommand(EMAIL));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
 
-        then(otpVerificationSender).should().send(account.getId(), email);
+        then(accountActivationOtpSender).should().send(account.getId(), email);
     }
 
     @Test
@@ -61,9 +51,9 @@ class ResendVerificationServiceTest {
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
 
-        resendVerificationService.resend(new ResendVerificationCommand(EMAIL));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
 
-        then(otpVerificationSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any(), any());
     }
 
     @Test
@@ -80,8 +70,18 @@ class ResendVerificationServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
-        resendVerificationService.resend(new ResendVerificationCommand(EMAIL));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
 
-        then(otpVerificationSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any(), any());
+    }
+
+    private Account buildPendingActivationAccount() {
+
+        return Account.newPendingActivation(
+            AccountId.generate(),
+            new Email(EMAIL),
+            new HashedPassword("$argon2id$hashed"),
+            Role.USER
+        );
     }
 }

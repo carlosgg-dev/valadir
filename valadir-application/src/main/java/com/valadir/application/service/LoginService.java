@@ -70,7 +70,7 @@ public class LoginService implements LoginUseCase {
         }
 
         if (!account.isActive()) {
-            throw new ApplicationException("Account pending verification", ErrorCode.ACCOUNT_PENDING_VERIFICATION);
+            throw new ApplicationException("Account pending activation", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
         }
 
         loginAttemptStore.clearAttempts(email);

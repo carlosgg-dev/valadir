@@ -1,6 +1,6 @@
 package com.valadir.application.command;
 
-public record ResendVerificationCommand(
+public record ResendAccountActivationCodeCommand(
     String email) {
 
 }
