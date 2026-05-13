@@ -8,5 +8,5 @@ public interface RegisterPersistence {
 
     void save(Account account, User user);
 
-    void replacePendingAndSave(AccountId pendingAccountId, Account newAccount, User newUser);
+    void replace(AccountId existingAccountId, Account newAccount, User newUser);
 }

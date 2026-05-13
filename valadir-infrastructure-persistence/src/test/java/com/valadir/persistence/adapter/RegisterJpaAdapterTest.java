@@ -52,13 +52,13 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
     }
 
     @Test
-    void replacePendingAndSave_deletesOldAndPersistsNew() {
+    void replace_deletesExistingAndPersistsNew() {
 
-        var oldAccountId = AccountId.generate();
-        var oldAccount = buildAccount(oldAccountId);
-        var oldUser = buildUser(oldAccountId);
+        var existingAccountId = AccountId.generate();
+        var existingAccount = buildAccount(existingAccountId);
+        var existingUser = buildUser(existingAccountId);
 
-        adapter.save(oldAccount, oldUser);
+        adapter.save(existingAccount, existingUser);
 
         var newAccountId = AccountId.generate();
         var pendingAccount = Account.newPendingActivation(
@@ -69,10 +69,10 @@ class RegisterJpaAdapterTest extends PostgresTestContainer {
         );
         var newUser = buildUser(newAccountId);
 
-        adapter.replacePendingAndSave(oldAccountId, pendingAccount, newUser);
+        adapter.replace(existingAccountId, pendingAccount, newUser);
 
-        assertThat(accountJpaRepository.findById(oldAccountId.value())).isEmpty();
-        assertThat(userJpaRepository.findById(oldUser.getId().value())).isEmpty();
+        assertThat(accountJpaRepository.findById(existingAccountId.value())).isEmpty();
+        assertThat(userJpaRepository.findById(existingUser.getId().value())).isEmpty();
 
         assertThat(accountJpaRepository.findById(newAccountId.value())).isPresent();
         assertThat(userJpaRepository.findById(newUser.getId().value())).isPresent();

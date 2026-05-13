@@ -77,7 +77,7 @@ class RegisterServiceTest {
 
         then(passwordSecurityService).should().validatePassword(rawPassword, email, new UserProfileData(fullName, givenName));
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
-        then(registerPersistence).should(never()).replacePendingAndSave(any(), any(), any());
+        then(registerPersistence).should(never()).replace(any(), any(), any());
 
         var savedAccount = accountCaptor.getValue();
         assertThat(savedAccount.getEmail()).isEqualTo(email);
@@ -113,7 +113,7 @@ class RegisterServiceTest {
             .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
-        then(registerPersistence).should(never()).replacePendingAndSave(any(), any(), any());
+        then(registerPersistence).should(never()).replace(any(), any(), any());
         then(registerPersistence).should(never()).save(any(), any());
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }
@@ -123,9 +123,9 @@ class RegisterServiceTest {
 
         var emailValue = "bruce.wayne@email.com";
         var email = new Email(emailValue);
-        var staleAccountId = AccountId.generate();
-        var staleAccount = Account.newPendingActivation(
-            staleAccountId,
+        var existingAccountId = AccountId.generate();
+        var existingAccount = Account.newPendingActivation(
+            existingAccountId,
             email,
             new HashedPassword("$argon2id$old"),
             Role.USER
@@ -133,17 +133,17 @@ class RegisterServiceTest {
         var rawPasswordValue = "SecureP@ss123";
         var hashedPassword = new HashedPassword("$argon2id$new");
 
-        given(accountRepository.findByEmail(email)).willReturn(Optional.of(staleAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(existingAccount));
         given(passwordHasher.hash(new RawPassword(rawPasswordValue))).willReturn(hashedPassword);
 
         registerService.register(new RegisterCommand(emailValue, rawPasswordValue, "Bruce Wayne", "Bruce"));
 
-        then(registerPersistence).should().replacePendingAndSave(eq(staleAccountId), accountCaptor.capture(), userCaptor.capture());
+        then(registerPersistence).should().replace(eq(existingAccountId), accountCaptor.capture(), userCaptor.capture());
         then(registerPersistence).should(never()).save(any(), any());
 
         var newAccount = accountCaptor.getValue();
         var newUser = userCaptor.getValue();
-        assertThat(newAccount.getId()).isNotEqualTo(staleAccountId);
+        assertThat(newAccount.getId()).isNotEqualTo(existingAccountId);
         assertThat(newAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(newUser.getAccountId()).isEqualTo(newAccount.getId());
         then(accountActivationOtpSender).should().send(newAccount.getId(), email);

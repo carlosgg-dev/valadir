@@ -71,7 +71,7 @@ public class RegisterService implements RegisterUseCase {
 
         if (existingAccountId.isPresent()) {
             log.info("Re-registration: replacing an account pending activation");
-            registerPersistence.replacePendingAndSave(existingAccountId.get(), account, user);
+            registerPersistence.replace(existingAccountId.get(), account, user);
         } else {
             registerPersistence.save(account, user);
         }

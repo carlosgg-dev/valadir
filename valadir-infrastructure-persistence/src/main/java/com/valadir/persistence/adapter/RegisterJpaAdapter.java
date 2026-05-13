@@ -31,10 +31,10 @@ public class RegisterJpaAdapter implements RegisterPersistence {
 
     @Override
     @Transactional
-    public void replacePendingAndSave(AccountId pendingAccountId, Account newAccount, User newUser) {
+    public void replace(AccountId existingAccountId, Account newAccount, User newUser) {
 
-        userJpaRepository.deleteByAccountId(pendingAccountId.value());
-        accountJpaRepository.deleteById(pendingAccountId.value());
+        userJpaRepository.deleteByAccountId(existingAccountId.value());
+        accountJpaRepository.deleteById(existingAccountId.value());
 
         accountJpaRepository.flush(); // force DELETE before INSERT to avoid unique constraint violation on email
 
