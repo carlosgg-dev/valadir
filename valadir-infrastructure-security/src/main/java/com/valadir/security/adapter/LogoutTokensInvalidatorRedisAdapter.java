@@ -8,12 +8,10 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.List;
 
-@Component
 public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalidator {
 
     private final RedisTemplate<String, String> redisTemplate;

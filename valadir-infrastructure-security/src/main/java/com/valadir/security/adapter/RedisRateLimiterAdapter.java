@@ -8,20 +8,17 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
 @SuppressWarnings("rawtypes")
-@Component
-class RedisRateLimiterAdapter implements RateLimiter {
+public class RedisRateLimiterAdapter implements RateLimiter {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisScript<List> rateLimitScript;
 
-    RedisRateLimiterAdapter(RedisTemplate<String, String> redisTemplate) {
+    public RedisRateLimiterAdapter(RedisTemplate<String, String> redisTemplate) {
 
         this.redisTemplate = redisTemplate;
         this.rateLimitScript = RedisScript.of(new ClassPathResource("scripts/rate_limit.lua"), List.class);

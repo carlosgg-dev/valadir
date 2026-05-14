@@ -11,12 +11,10 @@ import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.UUID;
 
-@Component
 public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
 
     private final RedisTemplate<String, String> redisTemplate;

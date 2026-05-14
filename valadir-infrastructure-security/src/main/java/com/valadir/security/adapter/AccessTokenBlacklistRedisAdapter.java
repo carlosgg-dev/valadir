@@ -6,11 +6,8 @@ import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
-
 import java.util.Objects;
 
-@Component
 public class AccessTokenBlacklistRedisAdapter implements AccessTokenBlacklist {
 
     private final RedisTemplate<String, String> redisTemplate;
