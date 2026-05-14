@@ -10,12 +10,12 @@ import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-public class RegisterJpaAdapter implements RegisterPersistence {
+public class RegisterPersistenceJpaAdapter implements RegisterPersistence {
 
     private final AccountJpaRepository accountJpaRepository;
     private final UserJpaRepository userJpaRepository;
 
-    public RegisterJpaAdapter(AccountJpaRepository accountJpaRepository, UserJpaRepository userJpaRepository) {
+    public RegisterPersistenceJpaAdapter(AccountJpaRepository accountJpaRepository, UserJpaRepository userJpaRepository) {
 
         this.accountJpaRepository = accountJpaRepository;
         this.userJpaRepository = userJpaRepository;

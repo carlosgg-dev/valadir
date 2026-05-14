@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-class OtpRedisAdapterExceptionTest {
+class OtpStoreRedisAdapterExceptionTest {
 
     @SuppressWarnings("unchecked")
     private static RedisTemplate<String, String> connectionFailureTemplate() {
@@ -37,7 +37,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void save_redisConnectionFailure_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(connectionFailureTemplate());
+        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
         var otpTtl = Duration.ofMinutes(10);
@@ -50,7 +50,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void save_redisSystemError_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(systemErrorTemplate());
+        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
         var otpTtl = Duration.ofMinutes(10);
@@ -63,7 +63,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void find_redisConnectionFailure_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(connectionFailureTemplate());
+        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
         var accountId = AccountId.generate();
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -74,7 +74,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void find_redisSystemError_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(systemErrorTemplate());
+        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
         var accountId = AccountId.generate();
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -85,7 +85,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void delete_redisConnectionFailure_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(connectionFailureTemplate());
+        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
         var accountId = AccountId.generate();
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -96,7 +96,7 @@ class OtpRedisAdapterExceptionTest {
     @Test
     void delete_redisSystemError_throwsInfrastructureException() {
 
-        var adapter = new OtpRedisAdapter(systemErrorTemplate());
+        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
         var accountId = AccountId.generate();
 
         assertThatExceptionOfType(InfrastructureException.class)

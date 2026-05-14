@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
-class JavaMailAccountActivationAdapterTest {
+class AccountActivationNotifierJavaMailAdapterTest {
 
     @Mock
     private JavaMailSender mailSender;
@@ -23,7 +23,7 @@ class JavaMailAccountActivationAdapterTest {
     @Captor
     private ArgumentCaptor<SimpleMailMessage> messageCaptor;
 
-    private JavaMailAccountActivationAdapter adapter;
+    private AccountActivationNotifierJavaMailAdapter adapter;
 
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final String TO_ADDRESS = "user@example.com";
@@ -32,7 +32,7 @@ class JavaMailAccountActivationAdapterTest {
     @BeforeEach
     void setUp() {
 
-        adapter = new JavaMailAccountActivationAdapter(mailSender, FROM_ADDRESS);
+        adapter = new AccountActivationNotifierJavaMailAdapter(mailSender, FROM_ADDRESS);
     }
 
     @Test

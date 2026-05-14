@@ -10,11 +10,11 @@ import com.valadir.persistence.repository.AccountJpaRepository;
 
 import java.util.Optional;
 
-public class AccountJpaAdapter implements AccountRepository {
+public class AccountRepositoryJpaAdapter implements AccountRepository {
 
     private final AccountJpaRepository jpaRepository;
 
-    public AccountJpaAdapter(AccountJpaRepository jpaRepository) {
+    public AccountRepositoryJpaAdapter(AccountJpaRepository jpaRepository) {
 
         this.jpaRepository = jpaRepository;
     }

@@ -10,7 +10,7 @@ import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.out.AccessTokenBlacklist;
-import com.valadir.application.port.out.AccountActivationPort;
+import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
@@ -33,10 +33,10 @@ import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
-import com.valadir.security.adapter.Argon2OtpHasher;
 import com.valadir.security.adapter.BlacklistAwareJwtDecoder;
-import com.valadir.security.adapter.LoginAttemptRedisAdapter;
-import com.valadir.security.adapter.OtpRedisAdapter;
+import com.valadir.security.adapter.LoginAttemptStoreRedisAdapter;
+import com.valadir.security.adapter.OtpHasherArgon2Adapter;
+import com.valadir.security.adapter.OtpStoreRedisAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -63,13 +63,13 @@ class ApplicationWiring {
     @Bean
     OtpStore otpStore(RedisTemplate<String, String> redisTemplate) {
 
-        return new OtpRedisAdapter(redisTemplate);
+        return new OtpStoreRedisAdapter(redisTemplate);
     }
 
     @Bean
     OtpHasher otpHasher(Argon2PasswordEncoder argon2PasswordEncoder) {
 
-        return new Argon2OtpHasher(argon2PasswordEncoder);
+        return new OtpHasherArgon2Adapter(argon2PasswordEncoder);
     }
 
     @Bean
@@ -104,13 +104,13 @@ class ApplicationWiring {
 
     @Bean
     AccountActivationOtpSender accountActivationOtpSender(
-        AccountActivationPort accountActivationPort,
+        AccountActivationNotifier accountActivationNotifier,
         OtpStore otpStore,
         OtpHasher otpHasher,
         AccountActivationConfig accountActivationConfig
     ) {
 
-        return new AccountActivationOtpSenderService(accountActivationPort, otpStore, otpHasher, accountActivationConfig);
+        return new AccountActivationOtpSenderService(accountActivationNotifier, otpStore, otpHasher, accountActivationConfig);
     }
 
     @Bean
@@ -159,7 +159,7 @@ class ApplicationWiring {
     @Bean
     LoginAttemptStore loginAttemptStore(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy loginLockoutPolicy) {
 
-        return new LoginAttemptRedisAdapter(redisTemplate, loginLockoutPolicy);
+        return new LoginAttemptStoreRedisAdapter(redisTemplate, loginLockoutPolicy);
     }
 
     @Bean

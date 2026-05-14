@@ -26,14 +26,14 @@ import java.time.Duration;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class JwtAuthTokenIssuerTest {
+class AuthTokenIssuerJwtAdapterTest {
 
     private static final long ACCESS_TTL = 900L;
     private static final long REFRESH_TTL = 604800L;
     private static final String EC_ALGORITHM = "EC";
     private static final int EC_KEY_SIZE = 256;
 
-    private JwtAuthTokenIssuer issuer;
+    private AuthTokenIssuerJwtAdapter issuer;
     private JwtDecoder jwtDecoder;
 
     @BeforeEach
@@ -49,7 +49,7 @@ class JwtAuthTokenIssuerTest {
 
         var properties = new JwtProperties(ecKey.toJSONString(), Duration.ofSeconds(ACCESS_TTL), Duration.ofSeconds(REFRESH_TTL));
         var jwtEncoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(ecKey)));
-        issuer = new JwtAuthTokenIssuer(jwtEncoder, properties);
+        issuer = new AuthTokenIssuerJwtAdapter(jwtEncoder, properties);
 
         var jwkSource = new ImmutableJWKSet<>(new JWKSet(ecKey.toPublicJWK()));
         var processor = new DefaultJWTProcessor<>();

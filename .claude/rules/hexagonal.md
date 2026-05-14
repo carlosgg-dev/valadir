@@ -2,11 +2,11 @@
 
 ## Layers and ownership
 
-| Layer | Contains | Depends on |
-|---|---|---|
-| **Domain** | Entities, value objects, aggregates, domain services, domain events, port interfaces | Nothing outside domain |
-| **Application** | Use cases, application services, command/query handlers | Domain only |
-| **Infrastructure** | Controllers, repository implementations, messaging adapters, persistence models, mappers | Application + Domain |
+| Layer              | Contains                                                                                 | Depends on             |
+|--------------------|------------------------------------------------------------------------------------------|------------------------|
+| **Domain**         | Entities, value objects, aggregates, domain services, domain events, port interfaces     | Nothing outside domain |
+| **Application**    | Use cases, application services, command/query handlers                                  | Domain only            |
+| **Infrastructure** | Controllers, repository implementations, messaging adapters, persistence models, mappers | Application + Domain   |
 
 The dependency rule is absolute: outer layers depend on inner layers, never the reverse.
 
@@ -40,7 +40,8 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 - Use cases orchestrate domain objects and call driven ports.
 - One use case per user action. No business logic in use cases — delegate to the domain.
 - Use cases receive and return DTOs or primitives at their boundary, never domain objects.
-- Domain events are defined in the domain and published through a driven port — never dispatched directly to infrastructure.
+- Domain events are defined in the domain and published through a driven port — never dispatched directly to
+  infrastructure.
 
 ## Framework independence
 
@@ -51,7 +52,8 @@ Frameworks (web, persistence, DI containers, serialization, etc.) are infrastruc
   (persistence annotations, HTTP types, DI container annotations, serialization, etc.).
 - Framework wiring (dependency injection, lifecycle hooks, request mapping) belongs exclusively
   in the infrastructure layer.
-- Unit tests for domain and application logic must run without starting any framework context — no `@SpringBootTest`, no Testcontainers.
+- Unit tests for domain and application logic must run without starting any framework context — no `@SpringBootTest`, no
+  Testcontainers.
 
 ## Infrastructure DTOs
 
@@ -72,3 +74,9 @@ adapter, etc.), not in the DTO itself.
 - Domain service receiving an application service as a dependency.
 - Use case returning a domain entity instead of a DTO.
 - DTO containing a factory method or mapping logic that references another layer's types.
+
+## Naming
+
+Driven adapters follow `[PortName][Technology]Adapter`
+(e.g. `AccountRepositoryJpaAdapter`, `RefreshTokenStoreRedisAdapter`).
+Port names must not include the word `Port`.

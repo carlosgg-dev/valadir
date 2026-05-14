@@ -1,7 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.config.AccountActivationConfig;
-import com.valadir.application.port.out.AccountActivationPort;
+import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.domain.model.AccountId;
@@ -9,19 +9,19 @@ import com.valadir.domain.model.Email;
 
 public class AccountActivationOtpSenderService implements AccountActivationOtpSender {
 
-    private final AccountActivationPort accountActivationPort;
+    private final AccountActivationNotifier accountActivationNotifier;
     private final OtpStore otpStore;
     private final OtpHasher otpHasher;
     private final AccountActivationConfig accountActivationConfig;
 
     public AccountActivationOtpSenderService(
-        AccountActivationPort accountActivationPort,
+        AccountActivationNotifier accountActivationNotifier,
         OtpStore otpStore,
         OtpHasher otpHasher,
         AccountActivationConfig accountActivationConfig
     ) {
 
-        this.accountActivationPort = accountActivationPort;
+        this.accountActivationNotifier = accountActivationNotifier;
         this.otpStore = otpStore;
         this.otpHasher = otpHasher;
         this.accountActivationConfig = accountActivationConfig;
@@ -34,6 +34,6 @@ public class AccountActivationOtpSenderService implements AccountActivationOtpSe
         String hashedOtp = otpHasher.hash(plainCode);
 
         otpStore.save(accountId, hashedOtp, accountActivationConfig.otpTtl());
-        accountActivationPort.sendActivationCode(email, plainCode);
+        accountActivationNotifier.sendActivationCode(email, plainCode);
     }
 }

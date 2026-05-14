@@ -1,7 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.config.AccountActivationConfig;
-import com.valadir.application.port.out.AccountActivationPort;
+import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
 import com.valadir.domain.model.AccountId;
@@ -24,7 +24,7 @@ import static org.mockito.BDDMockito.then;
 class AccountActivationOtpSenderServiceTest {
 
     @Mock
-    private AccountActivationPort accountActivationPort;
+    private AccountActivationNotifier accountActivationNotifier;
     @Mock
     private OtpStore otpStore;
     @Mock
@@ -54,6 +54,6 @@ class AccountActivationOtpSenderServiceTest {
         var capturedCode = plainCodeCaptor.getValue();
 
         then(otpStore).should().save(accountId, hashedOtp, otpTtl);
-        then(accountActivationPort).should().sendActivationCode(email, capturedCode);
+        then(accountActivationNotifier).should().sendActivationCode(email, capturedCode);
     }
 }

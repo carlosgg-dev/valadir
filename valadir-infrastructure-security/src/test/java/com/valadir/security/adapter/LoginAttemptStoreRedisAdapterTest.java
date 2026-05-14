@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class LoginAttemptRedisAdapterTest extends RedisTestContainer {
+class LoginAttemptStoreRedisAdapterTest extends RedisTestContainer {
 
     private static final LoginLockoutPolicy POLICY = new LoginLockoutPolicy(
         Duration.ofHours(1),
@@ -36,14 +36,14 @@ class LoginAttemptRedisAdapterTest extends RedisTestContainer {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private LoginAttemptRedisAdapter adapter;
+    private LoginAttemptStoreRedisAdapter adapter;
 
     private final Email email = new Email("bruce.wayne@email.com");
 
     @BeforeEach
     void setUp() {
 
-        adapter = new LoginAttemptRedisAdapter(redisTemplate, POLICY);
+        adapter = new LoginAttemptStoreRedisAdapter(redisTemplate, POLICY);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();

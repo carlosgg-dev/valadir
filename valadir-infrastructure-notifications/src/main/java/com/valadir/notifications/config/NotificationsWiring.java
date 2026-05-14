@@ -1,7 +1,7 @@
 package com.valadir.notifications.config;
 
-import com.valadir.application.port.out.AccountActivationPort;
-import com.valadir.notifications.adapter.JavaMailAccountActivationAdapter;
+import com.valadir.application.port.out.AccountActivationNotifier;
+import com.valadir.notifications.adapter.AccountActivationNotifierJavaMailAdapter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +11,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 class NotificationsWiring {
 
     @Bean
-    AccountActivationPort accountActivationPort(JavaMailSender mailSender, @Value("${notifications.mail.from}") String fromAddress) {
+    AccountActivationNotifier accountActivationNotifier(
+        JavaMailSender mailSender,
+        @Value("${notifications.mail.from}") String fromAddress
+    ) {
 
-        return new JavaMailAccountActivationAdapter(mailSender, fromAddress);
+        return new AccountActivationNotifierJavaMailAdapter(mailSender, fromAddress);
     }
 }

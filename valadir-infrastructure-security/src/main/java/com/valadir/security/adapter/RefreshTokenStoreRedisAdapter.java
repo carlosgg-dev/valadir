@@ -17,14 +17,14 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-public class RefreshTokenRedisAdapter implements RefreshTokenStore {
+public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProperties jwtProperties;
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
 
-    public RefreshTokenRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
+    public RefreshTokenStoreRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
 
         this.redisTemplate = redisTemplate;
         this.jwtProperties = jwtProperties;

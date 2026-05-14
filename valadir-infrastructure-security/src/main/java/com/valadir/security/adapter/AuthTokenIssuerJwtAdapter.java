@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Component
-public class JwtAuthTokenIssuer implements AuthTokenIssuer {
+public class AuthTokenIssuerJwtAdapter implements AuthTokenIssuer {
 
     private static final String ROLE_CLAIM = "role";
     private static final String ALGORITHM = "ES256";
@@ -23,7 +23,7 @@ public class JwtAuthTokenIssuer implements AuthTokenIssuer {
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
 
-    public JwtAuthTokenIssuer(JwtEncoder jwtEncoder, JwtProperties jwtProperties) {
+    public AuthTokenIssuerJwtAdapter(JwtEncoder jwtEncoder, JwtProperties jwtProperties) {
 
         this.jwtEncoder = jwtEncoder;
         this.jwtProperties = jwtProperties;

@@ -22,17 +22,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-class AccountJpaAdapterTest extends PostgresTestContainer {
+class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
 
     @Autowired
     private AccountJpaRepository jpaRepository;
 
-    private AccountJpaAdapter adapter;
+    private AccountRepositoryJpaAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new AccountJpaAdapter(jpaRepository);
+        adapter = new AccountRepositoryJpaAdapter(jpaRepository);
     }
 
     @Test

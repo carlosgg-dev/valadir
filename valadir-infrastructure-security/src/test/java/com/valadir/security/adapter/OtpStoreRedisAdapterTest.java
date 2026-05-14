@@ -18,17 +18,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class OtpRedisAdapterTest extends RedisTestContainer {
+class OtpStoreRedisAdapterTest extends RedisTestContainer {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private OtpRedisAdapter adapter;
+    private OtpStoreRedisAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new OtpRedisAdapter(redisTemplate);
+        adapter = new OtpStoreRedisAdapter(redisTemplate);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();

@@ -1,16 +1,16 @@
 package com.valadir.notifications.adapter;
 
-import com.valadir.application.port.out.AccountActivationPort;
+import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.domain.model.Email;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
-public class JavaMailAccountActivationAdapter implements AccountActivationPort {
+public class AccountActivationNotifierJavaMailAdapter implements AccountActivationNotifier {
 
     private final JavaMailSender mailSender;
     private final String fromAddress;
 
-    public JavaMailAccountActivationAdapter(JavaMailSender mailSender, String fromAddress) {
+    public AccountActivationNotifierJavaMailAdapter(JavaMailSender mailSender, String fromAddress) {
 
         this.mailSender = mailSender;
         this.fromAddress = fromAddress;

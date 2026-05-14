@@ -19,10 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class RefreshTokenRedisAdapterTest extends RedisTestContainer {
+class RefreshTokenStoreRedisAdapterTest extends RedisTestContainer {
 
     @Autowired
-    private RefreshTokenRedisAdapter adapter;
+    private RefreshTokenStoreRedisAdapter adapter;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;

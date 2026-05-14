@@ -5,10 +5,10 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class Argon2OtpHasherTest {
+class OtpHasherArgon2AdapterTest {
 
     private static final Argon2PasswordEncoder ENCODER = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-    private final Argon2OtpHasher hasher = new Argon2OtpHasher(ENCODER);
+    private final OtpHasherArgon2Adapter hasher = new OtpHasherArgon2Adapter(ENCODER);
 
     private static final String PLAIN_CODE = "123456";
 

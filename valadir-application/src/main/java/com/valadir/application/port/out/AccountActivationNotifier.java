@@ -2,7 +2,7 @@ package com.valadir.application.port.out;
 
 import com.valadir.domain.model.Email;
 
-public interface AccountActivationPort {
+public interface AccountActivationNotifier {
 
     void sendActivationCode(Email email, String code);
 }

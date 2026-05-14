@@ -20,7 +20,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-class RefreshTokenRedisAdapterExceptionTest {
+class RefreshTokenStoreRedisAdapterExceptionTest {
 
     private static final Duration ONE_WEEK = Duration.ofDays(7);
 
@@ -48,7 +48,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     @Test
     void validate_redisConnectionFailure_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -59,7 +59,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     @Test
     void validate_redisSystemError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -71,7 +71,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     void save_redisConnectionFailure_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
@@ -84,7 +84,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     void save_redisSystemError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
         String token = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
 
@@ -97,7 +97,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     void rotate_redisConnectionFailure_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRedisAdapter(connectionFailureTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
         String oldToken = UUID.randomUUID().toString();
         String newToken = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();
@@ -111,7 +111,7 @@ class RefreshTokenRedisAdapterExceptionTest {
     void rotate_redisSystemError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRedisAdapter(systemErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
         String oldToken = UUID.randomUUID().toString();
         String newToken = UUID.randomUUID().toString();
         AccountId accountId = AccountId.generate();

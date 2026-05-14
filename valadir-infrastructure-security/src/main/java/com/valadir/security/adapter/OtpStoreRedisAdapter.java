@@ -11,11 +11,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.time.Duration;
 import java.util.Optional;
 
-public class OtpRedisAdapter implements OtpStore {
+public class OtpStoreRedisAdapter implements OtpStore {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public OtpRedisAdapter(RedisTemplate<String, String> redisTemplate) {
+    public OtpStoreRedisAdapter(RedisTemplate<String, String> redisTemplate) {
 
         this.redisTemplate = redisTemplate;
     }

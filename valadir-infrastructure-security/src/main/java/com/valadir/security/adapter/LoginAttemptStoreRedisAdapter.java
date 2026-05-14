@@ -17,15 +17,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class LoginAttemptRedisAdapter implements LoginAttemptStore {
+public class LoginAttemptStoreRedisAdapter implements LoginAttemptStore {
 
-    private static final Logger log = LoggerFactory.getLogger(LoginAttemptRedisAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(LoginAttemptStoreRedisAdapter.class);
 
     private final RedisTemplate<String, String> redisTemplate;
     private final LoginLockoutPolicy policy;
     private final RedisScript<Long> recordLoginAttemptScript;
 
-    public LoginAttemptRedisAdapter(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy policy) {
+    public LoginAttemptStoreRedisAdapter(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy policy) {
 
         this.redisTemplate = redisTemplate;
         this.policy = policy;
