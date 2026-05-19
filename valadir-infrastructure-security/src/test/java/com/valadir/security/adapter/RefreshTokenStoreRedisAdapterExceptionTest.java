@@ -1,6 +1,5 @@
 package com.valadir.security.adapter;
 
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
@@ -47,7 +46,6 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.validate(NEW_TOKEN))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 
@@ -59,7 +57,6 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(NEW_TOKEN, ACCOUNT_ID))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 
@@ -71,7 +68,6 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 }

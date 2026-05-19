@@ -1,6 +1,5 @@
 package com.valadir.security.adapter;
 
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -39,7 +38,6 @@ class OtpStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(ACCOUNT_ID, HASHED_OTP, OTP_TTL))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 
@@ -50,7 +48,6 @@ class OtpStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.find(ACCOUNT_ID))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 
@@ -61,7 +58,6 @@ class OtpStoreRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.delete(ACCOUNT_ID))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 }

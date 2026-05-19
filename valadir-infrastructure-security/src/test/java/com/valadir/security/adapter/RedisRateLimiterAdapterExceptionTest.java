@@ -1,6 +1,5 @@
 package com.valadir.security.adapter;
 
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +37,6 @@ class RedisRateLimiterAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 }

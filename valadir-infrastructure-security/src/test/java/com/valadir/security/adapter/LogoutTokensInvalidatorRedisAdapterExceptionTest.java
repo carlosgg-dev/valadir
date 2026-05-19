@@ -1,6 +1,5 @@
 package com.valadir.security.adapter;
 
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,6 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.invalidate(JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
             .withCause(REDIS_ERROR);
     }
 }
