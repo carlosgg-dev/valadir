@@ -29,6 +29,7 @@ class LogoutServiceTest {
 
     @Mock
     private LogoutTokensInvalidator logoutTokensInvalidator;
+
     @InjectMocks
     private LogoutService service;
 

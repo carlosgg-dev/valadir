@@ -41,16 +41,22 @@ class CompletePasswordResetServiceTest {
 
     @Mock
     private PasswordResetVerificationTokenStore verificationTokenStore;
+
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private PasswordHasher passwordHasher;
+
     @Mock
     private PasswordSecurityService passwordSecurityService;
+
     @Mock
     private RefreshTokenStore refreshTokenStore;
+
     @InjectMocks
     private CompletePasswordResetService service;
 

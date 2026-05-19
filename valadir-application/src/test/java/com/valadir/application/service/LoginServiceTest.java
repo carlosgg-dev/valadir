@@ -38,14 +38,19 @@ class LoginServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private PasswordHasher passwordHasher;
+
     @Mock
     private AuthTokenIssuer authTokenIssuer;
+
     @Mock
     private RefreshTokenStore refreshTokenStore;
+
     @Mock
     private LoginAttemptStore loginAttemptStore;
+
     @InjectMocks
     private LoginService service;
 

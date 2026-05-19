@@ -36,14 +36,19 @@ class VerifyPasswordResetOtpServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private PasswordResetOtpStore passwordResetOtpStore;
+
     @Mock
     private OtpHasher otpHasher;
+
     @Mock
     private PasswordResetVerificationTokenStore passwordResetVerificationTokenStore;
+
     @Mock
     private PasswordResetConfig passwordResetConfig;
+
     @InjectMocks
     private VerifyPasswordResetOtpService service;
 

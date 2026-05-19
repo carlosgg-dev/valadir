@@ -34,10 +34,13 @@ class RefreshTokenServiceTest {
 
     @Mock
     private RefreshTokenStore refreshTokenStore;
+
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private AuthTokenIssuer authTokenIssuer;
+
     @InjectMocks
     private RefreshTokenService service;
 

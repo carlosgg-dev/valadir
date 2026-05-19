@@ -33,14 +33,19 @@ class InitiatePasswordResetServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private PasswordResetOtpStore passwordResetOtpStore;
+
     @Mock
     private OtpHasher otpHasher;
+
     @Mock
     private PasswordResetNotifier passwordResetNotifier;
+
     @Mock
     private PasswordResetConfig passwordResetConfig;
+
     @InjectMocks
     private InitiatePasswordResetService service;
 

@@ -31,10 +31,13 @@ class ActivateAccountServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private OtpStore otpStore;
+
     @Mock
     private OtpHasher otpHasher;
+
     @InjectMocks
     private ActivateAccountService service;
 

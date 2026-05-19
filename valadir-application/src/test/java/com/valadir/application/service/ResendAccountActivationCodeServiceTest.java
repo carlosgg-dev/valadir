@@ -26,8 +26,10 @@ class ResendAccountActivationCodeServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private AccountActivationOtpSender accountActivationOtpSender;
+
     @InjectMocks
     private ResendAccountActivationCodeService resendAccountActivationCodeService;
 

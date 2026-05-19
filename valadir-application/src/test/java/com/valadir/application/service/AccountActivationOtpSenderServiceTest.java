@@ -25,12 +25,16 @@ class AccountActivationOtpSenderServiceTest {
 
     @Mock
     private AccountActivationNotifier accountActivationNotifier;
+
     @Mock
     private OtpStore otpStore;
+
     @Mock
     private OtpHasher otpHasher;
+
     @Mock
     private AccountActivationConfig accountActivationConfig;
+
     @InjectMocks
     private AccountActivationOtpSenderService accountActivationOtpSenderService;
 

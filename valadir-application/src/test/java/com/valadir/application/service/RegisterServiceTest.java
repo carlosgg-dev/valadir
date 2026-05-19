@@ -41,19 +41,25 @@ class RegisterServiceTest {
 
     @Mock
     private AccountRepository accountRepository;
+
     @Mock
     private PasswordHasher passwordHasher;
+
     @Mock
     private PasswordSecurityService passwordSecurityService;
+
     @Mock
     private RegisterPersistence registerPersistence;
+
     @Mock
     private AccountActivationOtpSender accountActivationOtpSender;
+
     @InjectMocks
     private RegisterService registerService;
 
     @Captor
     private ArgumentCaptor<Account> accountCaptor;
+
     @Captor
     private ArgumentCaptor<User> userCaptor;
 
