@@ -18,19 +18,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class OtpStoreRedisAdapterTest extends RedisTestContainer {
+class PasswordResetOtpStoreRedisAdapterTest extends RedisTestContainer {
 
-    private static final Duration OTP_TTL = Duration.ofMinutes(10);
+    private static final Duration OTP_TTL = Duration.ofMinutes(15);
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private OtpStoreRedisAdapter adapter;
+    private PasswordResetOtpStoreRedisAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new OtpStoreRedisAdapter(redisTemplate);
+        adapter = new PasswordResetOtpStoreRedisAdapter(redisTemplate);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
@@ -42,24 +42,12 @@ class OtpStoreRedisAdapterTest extends RedisTestContainer {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
+        var redisKey = RedisKeySpace.forPasswordResetOtp(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 
-        assertThat(redisTemplate.opsForValue().get(redisKey)).isEqualTo(hashedOtp);
-    }
-
-    @Test
-    void save_withTtl_ttlIsApplied() {
-
-        var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
-
-        adapter.save(accountId, hashedOtp, OTP_TTL);
-
-        Long remaining = redisTemplate.getExpire(redisKey);
-        assertThat(remaining).isGreaterThan(0);
+        assertThat(adapter.find(accountId)).contains(hashedOtp);
+        assertThat(redisTemplate.getExpire(redisKey)).isGreaterThan(0);
     }
 
     @Test

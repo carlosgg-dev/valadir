@@ -41,6 +41,11 @@ auth:
   account-activation:
     otp:
       ttl: 15m
+  password-reset:
+    otp:
+      ttl: 15m
+    verification-token:
+      ttl: 10m
   lockout:
     window: 1h  # sliding window for counting failed attempts
     thresholds:
@@ -103,6 +108,28 @@ rate-limit:
       strategy: EMAIL
       max-requests: 3
       window: 1h
+
+    # --- password-reset/initiate: account enumeration + OTP spam ---
+    - path: /api/auth/password-reset/initiate
+      strategy: IP
+      max-requests: 5
+      window: 1h
+    - path: /api/auth/password-reset/initiate
+      strategy: EMAIL
+      max-requests: 3
+      window: 1h
+
+    # --- password-reset/verify: OTP brute-force ---
+    - path: /api/auth/password-reset/verify
+      strategy: IP
+      max-requests: 10
+      window: 15m  # matches OTP TTL
+
+    # --- password-reset/complete: reset token abuse ---
+    - path: /api/auth/password-reset/complete
+      strategy: IP
+      max-requests: 5
+      window: 15m
 
     # --- refresh: token replay abuse ---
     - path: /api/auth/refresh

@@ -34,7 +34,10 @@ public class SecurityConfig {
         ApiRoutes.Auth.LOGIN_PATH,
         ApiRoutes.Auth.REFRESH_PATH,
         ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH,
-        ApiRoutes.Auth.AccountActivation.RESEND_PATH
+        ApiRoutes.Auth.AccountActivation.RESEND_PATH,
+        ApiRoutes.Auth.PasswordReset.INITIATE_PATH,
+        ApiRoutes.Auth.PasswordReset.VERIFY_PATH,
+        ApiRoutes.Auth.PasswordReset.COMPLETE_PATH
     };
 
     private final ObjectMapper objectMapper;

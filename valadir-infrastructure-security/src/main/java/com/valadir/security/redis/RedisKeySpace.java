@@ -2,10 +2,12 @@ package com.valadir.security.redis;
 
 public final class RedisKeySpace {
 
+    private static final String AUTH_SPACE_PREFIX = "auth:";
+
     public static final String BLACKLIST_REVOKED_VALUE = "revoked";
     public static final String LOGIN_LOCKOUT_VALUE = "locked";
+    public static final String REFRESH_TOKEN_PREFIX = AUTH_SPACE_PREFIX + "refresh_token:";
 
-    private static final String AUTH_SPACE_PREFIX = "auth:";
     private static final String RATE_LIMIT_SPACE_PREFIX = "rate_limit:";
 
     private RedisKeySpace() {
@@ -19,7 +21,7 @@ public final class RedisKeySpace {
 
     public static String forRefreshToken(String token) {
 
-        return AUTH_SPACE_PREFIX + "refresh_token:" + token;
+        return REFRESH_TOKEN_PREFIX + token;
     }
 
     public static String forUserTokens(String accountId) {
@@ -30,6 +32,16 @@ public final class RedisKeySpace {
     public static String forAccountActivationOtp(String accountId) {
 
         return AUTH_SPACE_PREFIX + "account_activation_otp:" + accountId;
+    }
+
+    public static String forPasswordResetOtp(String accountId) {
+
+        return AUTH_SPACE_PREFIX + "password_reset_otp:" + accountId;
+    }
+
+    public static String forPasswordResetVerificationToken(String token) {
+
+        return AUTH_SPACE_PREFIX + "password_reset_verification_token:" + token;
     }
 
     public static String forRateLimitIp(String pathKey, String ip) {

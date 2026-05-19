@@ -3,6 +3,7 @@ package com.valadir.application.port.out;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.HashedPassword;
 
 import java.util.Optional;
 
@@ -13,4 +14,6 @@ public interface AccountRepository {
     Optional<Account> findByEmail(Email email);
 
     void activate(AccountId accountId);
+
+    void updatePassword(AccountId accountId, HashedPassword hashedPassword);
 }

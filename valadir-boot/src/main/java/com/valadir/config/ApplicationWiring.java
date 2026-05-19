@@ -1,14 +1,18 @@
 package com.valadir.config;
 
 import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.config.PendingActivationAccountPurgeConfig;
 import com.valadir.application.port.in.ActivateAccountUseCase;
+import com.valadir.application.port.in.CompletePasswordResetUseCase;
+import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.PurgeExpiredPendingActivationAccountsUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
+import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountRepository;
@@ -18,17 +22,25 @@ import com.valadir.application.port.out.LoginAttemptStore;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpStore;
+import com.valadir.application.port.out.PasswordResetNotifier;
+import com.valadir.application.port.out.PasswordResetOtpStore;
+import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.port.out.UserRepository;
 import com.valadir.application.service.AccountActivationOtpSender;
 import com.valadir.application.service.AccountActivationOtpSenderService;
 import com.valadir.application.service.ActivateAccountService;
+import com.valadir.application.service.CompletePasswordResetService;
+import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutService;
 import com.valadir.application.service.PurgeExpiredPendingActivationAccountsService;
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendAccountActivationCodeService;
+import com.valadir.application.service.VerifyPasswordResetOtpService;
+
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
@@ -188,6 +200,59 @@ class ApplicationWiring {
     LogoutUseCase logoutUseCase(LogoutTokensInvalidator logoutTokensInvalidator) {
 
         return new LogoutService(logoutTokensInvalidator);
+    }
+
+    @Bean
+    PasswordResetConfig passwordResetConfig(
+        @Value("${auth.password-reset.otp.ttl}") Duration otpTtl,
+        @Value("${auth.password-reset.verification-token.ttl}") Duration verificationTokenTtl
+    ) {
+
+        return new PasswordResetConfig(otpTtl, verificationTokenTtl);
+    }
+
+    @Bean
+    InitiatePasswordResetUseCase initiatePasswordResetUseCase(
+        AccountRepository accountRepository,
+        PasswordResetOtpStore passwordResetOtpStore,
+        OtpHasher otpHasher,
+        PasswordResetNotifier passwordResetNotifier,
+        PasswordResetConfig passwordResetConfig
+    ) {
+
+        return new InitiatePasswordResetService(accountRepository, passwordResetOtpStore, otpHasher, passwordResetNotifier, passwordResetConfig);
+    }
+
+    @Bean
+    VerifyPasswordResetOtpUseCase verifyPasswordResetOtpUseCase(
+        AccountRepository accountRepository,
+        PasswordResetOtpStore passwordResetOtpStore,
+        OtpHasher otpHasher,
+        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        PasswordResetConfig passwordResetConfig
+    ) {
+
+        return new VerifyPasswordResetOtpService(accountRepository, passwordResetOtpStore, otpHasher, passwordResetVerificationTokenStore, passwordResetConfig);
+    }
+
+    @Bean
+    CompletePasswordResetUseCase completePasswordResetUseCase(
+        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        AccountRepository accountRepository,
+        UserRepository userRepository,
+        PasswordHasher passwordHasher,
+        PasswordSecurityService passwordSecurityService,
+        RefreshTokenStore refreshTokenStore
+    ) {
+
+        return new CompletePasswordResetService(
+            passwordResetVerificationTokenStore,
+            accountRepository,
+            userRepository,
+            passwordHasher,
+            passwordSecurityService,
+            refreshTokenStore
+        );
     }
 
     @Bean

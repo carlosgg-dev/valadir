@@ -3,9 +3,11 @@ package com.valadir.persistence.config;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.port.out.UserRepository;
 import com.valadir.persistence.adapter.AccountRepositoryJpaAdapter;
 import com.valadir.persistence.adapter.ExpiredPendingActivationAccountCleanerJpaAdapter;
 import com.valadir.persistence.adapter.RegisterPersistenceJpaAdapter;
+import com.valadir.persistence.adapter.UserRepositoryJpaAdapter;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import org.springframework.context.annotation.Bean;
@@ -30,5 +32,11 @@ class PersistenceWiring {
     ExpiredPendingActivationAccountCleaner expiredPendingActivationAccountCleaner(AccountJpaRepository accountJpaRepository) {
 
         return new ExpiredPendingActivationAccountCleanerJpaAdapter(accountJpaRepository);
+    }
+
+    @Bean
+    UserRepository userRepository(UserJpaRepository userJpaRepository) {
+
+        return new UserRepositoryJpaAdapter(userJpaRepository);
     }
 }

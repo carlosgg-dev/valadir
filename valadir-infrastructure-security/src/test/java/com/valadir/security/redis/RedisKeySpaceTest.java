@@ -1,8 +1,7 @@
 package com.valadir.security.redis;
 
+import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
-
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,7 +12,7 @@ class RedisKeySpaceTest {
     private static final String PATH_KEY = "api_auth_login";
     private static final String IP = "192.168.1.1";
     private static final String EMAIL = "user@example.com";
-    private static final UUID ACCOUNT_UUID = UUID.randomUUID();
+    private static final String ACCOUNT_ID = AccountId.generate().value().toString();
 
     @Test
     void forBlacklist_returnsExpectedKey() {
@@ -30,15 +29,29 @@ class RedisKeySpaceTest {
     @Test
     void forUserTokens_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forUserTokens(ACCOUNT_UUID.toString()))
-            .isEqualTo("auth:user_tokens:" + ACCOUNT_UUID);
+        assertThat(RedisKeySpace.forUserTokens(ACCOUNT_ID))
+            .isEqualTo("auth:user_tokens:" + ACCOUNT_ID);
     }
 
     @Test
     void forAccountActivationOtp_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forAccountActivationOtp(ACCOUNT_UUID.toString()))
-            .isEqualTo("auth:account_activation_otp:" + ACCOUNT_UUID);
+        assertThat(RedisKeySpace.forAccountActivationOtp(ACCOUNT_ID))
+            .isEqualTo("auth:account_activation_otp:" + ACCOUNT_ID);
+    }
+
+    @Test
+    void forPasswordResetOtp_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forPasswordResetOtp(ACCOUNT_ID))
+            .isEqualTo("auth:password_reset_otp:" + ACCOUNT_ID);
+    }
+
+    @Test
+    void forPasswordResetVerificationToken_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forPasswordResetVerificationToken(TOKEN))
+            .isEqualTo("auth:password_reset_verification_token:" + TOKEN);
     }
 
     @Test
@@ -58,7 +71,7 @@ class RedisKeySpaceTest {
     @Test
     void forRateLimitUser_returnsExpectedKey() {
 
-        var accountId = ACCOUNT_UUID.toString();
+        var accountId = ACCOUNT_ID;
 
         assertThat(RedisKeySpace.forRateLimitUser(accountId))
             .isEqualTo("rate_limit:user:" + accountId);

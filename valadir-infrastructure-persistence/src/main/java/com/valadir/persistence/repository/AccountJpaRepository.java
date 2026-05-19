@@ -22,4 +22,8 @@ public interface AccountJpaRepository extends JpaRepository<AccountEntity, UUID>
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM AccountEntity a WHERE a.status = :status AND a.createdAt < :cutoff")
     int deleteByStatusOlderThan(@Param("status") AccountStatus status, @Param("cutoff") Instant cutoff);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE AccountEntity a SET a.hashedPassword = :hashedPassword WHERE a.id = :id")
+    void updatePasswordById(@Param("id") UUID id, @Param("hashedPassword") String hashedPassword);
 }

@@ -5,6 +5,7 @@ import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.HashedPassword;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 
@@ -37,5 +38,11 @@ public class AccountRepositoryJpaAdapter implements AccountRepository {
     public void activate(AccountId accountId) {
 
         jpaRepository.updateStatusById(accountId.value(), AccountStatus.ACTIVE);
+    }
+
+    @Override
+    public void updatePassword(AccountId accountId, HashedPassword hashedPassword) {
+
+        jpaRepository.updatePasswordById(accountId.value(), hashedPassword.value());
     }
 }

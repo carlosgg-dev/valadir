@@ -21,6 +21,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
     private final JwtProperties jwtProperties;
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
+    private final RedisScript<Long> revokeAllRefreshTokensScript;
 
     public RefreshTokenStoreRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
 
@@ -28,6 +29,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
         this.jwtProperties = jwtProperties;
         this.saveRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/save_refresh_token.lua"), Long.class);
         this.rotateRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/rotate_refresh_token.lua"), Long.class);
+        this.revokeAllRefreshTokensScript = RedisScript.of(new ClassPathResource("scripts/revoke_all_refresh_tokens.lua"), Long.class);
     }
 
     @Override
@@ -82,6 +84,22 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
             return Long.valueOf(1L).equals(result);
         } catch (RedisConnectionFailureException | RedisSystemException e) {
             throw new InfrastructureException("Redis unavailable — refresh token rotation failed", e);
+        }
+    }
+
+    // Atomic: revokes all refresh tokens for the account.
+    // Active access tokens remain valid until they expire — intentional trade-off to avoid per-user JTI tracking.
+    @Override
+    public void revokeAllForAccount(AccountId accountId) {
+
+        try {
+            redisTemplate.execute(
+                revokeAllRefreshTokensScript,
+                List.of(RedisKeySpace.forUserTokens(accountId.value().toString())),
+                RedisKeySpace.REFRESH_TOKEN_PREFIX
+            );
+        } catch (RedisConnectionFailureException | RedisSystemException e) {
+            throw new InfrastructureException("Redis unavailable — refresh token revocation failed", e);
         }
     }
 }

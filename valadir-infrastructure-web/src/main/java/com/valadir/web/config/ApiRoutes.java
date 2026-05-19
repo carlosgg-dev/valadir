@@ -24,10 +24,28 @@ public final class ApiRoutes {
 
             public static final String ACTIVATE = "/account-activation";
             public static final String RESEND = ACTIVATE + "/resend";
+
             public static final String ACTIVATE_PATH = Auth.BASE + ACTIVATE;
             public static final String RESEND_PATH = Auth.BASE + RESEND;
 
             private AccountActivation() {
+
+            }
+        }
+
+        // Password reset
+        public static final class PasswordReset {
+
+            private static final String RESET = "/password-reset";
+            public static final String INITIATE = RESET + "/initiate";
+            public static final String VERIFY = RESET + "/verify";
+            public static final String COMPLETE = RESET + "/complete";
+
+            public static final String INITIATE_PATH = Auth.BASE + INITIATE;
+            public static final String VERIFY_PATH = Auth.BASE + VERIFY;
+            public static final String COMPLETE_PATH = Auth.BASE + COMPLETE;
+
+            private PasswordReset() {
 
             }
         }

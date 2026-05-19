@@ -105,6 +105,23 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
             .hasValueSatisfying(account -> assertThat(account.isActive()).isTrue());
     }
 
+    @Test
+    void updatePassword_existingAccount_updatesHashedPassword() {
+
+        var existingAccount = buildAccount();
+        jpaRepository.save(AccountMapper.toEntity(existingAccount));
+
+        var newHash = new HashedPassword("$argon2id$newpassword");
+        adapter.updatePassword(existingAccount.getId(), newHash);
+
+        var result = adapter.findById(existingAccount.getId());
+        assertThat(result)
+            .isPresent()
+            .hasValueSatisfying(account -> assertThat(account.getPassword())
+                .isEqualTo(newHash)
+                .isNotEqualTo(existingAccount.getPassword()));
+    }
+
     private Account buildAccount() {
 
         return Account.reconstitute(

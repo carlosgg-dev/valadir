@@ -3,6 +3,8 @@ package com.valadir.security.config;
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
+import com.valadir.application.port.out.PasswordResetOtpStore;
+import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
 import com.valadir.application.port.out.RefreshTokenStore;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.service.PasswordHasher;
@@ -10,6 +12,8 @@ import com.valadir.security.adapter.AccessTokenBlacklistRedisAdapter;
 import com.valadir.security.adapter.Argon2PasswordHasher;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
+import com.valadir.security.adapter.PasswordResetOtpStoreRedisAdapter;
+import com.valadir.security.adapter.PasswordResetVerificationTokenStoreRedisAdapter;
 import com.valadir.security.adapter.RedisRateLimiterAdapter;
 import com.valadir.security.adapter.RefreshTokenStoreRedisAdapter;
 import org.springframework.context.annotation.Bean;
@@ -55,5 +59,17 @@ class SecurityWiring {
     RateLimiter rateLimiter(RedisTemplate<String, String> redisTemplate) {
 
         return new RedisRateLimiterAdapter(redisTemplate);
+    }
+
+    @Bean
+    PasswordResetOtpStore passwordResetOtpStore(RedisTemplate<String, String> redisTemplate) {
+
+        return new PasswordResetOtpStoreRedisAdapter(redisTemplate);
+    }
+
+    @Bean
+    PasswordResetVerificationTokenStore passwordResetVerificationTokenStore(RedisTemplate<String, String> redisTemplate) {
+
+        return new PasswordResetVerificationTokenStoreRedisAdapter(redisTemplate);
     }
 }

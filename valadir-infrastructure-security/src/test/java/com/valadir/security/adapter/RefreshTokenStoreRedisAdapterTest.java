@@ -102,4 +102,30 @@ class RefreshTokenStoreRedisAdapterTest extends RedisTestContainer {
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isNull();
     }
 
+    @Test
+    void revokeAllForAccount_multipleTokens_removesAllTokensAndUserSet() {
+
+        var accountId = AccountId.generate();
+        var token1 = UUID.randomUUID().toString();
+        var token2 = UUID.randomUUID().toString();
+
+        adapter.save(token1, accountId);
+        adapter.save(token2, accountId);
+
+        adapter.revokeAllForAccount(accountId);
+
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(token1))).isFalse();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(token2))).isFalse();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forUserTokens(accountId.value().toString()))).isFalse();
+    }
+
+    @Test
+    void revokeAllForAccount_accountWithNoTokens_leavesNoState() {
+
+        var accountId = AccountId.generate();
+
+        adapter.revokeAllForAccount(accountId);
+
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forUserTokens(accountId.value().toString()))).isFalse();
+    }
 }

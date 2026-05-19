@@ -63,7 +63,7 @@ class BlacklistAwareJwtDecoderTest {
         String jti = UUID.randomUUID().toString();
         Jwt jwt = buildJwt(jti);
         given(delegate.decode("token")).willReturn(jwt);
-        given(accessTokenBlacklist.isRevoked(jti)).willThrow(new InfrastructureException("Redis unavailable", new RuntimeException()));
+        given(accessTokenBlacklist.isRevoked(jti)).willThrow(new InfrastructureException("Redis unavailable"));
 
         Jwt result = decoder.decode("token");
 
