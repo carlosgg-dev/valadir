@@ -45,7 +45,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
         var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.AUTHENTICATION_FAILED));
+            .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
         AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
 

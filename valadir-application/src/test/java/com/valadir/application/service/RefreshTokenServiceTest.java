@@ -71,7 +71,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void refresh_tokenGoneBeforeRotation_throwsApplicationException() {
+    void refresh_validTokenGoneBeforeRotation_throwsApplicationException() {
 
         var oldRefreshToken = "old-refresh-token";
         var newRefreshToken = "new-refresh";
@@ -89,7 +89,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void refresh_validToken_accountNotFound_throwsApplicationException() {
+    void refresh_accountNotFound_throwsApplicationException() {
 
         var oldRefreshToken = "old-refresh-token";
         var command = new RefreshTokenCommand(oldRefreshToken);
@@ -100,7 +100,7 @@ class RefreshTokenServiceTest {
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.refresh(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.AUTHENTICATION_FAILED);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
         then(refreshTokenStore).should(never()).rotate(any(), any(), any());
