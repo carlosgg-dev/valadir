@@ -4,7 +4,6 @@ import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.common.mdc.MdcKeys;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +30,7 @@ public class ResendAccountActivationCodeService implements ResendAccountActivati
         accountRepository.findByEmail(email).ifPresentOrElse(
             account -> {
                 MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
-                if (account.getStatus() != AccountStatus.PENDING_ACTIVATION) {
+                if (!account.isPendingActivation()) {
                     log.warn("Resend account activation code attempted for already active account");
                     return;
                 }
