@@ -4,6 +4,7 @@ import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,15 +20,17 @@ import static org.mockito.BDDMockito.willThrow;
 @ExtendWith(MockitoExtension.class)
 class LogoutServiceTest {
 
-    @Mock
-    private LogoutTokensInvalidator logoutTokensInvalidator;
-    @InjectMocks
-    private LogoutService service;
-
     private static final String ACCESS_TOKEN_JTI = "access-jti";
     private static final String REFRESH_TOKEN = "refresh-token";
     private static final String ACCOUNT_ID = "account-uuid";
     private static final Duration REMAINING_TTL = Duration.ofMinutes(10);
+
+    private static final InfrastructureException INFRA_ERROR = new InfrastructureException("Redis error");
+
+    @Mock
+    private LogoutTokensInvalidator logoutTokensInvalidator;
+    @InjectMocks
+    private LogoutService service;
 
     @Test
     void logout_success_invalidatesBothTokens() {
@@ -41,11 +44,13 @@ class LogoutServiceTest {
     void logout_invalidationFails_throwsApplicationException() {
 
         var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
-        willThrow(new RuntimeException("Redis down"))
+
+        willThrow(INFRA_ERROR)
             .given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.logout(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOKEN_REVOCATION_FAILED);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOKEN_REVOCATION_FAILED)
+            .withCause(INFRA_ERROR);
     }
 }

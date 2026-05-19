@@ -6,6 +6,7 @@ import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.common.error.ErrorCode;
 
+import com.valadir.common.exception.InfrastructureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +32,7 @@ public class LogoutService implements LogoutUseCase {
                 command.accountId()
             );
             log.info("Logout successful");
-        } catch (Exception e) {
+        } catch (InfrastructureException e) {
             throw new ApplicationException("Logout failed", ErrorCode.TOKEN_REVOCATION_FAILED, e);
         }
     }

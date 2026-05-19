@@ -6,8 +6,7 @@ import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
@@ -18,89 +17,51 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class OtpStoreRedisAdapterExceptionTest {
 
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> connectionFailureTemplate() {
+    private static final AccountId ACCOUNT_ID = AccountId.generate();
+    private static final String HASHED_OTP = "$argon2id$hashedOtp";
+    private static final Duration OTP_TTL = Duration.ofMinutes(10);
 
-        return mock(RedisTemplate.class, invocation -> {
-            throw new RedisConnectionFailureException("connection refused");
+    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
+    };
+
+    @SuppressWarnings("unchecked")
+    private static RedisTemplate<String, String> redisErrorTemplate() {
+
+        return mock(RedisTemplate.class, invocationOnMock -> {
+            throw REDIS_ERROR;
         });
     }
 
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> systemErrorTemplate() {
+    @Test
+    void save_redisError_throwsInfrastructureException() {
 
-        return mock(RedisTemplate.class, invocation -> {
-            throw new RedisSystemException("ERR command not allowed", null);
-        });
+        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
+
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.save(ACCOUNT_ID, HASHED_OTP, OTP_TTL))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 
     @Test
-    void save_redisConnectionFailure_throwsInfrastructureException() {
+    void find_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
-        var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
-        var otpTtl = Duration.ofMinutes(10);
+        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.find(ACCOUNT_ID))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 
     @Test
-    void save_redisSystemError_throwsInfrastructureException() {
+    void delete_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
-        var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
-        var otpTtl = Duration.ofMinutes(10);
+        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.save(accountId, hashedOtp, otpTtl))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void find_redisConnectionFailure_throwsInfrastructureException() {
-
-        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
-        var accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.find(accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void find_redisSystemError_throwsInfrastructureException() {
-
-        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
-        var accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.find(accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void delete_redisConnectionFailure_throwsInfrastructureException() {
-
-        var adapter = new OtpStoreRedisAdapter(connectionFailureTemplate());
-        var accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.delete(accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void delete_redisSystemError_throwsInfrastructureException() {
-
-        var adapter = new OtpStoreRedisAdapter(systemErrorTemplate());
-        var accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.delete(accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.delete(ACCOUNT_ID))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 }

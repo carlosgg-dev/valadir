@@ -4,8 +4,7 @@ import com.valadir.application.port.out.OtpStore;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
@@ -25,7 +24,7 @@ public class OtpStoreRedisAdapter implements OtpStore {
 
         try {
             redisTemplate.opsForValue().set(key(accountId), hashedOtp, ttl);
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp save failed", e);
         }
     }
@@ -35,7 +34,7 @@ public class OtpStoreRedisAdapter implements OtpStore {
 
         try {
             return Optional.ofNullable(redisTemplate.opsForValue().get(key(accountId)));
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp lookup failed", e);
         }
     }
@@ -45,7 +44,7 @@ public class OtpStoreRedisAdapter implements OtpStore {
 
         try {
             redisTemplate.delete(key(accountId));
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp delete failed", e);
         }
     }

@@ -4,10 +4,10 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -30,9 +30,9 @@ public class RedisRateLimiterAdapter implements RateLimiter {
         try {
             List<?> result = Objects.requireNonNull(
                 redisTemplate.execute(rateLimitScript, List.of(key),
-                    String.valueOf(maxRequests),
-                    String.valueOf(window.getSeconds()),
-                    String.valueOf(System.currentTimeMillis())),
+                                      String.valueOf(maxRequests),
+                                      String.valueOf(window.getSeconds()),
+                                      String.valueOf(System.currentTimeMillis())),
                 "Rate limit script returned no result for key: " + key
             );
 
@@ -40,7 +40,7 @@ public class RedisRateLimiterAdapter implements RateLimiter {
             Duration remainingTtl = Duration.ofSeconds((Long) result.get(1));
 
             return new RateLimitResult(requestCount <= maxRequests, requestCount, maxRequests, remainingTtl);
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — rate limit check failed", e);
         }
     }

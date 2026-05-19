@@ -7,8 +7,7 @@ import com.valadir.security.redis.RedisKeySpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -44,7 +43,7 @@ public class LoginAttemptStoreRedisAdapter implements LoginAttemptStore {
 
             return ttl > 0 ? Optional.of(Duration.ofSeconds(ttl)) : Optional.empty();
 
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             log.warn("Redis unavailable — skipping lockout check for {}", email.value(), e);
             return Optional.empty();
         }
@@ -71,7 +70,7 @@ public class LoginAttemptStoreRedisAdapter implements LoginAttemptStore {
                 redisTemplate.opsForValue().set(lockoutKey(email), RedisKeySpace.LOGIN_LOCKOUT_VALUE, lockout);
             }
 
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             log.warn("Redis unavailable — failed attempt not recorded for {}", email.value(), e);
         }
     }
@@ -81,7 +80,7 @@ public class LoginAttemptStoreRedisAdapter implements LoginAttemptStore {
 
         try {
             redisTemplate.delete(List.of(attemptsKey(email), lockoutKey(email)));
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             log.warn("Redis unavailable — attempt counter not cleared for {}", email.value(), e);
         }
     }

@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -33,33 +32,17 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     private RedisTemplate<String, String> redisTemplate;
 
     @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> connectionFailureTemplate() {
+    private static RedisTemplate<String, String> redisErrorTemplate() {
 
-        return mock(RedisTemplate.class, invocation -> {
-            throw new RedisConnectionFailureException("connection refused");
-        });
-    }
-
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> systemErrorTemplate() {
-
-        return mock(RedisTemplate.class, invocation -> {
-            throw new RedisSystemException("ERR command not allowed", null);
+        return mock(RedisTemplate.class, invocationOnMock -> {
+            throw mock(DataAccessException.class);
         });
     }
 
     @Test
-    void findActiveLockout_redisConnectionFailure_returnsEmpty() {
+    void findActiveLockout_redisError_returnsEmpty() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(connectionFailureTemplate(), EMPTY_POLICY);
-
-        assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
-    }
-
-    @Test
-    void findActiveLockout_redisSystemError_returnsEmpty() {
-
-        var adapter = new LoginAttemptStoreRedisAdapter(systemErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
     }
@@ -74,17 +57,9 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     }
 
     @Test
-    void recordFailedAttempt_redisConnectionFailure_doesNotThrow() {
+    void recordFailedAttempt_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(connectionFailureTemplate(), EMPTY_POLICY);
-
-        assertThatNoException().isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
-    }
-
-    @Test
-    void recordFailedAttempt_redisSystemError_doesNotThrow() {
-
-        var adapter = new LoginAttemptStoreRedisAdapter(systemErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
     }
@@ -100,17 +75,9 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     }
 
     @Test
-    void clearAttempts_redisConnectionFailure_doesNotThrow() {
+    void clearAttempts_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(connectionFailureTemplate(), EMPTY_POLICY);
-
-        assertThatNoException().isThrownBy(() -> adapter.clearAttempts(EMAIL));
-    }
-
-    @Test
-    void clearAttempts_redisSystemError_doesNotThrow() {
-
-        var adapter = new LoginAttemptStoreRedisAdapter(systemErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.clearAttempts(EMAIL));
     }

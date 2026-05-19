@@ -7,8 +7,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -40,7 +39,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
             return accountIdValue == null
                 ? new TokenValidationResult.Invalid()
                 : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
         }
     }
@@ -58,7 +57,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds()),
                 token
             );
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token save failed", e);
         }
     }
@@ -82,7 +81,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds())
             );
             return Long.valueOf(1L).equals(result);
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token rotation failed", e);
         }
     }
@@ -98,7 +97,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
                 List.of(RedisKeySpace.forUserTokens(accountId.value().toString())),
                 RedisKeySpace.REFRESH_TOKEN_PREFIX
             );
-        } catch (RedisConnectionFailureException | RedisSystemException e) {
+        } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token revocation failed", e);
         }
     }

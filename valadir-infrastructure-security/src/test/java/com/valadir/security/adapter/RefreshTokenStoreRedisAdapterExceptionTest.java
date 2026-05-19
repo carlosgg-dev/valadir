@@ -8,8 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
@@ -23,101 +22,56 @@ import static org.mockito.Mockito.mock;
 class RefreshTokenStoreRedisAdapterExceptionTest {
 
     private static final Duration ONE_WEEK = Duration.ofDays(7);
+    private static final String OLD_TOKEN = UUID.randomUUID().toString();
+    private static final String NEW_TOKEN = UUID.randomUUID().toString();
+    private static final AccountId ACCOUNT_ID = AccountId.generate();
 
-    // Throws RedisConnectionFailureException on any call — avoids varargs stubbing issues
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> connectionFailureTemplate() {
-
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisConnectionFailureException("connection refused");
-        });
-    }
-
-    // Throws RedisSystemException on any call — simulates command-level Redis errors (e.g. script execution failure)
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> systemErrorTemplate() {
-
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisSystemException("ERR command not allowed", null);
-        });
-    }
+    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
+    };
 
     @Mock
     private JwtProperties jwtProperties;
 
-    @Test
-    void validate_redisConnectionFailure_throwsInfrastructureException() {
+    @SuppressWarnings("unchecked")
+    private static RedisTemplate<String, String> redisErrorTemplate() {
 
-        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        String token = UUID.randomUUID().toString();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.validate(token))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+        return mock(RedisTemplate.class, invocationOnMock -> {
+            throw REDIS_ERROR;
+        });
     }
 
     @Test
-    void validate_redisSystemError_throwsInfrastructureException() {
+    void validate_redisError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
-        String token = UUID.randomUUID().toString();
+        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.validate(token))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.validate(NEW_TOKEN))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 
     @Test
-    void save_redisConnectionFailure_throwsInfrastructureException() {
+    void save_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        String token = UUID.randomUUID().toString();
-        AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.save(token, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.save(NEW_TOKEN, ACCOUNT_ID))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 
     @Test
-    void save_redisSystemError_throwsInfrastructureException() {
+    void rotate_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
-        String token = UUID.randomUUID().toString();
-        AccountId accountId = AccountId.generate();
+        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.save(token, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void rotate_redisConnectionFailure_throwsInfrastructureException() {
-
-        given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(connectionFailureTemplate(), jwtProperties);
-        String oldToken = UUID.randomUUID().toString();
-        String newToken = UUID.randomUUID().toString();
-        AccountId accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void rotate_redisSystemError_throwsInfrastructureException() {
-
-        given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(systemErrorTemplate(), jwtProperties);
-        String oldToken = UUID.randomUUID().toString();
-        String newToken = UUID.randomUUID().toString();
-        AccountId accountId = AccountId.generate();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.rotate(oldToken, newToken, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 }

@@ -6,8 +6,7 @@ import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
@@ -19,49 +18,30 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
-    // Throws RedisConnectionFailureException on any call — avoids varargs stubbing issues
+    private static final String JTI = UUID.randomUUID().toString();
+    private static final Duration REMAINING_TTL = Duration.ofMinutes(10);
+    private static final String REFRESH_TOKEN = UUID.randomUUID().toString();
+    private static final String ACCOUNT_ID = AccountId.generate().toString();
+
+    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
+    };
+
     @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> connectionFailureTemplate() {
+    private static RedisTemplate<String, String> redisErrorTemplate() {
 
         return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisConnectionFailureException("connection refused");
-        });
-    }
-
-    // Throws RedisSystemException on any call — simulates command-level Redis errors
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> systemErrorTemplate() {
-
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisSystemException("ERR command not allowed", null);
+            throw REDIS_ERROR;
         });
     }
 
     @Test
-    void invalidate_redisConnectionFailure_throwsInfrastructureException() {
+    void invalidate_redisError_throwsInfrastructureException() {
 
-        var adapter = new LogoutTokensInvalidatorRedisAdapter(connectionFailureTemplate());
-        String jti = UUID.randomUUID().toString();
-        Duration remainingTtlSeconds = Duration.ofMinutes(10);
-        String refreshToken = UUID.randomUUID().toString();
-        String accountId = AccountId.generate().toString();
+        var adapter = new LogoutTokensInvalidatorRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void invalidate_redisSystemError_throwsInfrastructureException() {
-
-        var adapter = new LogoutTokensInvalidatorRedisAdapter(systemErrorTemplate());
-        String jti = UUID.randomUUID().toString();
-        Duration remainingTtlSeconds = Duration.ofMinutes(10);
-        String refreshToken = UUID.randomUUID().toString();
-        String accountId = AccountId.generate().toString();
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.invalidate(jti, remainingTtlSeconds, refreshToken, accountId))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .isThrownBy(() -> adapter.invalidate(JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 }

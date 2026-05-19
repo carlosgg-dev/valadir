@@ -4,56 +4,41 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 class RedisRateLimiterAdapterExceptionTest {
 
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
-    // Throws RedisConnectionFailureException on any call — avoids varargs stubbing issues
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> connectionFailureTemplate() {
+    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
+    };
 
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisConnectionFailureException("connection refused");
-        });
-    }
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
 
-    // Throws RedisSystemException on any call — simulates command-level Redis errors (e.g. script execution failure)
-    @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> systemErrorTemplate() {
-
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw new RedisSystemException("ERR command not allowed", null);
-        });
-    }
+    @InjectMocks
+    private RedisRateLimiterAdapter adapter;
 
     @Test
-    void consume_redisConnectionFailure_throwsInfrastructureException() {
+    void consume_redisError_throwsInfrastructureException() {
 
-        var adapter = new RedisRateLimiterAdapter(connectionFailureTemplate());
+        given(redisTemplate.execute(any(), anyList(), any(), any(), any())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void consume_redisSystemError_throwsInfrastructureException() {
-
-        var adapter = new RedisRateLimiterAdapter(systemErrorTemplate());
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 }

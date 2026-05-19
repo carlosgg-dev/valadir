@@ -7,8 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.RedisSystemException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -18,6 +17,9 @@ import static org.mockito.BDDMockito.given;
 @ExtendWith(MockitoExtension.class)
 class AccessTokenBlacklistRedisAdapterExceptionTest {
 
+    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
+    };
+
     @Mock
     private RedisTemplate<String, String> redisTemplate;
 
@@ -25,22 +27,13 @@ class AccessTokenBlacklistRedisAdapterExceptionTest {
     private AccessTokenBlacklistRedisAdapter adapter;
 
     @Test
-    void isRevoked_redisConnectionFailure_throwsInfrastructureException() {
+    void isRevoked_redisError_throwsInfrastructureException() {
 
-        given(redisTemplate.hasKey(any())).willThrow(new RedisConnectionFailureException("connection refused"));
-
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.isRevoked("some-jti"))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
-    void isRevoked_redisSystemError_throwsInfrastructureException() {
-
-        given(redisTemplate.hasKey(any())).willThrow(new RedisSystemException("ERR command not allowed", null));
+        given(redisTemplate.hasKey(any())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.isRevoked("some-jti"))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INFRASTRUCTURE_UNAVAILABLE)
+            .withCause(REDIS_ERROR);
     }
 }
