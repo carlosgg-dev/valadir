@@ -8,32 +8,36 @@ public final class ApiRoutes {
 
         public static final String BASE = API + "/auth";
 
-        // Session
-        public static final String REGISTER = "/register";
-        public static final String LOGIN = "/login";
-        public static final String REFRESH = "/refresh";
-        public static final String LOGOUT = "/logout";
+        public static final class Registration {
 
-        public static final String REGISTER_PATH = BASE + REGISTER;
-        public static final String LOGIN_PATH = BASE + LOGIN;
-        public static final String REFRESH_PATH = BASE + REFRESH;
-        public static final String LOGOUT_PATH = BASE + LOGOUT;
-
-        // Account activation
-        public static final class AccountActivation {
-
+            public static final String REGISTER = "/register";
             public static final String ACTIVATE = "/account-activation";
             public static final String RESEND = ACTIVATE + "/resend";
 
+            public static final String REGISTER_PATH = Auth.BASE + REGISTER;
             public static final String ACTIVATE_PATH = Auth.BASE + ACTIVATE;
             public static final String RESEND_PATH = Auth.BASE + RESEND;
 
-            private AccountActivation() {
+            private Registration() {
 
             }
         }
 
-        // Password reset
+        public static final class Session {
+
+            public static final String LOGIN = "/login";
+            public static final String REFRESH = "/refresh";
+            public static final String LOGOUT = "/logout";
+
+            public static final String LOGIN_PATH = Auth.BASE + LOGIN;
+            public static final String REFRESH_PATH = Auth.BASE + REFRESH;
+            public static final String LOGOUT_PATH = Auth.BASE + LOGOUT;
+
+            private Session() {
+
+            }
+        }
+
         public static final class PasswordReset {
 
             private static final String RESET = "/password-reset";

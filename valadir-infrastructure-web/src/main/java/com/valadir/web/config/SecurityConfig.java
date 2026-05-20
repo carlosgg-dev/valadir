@@ -30,11 +30,11 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 public class SecurityConfig {
 
     private static final String[] POST_PUBLIC_ROUTES = {
-        ApiRoutes.Auth.REGISTER_PATH,
-        ApiRoutes.Auth.LOGIN_PATH,
-        ApiRoutes.Auth.REFRESH_PATH,
-        ApiRoutes.Auth.AccountActivation.ACTIVATE_PATH,
-        ApiRoutes.Auth.AccountActivation.RESEND_PATH,
+        ApiRoutes.Auth.Registration.REGISTER_PATH,
+        ApiRoutes.Auth.Registration.ACTIVATE_PATH,
+        ApiRoutes.Auth.Registration.RESEND_PATH,
+        ApiRoutes.Auth.Session.LOGIN_PATH,
+        ApiRoutes.Auth.Session.REFRESH_PATH,
         ApiRoutes.Auth.PasswordReset.INITIATE_PATH,
         ApiRoutes.Auth.PasswordReset.VERIFY_PATH,
         ApiRoutes.Auth.PasswordReset.COMPLETE_PATH
