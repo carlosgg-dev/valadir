@@ -4,8 +4,8 @@ import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.application.port.out.PasswordResetOtpRepository;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
@@ -35,7 +35,7 @@ class InitiatePasswordResetServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private PasswordResetOtpRepository passwordResetOtpRepository;
+    private OtpRepository otpRepository;
 
     @Mock
     private OtpHasher otpHasher;
@@ -77,7 +77,7 @@ class InitiatePasswordResetServiceTest {
         service.initiate(command);
 
         then(otpHasher).should().hash(plainOtpCaptor.capture());
-        then(passwordResetOtpRepository).should().save(activeAccount.getId(), HASHED_OTP, OTP_TTL);
+        then(otpRepository).should().save(activeAccount.getId(), HASHED_OTP, OTP_TTL);
         then(passwordResetNotifier).should().sendResetCode(EMAIL, plainOtpCaptor.getValue());
     }
 
@@ -91,7 +91,7 @@ class InitiatePasswordResetServiceTest {
 
         then(otpHasher).should().guardTiming();
         then(otpHasher).should(never()).hash(any());
-        then(passwordResetOtpRepository).should(never()).save(any(), any(), any());
+        then(otpRepository).should(never()).save(any(), any(), any());
         then(passwordResetNotifier).should(never()).sendResetCode(any(), any());
     }
 
@@ -106,7 +106,7 @@ class InitiatePasswordResetServiceTest {
 
         then(otpHasher).should().guardTiming();
         then(otpHasher).should(never()).hash(any());
-        then(passwordResetOtpRepository).should(never()).save(any(), any(), any());
+        then(otpRepository).should(never()).save(any(), any(), any());
         then(passwordResetNotifier).should(never()).sendResetCode(any(), any());
     }
 }

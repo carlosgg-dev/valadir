@@ -9,6 +9,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
+import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
@@ -19,6 +20,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     private static final AccountId ACCOUNT_ID = AccountId.generate();
     private static final String HASHED_OTP = "$argon2id$hashedOtp";
     private static final Duration OTP_TTL = Duration.ofMinutes(10);
+    private static final UnaryOperator<String> REDIS_KEY_FN = id -> "test:otp:" + id;
 
     private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
     };
@@ -34,7 +36,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     @Test
     void save_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(ACCOUNT_ID, HASHED_OTP, OTP_TTL))
@@ -44,7 +46,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     @Test
     void find_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.find(ACCOUNT_ID))
@@ -54,7 +56,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     @Test
     void delete_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.delete(ACCOUNT_ID))

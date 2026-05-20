@@ -3,27 +3,29 @@ package com.valadir.security.adapter;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
-import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 public class OtpRepositoryRedisAdapter implements OtpRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final UnaryOperator<String> redisKeyFunction;
 
-    public OtpRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate) {
+    public OtpRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate, UnaryOperator<String> redisKeyFunction) {
 
         this.redisTemplate = redisTemplate;
+        this.redisKeyFunction = redisKeyFunction;
     }
 
     @Override
     public void save(AccountId accountId, String hashedOtp, Duration ttl) {
 
         try {
-            redisTemplate.opsForValue().set(key(accountId), hashedOtp, ttl);
+            redisTemplate.opsForValue().set(redisKey(accountId), hashedOtp, ttl);
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp save failed", e);
         }
@@ -33,7 +35,7 @@ public class OtpRepositoryRedisAdapter implements OtpRepository {
     public Optional<String> find(AccountId accountId) {
 
         try {
-            return Optional.ofNullable(redisTemplate.opsForValue().get(key(accountId)));
+            return Optional.ofNullable(redisTemplate.opsForValue().get(redisKey(accountId)));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp lookup failed", e);
         }
@@ -43,14 +45,14 @@ public class OtpRepositoryRedisAdapter implements OtpRepository {
     public void delete(AccountId accountId) {
 
         try {
-            redisTemplate.delete(key(accountId));
+            redisTemplate.delete(redisKey(accountId));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp delete failed", e);
         }
     }
 
-    private String key(AccountId accountId) {
+    private String redisKey(AccountId accountId) {
 
-        return RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
+        return redisKeyFunction.apply(accountId.value().toString());
     }
 }

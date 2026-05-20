@@ -3,7 +3,7 @@ package com.valadir.security.config;
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
-import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.common.ratelimit.RateLimiter;
@@ -12,10 +12,11 @@ import com.valadir.security.adapter.AccessTokenBlacklistRedisAdapter;
 import com.valadir.security.adapter.Argon2PasswordHasher;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
-import com.valadir.security.adapter.PasswordResetOtpRepositoryRedisAdapter;
+import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
 import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedisAdapter;
 import com.valadir.security.adapter.RedisRateLimiterAdapter;
 import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
+import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -62,9 +63,15 @@ class SecurityWiring {
     }
 
     @Bean
-    PasswordResetOtpRepository passwordResetOtpRepository(RedisTemplate<String, String> redisTemplate) {
+    OtpRepository accountActivationOtpRepository(RedisTemplate<String, String> redisTemplate) {
 
-        return new PasswordResetOtpRepositoryRedisAdapter(redisTemplate);
+        return new OtpRepositoryRedisAdapter(redisTemplate, RedisKeySpace::forAccountActivationOtp);
+    }
+
+    @Bean
+    OtpRepository passwordResetOtpRepository(RedisTemplate<String, String> redisTemplate) {
+
+        return new OtpRepositoryRedisAdapter(redisTemplate, RedisKeySpace::forPasswordResetOtp);
     }
 
     @Bean

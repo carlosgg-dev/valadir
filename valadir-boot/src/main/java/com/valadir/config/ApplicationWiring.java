@@ -23,7 +23,6 @@ import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.application.port.out.PasswordResetOtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.RegisterPersistence;
@@ -40,7 +39,6 @@ import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendAccountActivationCodeService;
 import com.valadir.application.service.VerifyPasswordResetOtpService;
-
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
@@ -48,7 +46,6 @@ import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.security.adapter.BlacklistAwareJwtDecoder;
 import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
-import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -70,12 +67,6 @@ class ApplicationWiring {
     PasswordSecurityService passwordSecurityService() {
 
         return new PasswordSecurityService();
-    }
-
-    @Bean
-    OtpRepository otpRepository(RedisTemplate<String, String> redisTemplate) {
-
-        return new OtpRepositoryRedisAdapter(redisTemplate);
     }
 
     @Bean
@@ -117,12 +108,17 @@ class ApplicationWiring {
     @Bean
     AccountActivationOtpSender accountActivationOtpSender(
         AccountActivationNotifier accountActivationNotifier,
-        OtpRepository otpRepository,
+        OtpRepository accountActivationOtpRepository,
         OtpHasher otpHasher,
         AccountActivationConfig accountActivationConfig
     ) {
 
-        return new AccountActivationOtpSenderService(accountActivationNotifier, otpRepository, otpHasher, accountActivationConfig);
+        return new AccountActivationOtpSenderService(
+            accountActivationNotifier,
+            accountActivationOtpRepository,
+            otpHasher,
+            accountActivationConfig
+        );
     }
 
     @Bean
@@ -144,9 +140,13 @@ class ApplicationWiring {
     }
 
     @Bean
-    ActivateAccountUseCase activateAccountUseCase(AccountRepository accountRepository, OtpRepository otpRepository, OtpHasher otpHasher) {
+    ActivateAccountUseCase activateAccountUseCase(
+        AccountRepository accountRepository,
+        OtpRepository accountActivationOtpRepository,
+        OtpHasher otpHasher
+    ) {
 
-        return new ActivateAccountService(accountRepository, otpRepository, otpHasher);
+        return new ActivateAccountService(accountRepository, accountActivationOtpRepository, otpHasher);
     }
 
     @Bean
@@ -214,25 +214,37 @@ class ApplicationWiring {
     @Bean
     InitiatePasswordResetUseCase initiatePasswordResetUseCase(
         AccountRepository accountRepository,
-        PasswordResetOtpRepository passwordResetOtpRepository,
+        OtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
         PasswordResetNotifier passwordResetNotifier,
         PasswordResetConfig passwordResetConfig
     ) {
 
-        return new InitiatePasswordResetService(accountRepository, passwordResetOtpRepository, otpHasher, passwordResetNotifier, passwordResetConfig);
+        return new InitiatePasswordResetService(
+            accountRepository,
+            passwordResetOtpRepository,
+            otpHasher,
+            passwordResetNotifier,
+            passwordResetConfig
+        );
     }
 
     @Bean
     VerifyPasswordResetOtpUseCase verifyPasswordResetOtpUseCase(
         AccountRepository accountRepository,
-        PasswordResetOtpRepository passwordResetOtpRepository,
+        OtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         PasswordResetConfig passwordResetConfig
     ) {
 
-        return new VerifyPasswordResetOtpService(accountRepository, passwordResetOtpRepository, otpHasher, passwordResetVerificationTokenRepository, passwordResetConfig);
+        return new VerifyPasswordResetOtpService(
+            accountRepository,
+            passwordResetOtpRepository,
+            otpHasher,
+            passwordResetVerificationTokenRepository,
+            passwordResetConfig
+        );
     }
 
     @Bean

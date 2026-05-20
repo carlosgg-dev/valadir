@@ -2,7 +2,6 @@ package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.RedisTestContainer;
-import com.valadir.security.redis.RedisKeySpace;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
 
     private static final Duration OTP_TTL = Duration.ofMinutes(10);
+    private static final UnaryOperator<String> REDIS_KEY_FN = id -> "test:otp:" + id;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -30,7 +31,7 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
     @BeforeEach
     void setUp() {
 
-        adapter = new OtpRepositoryRedisAdapter(redisTemplate);
+        adapter = new OtpRepositoryRedisAdapter(redisTemplate, REDIS_KEY_FN);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
@@ -42,7 +43,7 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
+        String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 
@@ -54,7 +55,7 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";
-        String redisKey = RedisKeySpace.forAccountActivationOtp(accountId.value().toString());
+        String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 

@@ -5,8 +5,8 @@ import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.application.port.out.PasswordResetOtpRepository;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
@@ -18,21 +18,21 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
     private static final Logger log = LoggerFactory.getLogger(InitiatePasswordResetService.class);
 
     private final AccountRepository accountRepository;
-    private final PasswordResetOtpRepository passwordResetOtpRepository;
+    private final OtpRepository otpRepository;
     private final OtpHasher otpHasher;
     private final PasswordResetNotifier passwordResetNotifier;
     private final PasswordResetConfig passwordResetConfig;
 
     public InitiatePasswordResetService(
         AccountRepository accountRepository,
-        PasswordResetOtpRepository passwordResetOtpRepository,
+        OtpRepository otpRepository,
         OtpHasher otpHasher,
         PasswordResetNotifier passwordResetNotifier,
         PasswordResetConfig passwordResetConfig
     ) {
 
         this.accountRepository = accountRepository;
-        this.passwordResetOtpRepository = passwordResetOtpRepository;
+        this.otpRepository = otpRepository;
         this.otpHasher = otpHasher;
         this.passwordResetNotifier = passwordResetNotifier;
         this.passwordResetConfig = passwordResetConfig;
@@ -64,7 +64,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
         var plainCode = OtpGenerator.generate();
         var hashedOtp = otpHasher.hash(plainCode);
 
-        passwordResetOtpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
+        otpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
         passwordResetNotifier.sendResetCode(email, plainCode);
 
         log.info("Password reset code sent");

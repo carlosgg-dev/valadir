@@ -6,7 +6,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
@@ -25,21 +25,21 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     private static final Logger log = LoggerFactory.getLogger(VerifyPasswordResetOtpService.class);
 
     private final AccountRepository accountRepository;
-    private final PasswordResetOtpRepository passwordResetOtpRepository;
+    private final OtpRepository otpRepository;
     private final OtpHasher otpHasher;
     private final PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
     private final PasswordResetConfig passwordResetConfig;
 
     public VerifyPasswordResetOtpService(
         AccountRepository accountRepository,
-        PasswordResetOtpRepository passwordResetOtpRepository,
+        OtpRepository otpRepository,
         OtpHasher otpHasher,
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         PasswordResetConfig passwordResetConfig
     ) {
 
         this.accountRepository = accountRepository;
-        this.passwordResetOtpRepository = passwordResetOtpRepository;
+        this.otpRepository = otpRepository;
         this.otpHasher = otpHasher;
         this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
         this.passwordResetConfig = passwordResetConfig;
@@ -54,14 +54,14 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
         AccountId foundAccountId = foundAccount.getId();
         MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
 
-        var hashedOtp = passwordResetOtpRepository.find(foundAccountId)
+        var hashedOtp = otpRepository.find(foundAccountId)
             .orElseThrow(this::applicationException);
 
         if (!otpHasher.matches(command.code(), hashedOtp)) {
             throw applicationException();
         }
 
-        passwordResetOtpRepository.delete(foundAccountId);
+        otpRepository.delete(foundAccountId);
 
         var verificationToken = UUID.randomUUID().toString();
         passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
