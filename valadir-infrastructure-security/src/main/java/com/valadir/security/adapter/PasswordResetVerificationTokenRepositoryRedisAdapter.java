@@ -1,6 +1,6 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
@@ -11,11 +11,11 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
-public class PasswordResetVerificationTokenStoreRedisAdapter implements PasswordResetVerificationTokenStore {
+public class PasswordResetVerificationTokenRepositoryRedisAdapter implements PasswordResetVerificationTokenRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public PasswordResetVerificationTokenStoreRedisAdapter(RedisTemplate<String, String> redisTemplate) {
+    public PasswordResetVerificationTokenRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate) {
 
         this.redisTemplate = redisTemplate;
     }

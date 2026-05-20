@@ -1,6 +1,6 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.TokenValidationResult;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
@@ -14,7 +14,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import java.util.List;
 import java.util.UUID;
 
-public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
+public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProperties jwtProperties;
@@ -22,7 +22,7 @@ public class RefreshTokenStoreRedisAdapter implements RefreshTokenStore {
     private final RedisScript<Long> rotateRefreshTokenScript;
     private final RedisScript<Long> revokeAllRefreshTokensScript;
 
-    public RefreshTokenStoreRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
+    public RefreshTokenRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
 
         this.redisTemplate = redisTemplate;
         this.jwtProperties = jwtProperties;

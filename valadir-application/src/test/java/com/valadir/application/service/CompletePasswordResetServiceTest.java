@@ -3,8 +3,8 @@ package com.valadir.application.service;
 import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.never;
 class CompletePasswordResetServiceTest {
 
     @Mock
-    private PasswordResetVerificationTokenStore verificationTokenStore;
+    private PasswordResetVerificationTokenRepository verificationTokenRepository;
 
     @Mock
     private AccountRepository accountRepository;
@@ -55,7 +55,7 @@ class CompletePasswordResetServiceTest {
     private PasswordSecurityService passwordSecurityService;
 
     @Mock
-    private RefreshTokenStore refreshTokenStore;
+    private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private CompletePasswordResetService service;
@@ -76,7 +76,7 @@ class CompletePasswordResetServiceTest {
         var profileData = new UserProfileData(FULL_NAME, GIVEN_NAME);
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
 
-        given(verificationTokenStore.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(HASHED_NEW_PASSWORD);
@@ -85,8 +85,8 @@ class CompletePasswordResetServiceTest {
 
         then(passwordSecurityService).should().validatePassword(NEW_PASSWORD, EMAIL, profileData);
         then(accountRepository).should().updatePassword(accountId, HASHED_NEW_PASSWORD);
-        then(verificationTokenStore).should().delete(VERIFICATION_TOKEN);
-        then(refreshTokenStore).should().revokeAllForAccount(accountId);
+        then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
+        then(refreshTokenRepository).should().revokeAllForAccount(accountId);
     }
 
     @Test
@@ -94,15 +94,15 @@ class CompletePasswordResetServiceTest {
 
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
 
-        given(verificationTokenStore.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.complete(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
-        then(verificationTokenStore).should(never()).delete(any());
-        then(refreshTokenStore).should(never()).revokeAllForAccount(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
     }
 
     @Test
@@ -111,7 +111,7 @@ class CompletePasswordResetServiceTest {
         var accountId = AccountId.generate();
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
 
-        given(verificationTokenStore.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -119,8 +119,8 @@ class CompletePasswordResetServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
-        then(verificationTokenStore).should(never()).delete(any());
-        then(refreshTokenStore).should(never()).revokeAllForAccount(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
     }
 
     @Test
@@ -130,7 +130,7 @@ class CompletePasswordResetServiceTest {
         var account = buildAccount(accountId);
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
 
-        given(verificationTokenStore.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(userRepository.findByAccountId(accountId)).willReturn(Optional.empty());
 
@@ -139,8 +139,8 @@ class CompletePasswordResetServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
-        then(verificationTokenStore).should(never()).delete(any());
-        then(refreshTokenStore).should(never()).revokeAllForAccount(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
     }
 
     private Account buildAccount(AccountId accountId) {

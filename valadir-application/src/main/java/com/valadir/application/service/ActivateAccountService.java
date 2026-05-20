@@ -5,7 +5,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpStore;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
@@ -19,13 +19,13 @@ public class ActivateAccountService implements ActivateAccountUseCase {
     private static final Logger log = LoggerFactory.getLogger(ActivateAccountService.class);
 
     private final AccountRepository accountRepository;
-    private final OtpStore otpStore;
+    private final OtpRepository otpRepository;
     private final OtpHasher otpHasher;
 
-    public ActivateAccountService(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
+    public ActivateAccountService(AccountRepository accountRepository, OtpRepository otpRepository, OtpHasher otpHasher) {
 
         this.accountRepository = accountRepository;
-        this.otpStore = otpStore;
+        this.otpRepository = otpRepository;
         this.otpHasher = otpHasher;
     }
 
@@ -40,12 +40,12 @@ public class ActivateAccountService implements ActivateAccountUseCase {
 
         MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
 
-        otpStore.find(account.getId())
+        otpRepository.find(account.getId())
             .filter(hashedOtp -> otpHasher.matches(command.code(), hashedOtp))
             .orElseThrow(this::applicationException);
 
         accountRepository.activate(account.getId());
-        otpStore.delete(account.getId());
+        otpRepository.delete(account.getId());
 
         log.info("Account activated successfully");
     }

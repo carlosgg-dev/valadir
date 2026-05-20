@@ -4,7 +4,7 @@ import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpStore;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -33,7 +33,7 @@ class ActivateAccountServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private OtpStore otpStore;
+    private OtpRepository otpRepository;
 
     @Mock
     private OtpHasher otpHasher;
@@ -52,13 +52,13 @@ class ActivateAccountServiceTest {
         var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
-        given(otpStore.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
+        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(true);
 
         service.activate(command);
 
         then(accountRepository).should().activate(pendingAccount.getId());
-        then(otpStore).should().delete(pendingAccount.getId());
+        then(otpRepository).should().delete(pendingAccount.getId());
     }
 
     @Test
@@ -72,9 +72,9 @@ class ActivateAccountServiceTest {
             .isThrownBy(() -> service.activate(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
-        then(otpStore).should(never()).find(any());
+        then(otpRepository).should(never()).find(any());
         then(accountRepository).should(never()).activate(any());
-        then(otpStore).should(never()).delete(any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     @Test
@@ -97,9 +97,9 @@ class ActivateAccountServiceTest {
             .isThrownBy(() -> service.activate(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
-        then(otpStore).should(never()).find(any());
+        then(otpRepository).should(never()).find(any());
         then(accountRepository).should(never()).activate(any());
-        then(otpStore).should(never()).delete(any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     @Test
@@ -109,14 +109,14 @@ class ActivateAccountServiceTest {
         var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
-        given(otpStore.find(pendingAccount.getId())).willReturn(Optional.empty());
+        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.activate(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(accountRepository).should(never()).activate(any());
-        then(otpStore).should(never()).delete(any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     @Test
@@ -126,7 +126,7 @@ class ActivateAccountServiceTest {
         var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(account));
-        given(otpStore.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
+        given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
         given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -134,7 +134,7 @@ class ActivateAccountServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
 
         then(accountRepository).should(never()).activate(any());
-        then(otpStore).should(never()).delete(any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     private Account buildPendingActivationAccount() {

@@ -4,7 +4,7 @@ import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.application.result.TokenValidationResult;
 import com.valadir.common.error.ErrorCode;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.never;
 class RefreshTokenServiceTest {
 
     @Mock
-    private RefreshTokenStore refreshTokenStore;
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private AccountRepository accountRepository;
@@ -62,10 +62,10 @@ class RefreshTokenServiceTest {
         var expectedResult = new AuthTokenResult(newAccessToken, newRefreshToken);
         var validToken = new TokenValidationResult.Valid(accountId);
 
-        given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
+        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(validToken);
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(expectedResult);
-        given(refreshTokenStore.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(true);
+        given(refreshTokenRepository.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(true);
 
         var result = service.refresh(new RefreshTokenCommand(oldRefreshToken));
 
@@ -81,10 +81,10 @@ class RefreshTokenServiceTest {
         var command = new RefreshTokenCommand(oldRefreshToken);
         var validToken = new TokenValidationResult.Valid(accountId);
 
-        given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
+        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(validToken);
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(authTokenIssuer.issue(accountId, Role.USER)).willReturn(new AuthTokenResult("new-access", newRefreshToken));
-        given(refreshTokenStore.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(false);
+        given(refreshTokenRepository.rotate(oldRefreshToken, newRefreshToken, accountId)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.refresh(command))
@@ -98,7 +98,7 @@ class RefreshTokenServiceTest {
         var command = new RefreshTokenCommand(oldRefreshToken);
         var validToken = new TokenValidationResult.Valid(accountId);
 
-        given(refreshTokenStore.validate(oldRefreshToken)).willReturn(validToken);
+        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(validToken);
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -106,7 +106,7 @@ class RefreshTokenServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
-        then(refreshTokenStore).should(never()).rotate(any(), any(), any());
+        then(refreshTokenRepository).should(never()).rotate(any(), any(), any());
     }
 
     @Test
@@ -116,7 +116,7 @@ class RefreshTokenServiceTest {
         var command = new RefreshTokenCommand(oldRefreshToken);
         var invalidToken = new TokenValidationResult.Invalid();
 
-        given(refreshTokenStore.validate(oldRefreshToken)).willReturn(invalidToken);
+        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(invalidToken);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.refresh(command))
@@ -124,6 +124,6 @@ class RefreshTokenServiceTest {
 
         then(accountRepository).should(never()).findById(any());
         then(authTokenIssuer).should(never()).issue(any(), any());
-        then(refreshTokenStore).should(never()).rotate(any(), any(), any());
+        then(refreshTokenRepository).should(never()).rotate(any(), any(), any());
     }
 }

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-class OtpStoreRedisAdapterExceptionTest {
+class OtpRepositoryRedisAdapterExceptionTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
     private static final String HASHED_OTP = "$argon2id$hashedOtp";
@@ -34,7 +34,7 @@ class OtpStoreRedisAdapterExceptionTest {
     @Test
     void save_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(ACCOUNT_ID, HASHED_OTP, OTP_TTL))
@@ -44,7 +44,7 @@ class OtpStoreRedisAdapterExceptionTest {
     @Test
     void find_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.find(ACCOUNT_ID))
@@ -54,7 +54,7 @@ class OtpStoreRedisAdapterExceptionTest {
     @Test
     void delete_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpStoreRedisAdapter(redisErrorTemplate());
+        var adapter = new OtpRepositoryRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.delete(ACCOUNT_ID))

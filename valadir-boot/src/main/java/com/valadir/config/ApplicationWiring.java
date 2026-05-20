@@ -18,14 +18,14 @@ import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
-import com.valadir.application.port.out.LoginAttemptStore;
+import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpStore;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.application.port.out.PasswordResetOtpStore;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.application.service.AccountActivationOtpSender;
@@ -46,9 +46,9 @@ import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.security.adapter.BlacklistAwareJwtDecoder;
-import com.valadir.security.adapter.LoginAttemptStoreRedisAdapter;
+import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
-import com.valadir.security.adapter.OtpStoreRedisAdapter;
+import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -73,9 +73,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    OtpStore otpStore(RedisTemplate<String, String> redisTemplate) {
+    OtpRepository otpRepository(RedisTemplate<String, String> redisTemplate) {
 
-        return new OtpStoreRedisAdapter(redisTemplate);
+        return new OtpRepositoryRedisAdapter(redisTemplate);
     }
 
     @Bean
@@ -117,12 +117,12 @@ class ApplicationWiring {
     @Bean
     AccountActivationOtpSender accountActivationOtpSender(
         AccountActivationNotifier accountActivationNotifier,
-        OtpStore otpStore,
+        OtpRepository otpRepository,
         OtpHasher otpHasher,
         AccountActivationConfig accountActivationConfig
     ) {
 
-        return new AccountActivationOtpSenderService(accountActivationNotifier, otpStore, otpHasher, accountActivationConfig);
+        return new AccountActivationOtpSenderService(accountActivationNotifier, otpRepository, otpHasher, accountActivationConfig);
     }
 
     @Bean
@@ -144,9 +144,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    ActivateAccountUseCase activateAccountUseCase(AccountRepository accountRepository, OtpStore otpStore, OtpHasher otpHasher) {
+    ActivateAccountUseCase activateAccountUseCase(AccountRepository accountRepository, OtpRepository otpRepository, OtpHasher otpHasher) {
 
-        return new ActivateAccountService(accountRepository, otpStore, otpHasher);
+        return new ActivateAccountService(accountRepository, otpRepository, otpHasher);
     }
 
     @Bean
@@ -169,9 +169,9 @@ class ApplicationWiring {
     }
 
     @Bean
-    LoginAttemptStore loginAttemptStore(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy loginLockoutPolicy) {
+    LoginAttemptRepository loginAttemptRepository(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy loginLockoutPolicy) {
 
-        return new LoginAttemptStoreRedisAdapter(redisTemplate, loginLockoutPolicy);
+        return new LoginAttemptRepositoryRedisAdapter(redisTemplate, loginLockoutPolicy);
     }
 
     @Bean
@@ -179,21 +179,21 @@ class ApplicationWiring {
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         AuthTokenIssuer authTokenIssuer,
-        RefreshTokenStore refreshTokenStore,
-        LoginAttemptStore loginAttemptStore
+        RefreshTokenRepository refreshTokenRepository,
+        LoginAttemptRepository loginAttemptRepository
     ) {
 
-        return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenStore, loginAttemptStore);
+        return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenRepository, loginAttemptRepository);
     }
 
     @Bean
     RefreshTokenUseCase refreshTokenUseCase(
-        RefreshTokenStore refreshTokenStore,
+        RefreshTokenRepository refreshTokenRepository,
         AccountRepository accountRepository,
         AuthTokenIssuer authTokenIssuer
     ) {
 
-        return new RefreshTokenService(refreshTokenStore, accountRepository, authTokenIssuer);
+        return new RefreshTokenService(refreshTokenRepository, accountRepository, authTokenIssuer);
     }
 
     @Bean
@@ -214,44 +214,44 @@ class ApplicationWiring {
     @Bean
     InitiatePasswordResetUseCase initiatePasswordResetUseCase(
         AccountRepository accountRepository,
-        PasswordResetOtpStore passwordResetOtpStore,
+        PasswordResetOtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
         PasswordResetNotifier passwordResetNotifier,
         PasswordResetConfig passwordResetConfig
     ) {
 
-        return new InitiatePasswordResetService(accountRepository, passwordResetOtpStore, otpHasher, passwordResetNotifier, passwordResetConfig);
+        return new InitiatePasswordResetService(accountRepository, passwordResetOtpRepository, otpHasher, passwordResetNotifier, passwordResetConfig);
     }
 
     @Bean
     VerifyPasswordResetOtpUseCase verifyPasswordResetOtpUseCase(
         AccountRepository accountRepository,
-        PasswordResetOtpStore passwordResetOtpStore,
+        PasswordResetOtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
-        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         PasswordResetConfig passwordResetConfig
     ) {
 
-        return new VerifyPasswordResetOtpService(accountRepository, passwordResetOtpStore, otpHasher, passwordResetVerificationTokenStore, passwordResetConfig);
+        return new VerifyPasswordResetOtpService(accountRepository, passwordResetOtpRepository, otpHasher, passwordResetVerificationTokenRepository, passwordResetConfig);
     }
 
     @Bean
     CompletePasswordResetUseCase completePasswordResetUseCase(
-        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         AccountRepository accountRepository,
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RefreshTokenStore refreshTokenStore
+        RefreshTokenRepository refreshTokenRepository
     ) {
 
         return new CompletePasswordResetService(
-            passwordResetVerificationTokenStore,
+            passwordResetVerificationTokenRepository,
             accountRepository,
             userRepository,
             passwordHasher,
             passwordSecurityService,
-            refreshTokenStore
+            refreshTokenRepository
         );
     }
 

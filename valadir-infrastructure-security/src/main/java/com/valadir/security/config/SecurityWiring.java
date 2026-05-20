@@ -3,19 +3,19 @@ package com.valadir.security.config;
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
-import com.valadir.application.port.out.PasswordResetOtpStore;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.security.adapter.AccessTokenBlacklistRedisAdapter;
 import com.valadir.security.adapter.Argon2PasswordHasher;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
-import com.valadir.security.adapter.PasswordResetOtpStoreRedisAdapter;
-import com.valadir.security.adapter.PasswordResetVerificationTokenStoreRedisAdapter;
+import com.valadir.security.adapter.PasswordResetOtpRepositoryRedisAdapter;
+import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedisAdapter;
 import com.valadir.security.adapter.RedisRateLimiterAdapter;
-import com.valadir.security.adapter.RefreshTokenStoreRedisAdapter;
+import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -32,9 +32,9 @@ class SecurityWiring {
     }
 
     @Bean
-    RefreshTokenStore refreshTokenStore(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
+    RefreshTokenRepository refreshTokenRepository(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
 
-        return new RefreshTokenStoreRedisAdapter(redisTemplate, jwtProperties);
+        return new RefreshTokenRepositoryRedisAdapter(redisTemplate, jwtProperties);
     }
 
     @Bean
@@ -62,14 +62,14 @@ class SecurityWiring {
     }
 
     @Bean
-    PasswordResetOtpStore passwordResetOtpStore(RedisTemplate<String, String> redisTemplate) {
+    PasswordResetOtpRepository passwordResetOtpRepository(RedisTemplate<String, String> redisTemplate) {
 
-        return new PasswordResetOtpStoreRedisAdapter(redisTemplate);
+        return new PasswordResetOtpRepositoryRedisAdapter(redisTemplate);
     }
 
     @Bean
-    PasswordResetVerificationTokenStore passwordResetVerificationTokenStore(RedisTemplate<String, String> redisTemplate) {
+    PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository(RedisTemplate<String, String> redisTemplate) {
 
-        return new PasswordResetVerificationTokenStoreRedisAdapter(redisTemplate);
+        return new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate);
     }
 }

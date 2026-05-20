@@ -5,7 +5,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.application.result.TokenValidationResult.Invalid;
 import com.valadir.application.result.TokenValidationResult.Valid;
@@ -20,13 +20,13 @@ public class RefreshTokenService implements RefreshTokenUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
 
-    private final RefreshTokenStore refreshTokenStore;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final AccountRepository accountRepository;
     private final AuthTokenIssuer authTokenIssuer;
 
-    public RefreshTokenService(RefreshTokenStore refreshTokenStore, AccountRepository accountRepository, AuthTokenIssuer authTokenIssuer) {
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, AccountRepository accountRepository, AuthTokenIssuer authTokenIssuer) {
 
-        this.refreshTokenStore = refreshTokenStore;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.accountRepository = accountRepository;
         this.authTokenIssuer = authTokenIssuer;
     }
@@ -34,7 +34,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     @Override
     public AuthTokenResult refresh(RefreshTokenCommand command) {
 
-        return switch (refreshTokenStore.validate(command.refreshToken())) {
+        return switch (refreshTokenRepository.validate(command.refreshToken())) {
             case Valid(AccountId accountId) -> rotateToken(command.refreshToken(), accountId);
             case Invalid ignored -> throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);
         };
@@ -49,7 +49,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
 
         AuthTokenResult result = authTokenIssuer.issue(accountId, account.getRole());
 
-        boolean rotated = refreshTokenStore.rotate(oldRefreshToken, result.refreshToken(), accountId);
+        boolean rotated = refreshTokenRepository.rotate(oldRefreshToken, result.refreshToken(), accountId);
         if (!rotated) {
             log.warn("Stale refresh token detected");
             throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);

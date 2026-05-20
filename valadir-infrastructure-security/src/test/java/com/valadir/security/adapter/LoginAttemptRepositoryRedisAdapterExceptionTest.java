@@ -23,7 +23,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-class LoginAttemptStoreRedisAdapterExceptionTest {
+class LoginAttemptRepositoryRedisAdapterExceptionTest {
 
     private static final LoginLockoutPolicy EMPTY_POLICY = new LoginLockoutPolicy(Duration.ofHours(1), List.of());
     private static final Email EMAIL = new Email("bruce.wayne@email.com");
@@ -42,7 +42,7 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     @Test
     void findActiveLockout_redisError_returnsEmpty() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
     }
@@ -51,7 +51,7 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     void findActiveLockout_nullTtl_returnsEmpty() {
 
         given(redisTemplate.getExpire(anyString(), any(TimeUnit.class))).willReturn(null);
-        var adapter = new LoginAttemptStoreRedisAdapter(redisTemplate, EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisTemplate, EMPTY_POLICY);
 
         assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
     }
@@ -59,7 +59,7 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     @Test
     void recordFailedAttempt_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
     }
@@ -69,7 +69,7 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     void recordFailedAttempt_nullCount_doesNotThrow() {
 
         given(redisTemplate.execute(any(RedisScript.class), anyList(), anyString())).willReturn(null);
-        var adapter = new LoginAttemptStoreRedisAdapter(redisTemplate, EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisTemplate, EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
     }
@@ -77,7 +77,7 @@ class LoginAttemptStoreRedisAdapterExceptionTest {
     @Test
     void clearAttempts_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptStoreRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.clearAttempts(EMAIL));
     }

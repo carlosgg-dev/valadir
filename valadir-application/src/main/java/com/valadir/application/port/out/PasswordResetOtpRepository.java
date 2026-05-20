@@ -5,7 +5,7 @@ import com.valadir.domain.model.AccountId;
 import java.time.Duration;
 import java.util.Optional;
 
-public interface OtpStore {
+public interface PasswordResetOtpRepository {
 
     void save(AccountId accountId, String hashedOtp, Duration ttl);
 

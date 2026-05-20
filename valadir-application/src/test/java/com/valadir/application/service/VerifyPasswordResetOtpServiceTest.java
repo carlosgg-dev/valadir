@@ -5,8 +5,8 @@ import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.PasswordResetOtpStore;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
+import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
@@ -38,13 +38,13 @@ class VerifyPasswordResetOtpServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private PasswordResetOtpStore passwordResetOtpStore;
+    private PasswordResetOtpRepository passwordResetOtpRepository;
 
     @Mock
     private OtpHasher otpHasher;
 
     @Mock
-    private PasswordResetVerificationTokenStore passwordResetVerificationTokenStore;
+    private PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
 
     @Mock
     private PasswordResetConfig passwordResetConfig;
@@ -64,15 +64,15 @@ class VerifyPasswordResetOtpServiceTest {
         var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
-        given(passwordResetOtpStore.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(passwordResetOtpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_CODE, HASHED_OTP)).willReturn(true);
         given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
 
         PasswordResetOtpVerificationResult result = service.verify(command);
 
         assertThat(result.verificationToken()).isNotBlank();
-        then(passwordResetOtpStore).should().delete(account.getId());
-        then(passwordResetVerificationTokenStore).should().save(result.verificationToken(), account.getId(), VERIFICATION_TTL);
+        then(passwordResetOtpRepository).should().delete(account.getId());
+        then(passwordResetVerificationTokenRepository).should().save(result.verificationToken(), account.getId(), VERIFICATION_TTL);
     }
 
     @Test
@@ -87,9 +87,9 @@ class VerifyPasswordResetOtpServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
         then(otpHasher).should().guardTiming();
-        then(passwordResetOtpStore).should(never()).find(any());
-        then(passwordResetOtpStore).should(never()).delete(any());
-        then(passwordResetVerificationTokenStore).should(never()).save(any(), any(), any());
+        then(passwordResetOtpRepository).should(never()).find(any());
+        then(passwordResetOtpRepository).should(never()).delete(any());
+        then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
     }
 
     @Test
@@ -99,14 +99,14 @@ class VerifyPasswordResetOtpServiceTest {
         var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
-        given(passwordResetOtpStore.find(account.getId())).willReturn(Optional.empty());
+        given(passwordResetOtpRepository.find(account.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
-        then(passwordResetOtpStore).should(never()).delete(any());
-        then(passwordResetVerificationTokenStore).should(never()).save(any(), any(), any());
+        then(passwordResetOtpRepository).should(never()).delete(any());
+        then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
     }
 
     @Test
@@ -116,15 +116,15 @@ class VerifyPasswordResetOtpServiceTest {
         var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
-        given(passwordResetOtpStore.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(passwordResetOtpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_CODE, HASHED_OTP)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
-        then(passwordResetOtpStore).should(never()).delete(any());
-        then(passwordResetVerificationTokenStore).should(never()).save(any(), any(), any());
+        then(passwordResetOtpRepository).should(never()).delete(any());
+        then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
     }
 
     private Account buildAccount() {

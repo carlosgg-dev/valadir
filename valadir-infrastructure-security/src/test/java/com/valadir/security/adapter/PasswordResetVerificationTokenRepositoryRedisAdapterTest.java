@@ -19,19 +19,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class PasswordResetVerificationTokenStoreRedisAdapterTest extends RedisTestContainer {
+class PasswordResetVerificationTokenRepositoryRedisAdapterTest extends RedisTestContainer {
 
     private static final Duration TOKEN_TTL = Duration.ofMinutes(10);
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private PasswordResetVerificationTokenStoreRedisAdapter adapter;
+    private PasswordResetVerificationTokenRepositoryRedisAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new PasswordResetVerificationTokenStoreRedisAdapter(redisTemplate);
+        adapter = new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
@@ -39,7 +39,7 @@ class PasswordResetVerificationTokenStoreRedisAdapterTest extends RedisTestConta
     }
 
     @Test
-    void save_storesAccountIdInRedis() {
+    void save_savesAccountIdInRedis() {
 
         var accountId = AccountId.generate();
         var token = UUID.randomUUID().toString();

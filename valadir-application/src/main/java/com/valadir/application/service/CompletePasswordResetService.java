@@ -4,8 +4,8 @@ import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
@@ -21,34 +21,34 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
 
     private static final Logger log = LoggerFactory.getLogger(CompletePasswordResetService.class);
 
-    private final PasswordResetVerificationTokenStore passwordResetVerificationTokenStore;
+    private final PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
-    private final RefreshTokenStore refreshTokenStore;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public CompletePasswordResetService(
-        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         AccountRepository accountRepository,
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RefreshTokenStore refreshTokenStore
+        RefreshTokenRepository refreshTokenRepository
     ) {
 
-        this.passwordResetVerificationTokenStore = passwordResetVerificationTokenStore;
+        this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
-        this.refreshTokenStore = refreshTokenStore;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     @Override
     public void complete(CompletePasswordResetCommand command) {
 
-        var accountId = passwordResetVerificationTokenStore.resolveAccountId(command.verificationToken())
+        var accountId = passwordResetVerificationTokenRepository.resolveAccountId(command.verificationToken())
             .orElseThrow(() -> new ApplicationException("Invalid or expired password reset verification", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN));
 
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
@@ -65,8 +65,8 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
 
         var hashedPassword = passwordHasher.hash(rawPassword);
         accountRepository.updatePassword(accountId, hashedPassword);
-        passwordResetVerificationTokenStore.delete(command.verificationToken());
-        refreshTokenStore.revokeAllForAccount(accountId);
+        passwordResetVerificationTokenRepository.delete(command.verificationToken());
+        refreshTokenRepository.revokeAllForAccount(accountId);
 
         log.info("Password reset completed, all sessions revoked");
     }

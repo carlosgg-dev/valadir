@@ -25,7 +25,7 @@ class LogoutTokensInvalidatorRedisAdapterTest extends RedisTestContainer {
     private LogoutTokensInvalidatorRedisAdapter tokenInvalidatorAdapter;
 
     @Autowired
-    private RefreshTokenStoreRedisAdapter refreshTokenAdapter;
+    private RefreshTokenRepositoryRedisAdapter refreshTokenAdapter;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;

@@ -24,17 +24,19 @@ infrastructure concerns.
 
 Authentication is based on two tokens with different roles:
 
-- **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), stateless, sent on every request. Validated by signature and expiry.
+- **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), stateless, sent on every request.
+  Validated by signature and expiry.
 - **Refresh token** — opaque UUID, long-lived (7 days), stored server-side in Redis. Carries no claims.
 
-The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the signing key.
+The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the
+signing key.
 
 ### Redis Usage
 
-| Store                  | Type      | Purpose                                                                                                                                                               |
-|------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenStore`    | Whitelist | Tracks active refresh tokens. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry. |
-| `AccessTokenBlacklist` | Blacklist | Tracks revoked access tokens. Consulted on every request to reject tokens invalidated before expiry. Each entry has a TTL equal to the remaining token lifetime.      |
+| Repository               | Type      | Purpose                                                                                                                                                               |
+|--------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RefreshTokenRepository` | Whitelist | Tracks active refresh tokens. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry. |
+| `AccessTokenBlacklist`   | Blacklist | Tracks revoked access tokens. Consulted on every request to reject tokens invalidated before expiry. Each entry has a TTL equal to the remaining token lifetime.      |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist

@@ -5,7 +5,7 @@ import com.valadir.domain.model.Email;
 import java.time.Duration;
 import java.util.Optional;
 
-public interface LoginAttemptStore {
+public interface LoginAttemptRepository {
 
     Optional<Duration> findActiveLockout(Email email);
 

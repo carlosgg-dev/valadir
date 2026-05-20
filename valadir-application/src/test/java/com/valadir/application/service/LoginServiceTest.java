@@ -4,8 +4,8 @@ import com.valadir.application.command.LoginCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
-import com.valadir.application.port.out.LoginAttemptStore;
-import com.valadir.application.port.out.RefreshTokenStore;
+import com.valadir.application.port.out.LoginAttemptRepository;
+import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.AccountLockedException;
@@ -46,10 +46,10 @@ class LoginServiceTest {
     private AuthTokenIssuer authTokenIssuer;
 
     @Mock
-    private RefreshTokenStore refreshTokenStore;
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
-    private LoginAttemptStore loginAttemptStore;
+    private LoginAttemptRepository loginAttemptRepository;
 
     @InjectMocks
     private LoginService service;
@@ -78,7 +78,7 @@ class LoginServiceTest {
 
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
-        then(refreshTokenStore).should().save(refreshToken, EXISTING_ACCOUNT.getId());
+        then(refreshTokenRepository).should().save(refreshToken, EXISTING_ACCOUNT.getId());
     }
 
     @Test
@@ -137,7 +137,7 @@ class LoginServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
 
         then(authTokenIssuer).should(never()).issue(any(), any());
-        then(loginAttemptStore).should(never()).clearAttempts(any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
     }
 
     @Test
@@ -148,7 +148,7 @@ class LoginServiceTest {
         var remainingLockout = Duration.ofSeconds(30);
         var command = new LoginCommand(email, password);
 
-        given(loginAttemptStore.findActiveLockout(new Email(email))).willReturn(Optional.of(remainingLockout));
+        given(loginAttemptRepository.findActiveLockout(new Email(email))).willReturn(Optional.of(remainingLockout));
 
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> service.login(command))
@@ -165,7 +165,7 @@ class LoginServiceTest {
         var password = "WrongP@ss123";
         var command = new LoginCommand(emailValue, password);
 
-        given(loginAttemptStore.findActiveLockout(email)).willReturn(Optional.empty());
+        given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.empty());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(false);
 
@@ -173,8 +173,8 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(loginAttemptStore).should().recordFailedAttempt(email);
-        then(loginAttemptStore).should(never()).clearAttempts(any());
+        then(loginAttemptRepository).should().recordFailedAttempt(email);
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
     }
 
     @Test
@@ -190,7 +190,7 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(loginAttemptStore).should(never()).recordFailedAttempt(any());
+        then(loginAttemptRepository).should(never()).recordFailedAttempt(any());
     }
 
     @Test
@@ -214,7 +214,7 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
 
-        then(loginAttemptStore).should(never()).recordFailedAttempt(any());
+        then(loginAttemptRepository).should(never()).recordFailedAttempt(any());
     }
 
     @Test
@@ -231,6 +231,6 @@ class LoginServiceTest {
 
         service.login(new LoginCommand(emailValue, password));
 
-        then(loginAttemptStore).should().clearAttempts(email);
+        then(loginAttemptRepository).should().clearAttempts(email);
     }
 }

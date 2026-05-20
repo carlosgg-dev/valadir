@@ -3,7 +3,7 @@ package com.valadir.application.service;
 import com.valadir.application.config.AccountActivationConfig;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpStore;
+import com.valadir.application.port.out.OtpRepository;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,7 @@ class AccountActivationOtpSenderServiceTest {
     private AccountActivationNotifier accountActivationNotifier;
 
     @Mock
-    private OtpStore otpStore;
+    private OtpRepository otpRepository;
 
     @Mock
     private OtpHasher otpHasher;
@@ -57,7 +57,7 @@ class AccountActivationOtpSenderServiceTest {
         then(otpHasher).should().hash(plainCodeCaptor.capture());
         var capturedCode = plainCodeCaptor.getValue();
 
-        then(otpStore).should().save(accountId, hashedOtp, otpTtl);
+        then(otpRepository).should().save(accountId, hashedOtp, otpTtl);
         then(accountActivationNotifier).should().sendActivationCode(email, capturedCode);
     }
 }

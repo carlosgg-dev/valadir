@@ -5,7 +5,7 @@ import com.valadir.domain.model.AccountId;
 import java.time.Duration;
 import java.util.Optional;
 
-public interface PasswordResetVerificationTokenStore {
+public interface PasswordResetVerificationTokenRepository {
 
     void save(String verificationToken, AccountId accountId, Duration ttl);
 

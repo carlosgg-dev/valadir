@@ -18,19 +18,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class OtpStoreRedisAdapterTest extends RedisTestContainer {
+class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
 
     private static final Duration OTP_TTL = Duration.ofMinutes(10);
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-    private OtpStoreRedisAdapter adapter;
+    private OtpRepositoryRedisAdapter adapter;
 
     @BeforeEach
     void setUp() {
 
-        adapter = new OtpStoreRedisAdapter(redisTemplate);
+        adapter = new OtpRepositoryRedisAdapter(redisTemplate);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();
@@ -38,7 +38,7 @@ class OtpStoreRedisAdapterTest extends RedisTestContainer {
     }
 
     @Test
-    void save_storesHashedOtpInRedis() {
+    void save_savesHashedOtpInRedis() {
 
         var accountId = AccountId.generate();
         var hashedOtp = "$argon2id$hashedOtp";

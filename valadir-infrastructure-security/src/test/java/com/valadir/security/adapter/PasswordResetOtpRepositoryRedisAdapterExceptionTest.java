@@ -19,7 +19,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
-class PasswordResetOtpStoreRedisAdapterExceptionTest {
+class PasswordResetOtpRepositoryRedisAdapterExceptionTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
 
@@ -30,7 +30,7 @@ class PasswordResetOtpStoreRedisAdapterExceptionTest {
     private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
-    private PasswordResetOtpStoreRedisAdapter adapter;
+    private PasswordResetOtpRepositoryRedisAdapter adapter;
 
     private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis down") {
     };

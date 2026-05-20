@@ -1,6 +1,6 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.port.out.LoginAttemptStore;
+import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.security.redis.RedisKeySpace;
@@ -16,15 +16,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class LoginAttemptStoreRedisAdapter implements LoginAttemptStore {
+public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(LoginAttemptStoreRedisAdapter.class);
+    private static final Logger log = LoggerFactory.getLogger(LoginAttemptRepositoryRedisAdapter.class);
 
     private final RedisTemplate<String, String> redisTemplate;
     private final LoginLockoutPolicy policy;
     private final RedisScript<Long> recordLoginAttemptScript;
 
-    public LoginAttemptStoreRedisAdapter(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy policy) {
+    public LoginAttemptRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy policy) {
 
         this.redisTemplate = redisTemplate;
         this.policy = policy;

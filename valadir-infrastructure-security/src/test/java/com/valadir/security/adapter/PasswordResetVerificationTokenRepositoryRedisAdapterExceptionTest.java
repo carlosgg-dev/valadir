@@ -20,7 +20,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
-class PasswordResetVerificationTokenStoreRedisAdapterExceptionTest {
+class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
     private static final String TOKEN = "some-verification-token";
@@ -35,7 +35,7 @@ class PasswordResetVerificationTokenStoreRedisAdapterExceptionTest {
     private ValueOperations<String, String> valueOperations;
 
     @InjectMocks
-    private PasswordResetVerificationTokenStoreRedisAdapter adapter;
+    private PasswordResetVerificationTokenRepositoryRedisAdapter adapter;
 
     @Test
     void save_redisUnavailable_throwsInfrastructureException() {

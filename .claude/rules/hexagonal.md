@@ -77,6 +77,6 @@ adapter, etc.), not in the DTO itself.
 
 ## Naming
 
-Driven adapters follow `[PortName][Technology]Adapter`
-(e.g. `AccountRepositoryJpaAdapter`, `RefreshTokenStoreRedisAdapter`).
-Port names must not include the word `Port`.
+- Driven adapters follow `[PortName][Technology]Adapter` (e.g. `AccountRepositoryJpaAdapter`,
+  `RefreshTokenRepositoryRedisAdapter`).
+- Port names must not include the word `Port`.

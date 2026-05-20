@@ -19,10 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class RefreshTokenStoreRedisAdapterTest extends RedisTestContainer {
+class RefreshTokenRepositoryRedisAdapterTest extends RedisTestContainer {
 
     @Autowired
-    private RefreshTokenStoreRedisAdapter adapter;
+    private RefreshTokenRepositoryRedisAdapter adapter;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -58,7 +58,7 @@ class RefreshTokenStoreRedisAdapterTest extends RedisTestContainer {
     }
 
     @Test
-    void save_token_isStoredWithAccountIdAndAddedToUserSet() {
+    void save_token_isSavedWithAccountIdAndAddedToUserSet() {
 
         var accountId = AccountId.generate();
         var accountIdStr = accountId.value().toString();

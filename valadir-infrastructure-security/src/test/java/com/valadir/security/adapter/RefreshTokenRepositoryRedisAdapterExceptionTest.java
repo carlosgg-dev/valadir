@@ -18,7 +18,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-class RefreshTokenStoreRedisAdapterExceptionTest {
+class RefreshTokenRepositoryRedisAdapterExceptionTest {
 
     private static final Duration ONE_WEEK = Duration.ofDays(7);
     private static final String OLD_TOKEN = UUID.randomUUID().toString();
@@ -42,7 +42,7 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
     @Test
     void validate_redisError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.validate(NEW_TOKEN))
@@ -53,7 +53,7 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
     void save_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(NEW_TOKEN, ACCOUNT_ID))
@@ -64,7 +64,7 @@ class RefreshTokenStoreRedisAdapterExceptionTest {
     void rotate_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenStoreRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))

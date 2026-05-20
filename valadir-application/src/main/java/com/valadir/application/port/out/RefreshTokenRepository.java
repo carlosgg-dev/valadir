@@ -3,7 +3,7 @@ package com.valadir.application.port.out;
 import com.valadir.application.result.TokenValidationResult;
 import com.valadir.domain.model.AccountId;
 
-public interface RefreshTokenStore {
+public interface RefreshTokenRepository {
 
     TokenValidationResult validate(String token);
 

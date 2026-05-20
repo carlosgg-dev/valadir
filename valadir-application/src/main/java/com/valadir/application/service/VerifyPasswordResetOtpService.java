@@ -6,8 +6,8 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.PasswordResetOtpStore;
-import com.valadir.application.port.out.PasswordResetVerificationTokenStore;
+import com.valadir.application.port.out.PasswordResetOtpRepository;
+import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
@@ -25,23 +25,23 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     private static final Logger log = LoggerFactory.getLogger(VerifyPasswordResetOtpService.class);
 
     private final AccountRepository accountRepository;
-    private final PasswordResetOtpStore passwordResetOtpStore;
+    private final PasswordResetOtpRepository passwordResetOtpRepository;
     private final OtpHasher otpHasher;
-    private final PasswordResetVerificationTokenStore passwordResetVerificationTokenStore;
+    private final PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
     private final PasswordResetConfig passwordResetConfig;
 
     public VerifyPasswordResetOtpService(
         AccountRepository accountRepository,
-        PasswordResetOtpStore passwordResetOtpStore,
+        PasswordResetOtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
-        PasswordResetVerificationTokenStore passwordResetVerificationTokenStore,
+        PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         PasswordResetConfig passwordResetConfig
     ) {
 
         this.accountRepository = accountRepository;
-        this.passwordResetOtpStore = passwordResetOtpStore;
+        this.passwordResetOtpRepository = passwordResetOtpRepository;
         this.otpHasher = otpHasher;
-        this.passwordResetVerificationTokenStore = passwordResetVerificationTokenStore;
+        this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
         this.passwordResetConfig = passwordResetConfig;
     }
 
@@ -54,17 +54,17 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
         AccountId foundAccountId = foundAccount.getId();
         MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
 
-        var hashedOtp = passwordResetOtpStore.find(foundAccountId)
+        var hashedOtp = passwordResetOtpRepository.find(foundAccountId)
             .orElseThrow(this::applicationException);
 
         if (!otpHasher.matches(command.code(), hashedOtp)) {
             throw applicationException();
         }
 
-        passwordResetOtpStore.delete(foundAccountId);
+        passwordResetOtpRepository.delete(foundAccountId);
 
         var verificationToken = UUID.randomUUID().toString();
-        passwordResetVerificationTokenStore.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
+        passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
 
         log.info("Password reset OTP verified, verification token issued");
 
