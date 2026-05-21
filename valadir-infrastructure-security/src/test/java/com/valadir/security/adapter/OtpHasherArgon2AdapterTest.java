@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.application.otp.PlainOtp;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
@@ -11,30 +12,30 @@ class OtpHasherArgon2AdapterTest {
     private static final Argon2PasswordEncoder ENCODER = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     private final OtpHasherArgon2Adapter hasher = new OtpHasherArgon2Adapter(ENCODER);
 
-    private static final String PLAIN_CODE = "123456";
+    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
 
     @Test
-    void hash_plainCode_returnsArgon2Format() {
+    void hash_plainOtp_returnsArgon2Format() {
 
-        assertThat(hasher.hash(PLAIN_CODE)).startsWith("$argon2id");
+        assertThat(hasher.hash(PLAIN_OTP).value()).startsWith("$argon2id");
     }
 
     @Test
-    void hash_sameCode_producesDifferentHashes() {
+    void hash_sameOtp_producesDifferentHashes() {
 
-        assertThat(hasher.hash(PLAIN_CODE)).isNotEqualTo(hasher.hash(PLAIN_CODE));
+        assertThat(hasher.hash(PLAIN_OTP).value()).isNotEqualTo(hasher.hash(PLAIN_OTP).value());
     }
 
     @Test
-    void matches_correctCode_returnsTrue() {
+    void matches_correctOtp_returnsTrue() {
 
-        assertThat(hasher.matches(PLAIN_CODE, hasher.hash(PLAIN_CODE))).isTrue();
+        assertThat(hasher.matches(PLAIN_OTP, hasher.hash(PLAIN_OTP))).isTrue();
     }
 
     @Test
-    void matches_incorrectCode_returnsFalse() {
+    void matches_incorrectOtp_returnsFalse() {
 
-        assertThat(hasher.matches("654321", hasher.hash(PLAIN_CODE))).isFalse();
+        assertThat(hasher.matches(PlainOtp.generate(), hasher.hash(PLAIN_OTP))).isFalse();
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.valadir.web.adapter;
 import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.command.VerifyPasswordResetOtpCommand;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
@@ -49,7 +50,7 @@ class PasswordResetController {
     @PostMapping(ApiRoutes.Auth.PasswordReset.VERIFY)
     PasswordResetOtpVerificationResponse verifyPasswordResetOtp(@Valid @RequestBody VerifyPasswordResetOtpRequest request) {
 
-        PasswordResetOtpVerificationResult result = verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(request.email(), request.code()));
+        PasswordResetOtpVerificationResult result = verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(request.email(), PlainOtp.from(request.code())));
 
         return new PasswordResetOtpVerificationResponse(result.verificationToken());
     }

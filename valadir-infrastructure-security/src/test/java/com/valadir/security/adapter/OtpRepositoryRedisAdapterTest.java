@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.application.otp.HashedOtp;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.RedisTestContainer;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,19 +43,19 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
     void save_savesHashedOtpInRedis() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
+        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
         String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 
-        assertThat(redisTemplate.opsForValue().get(redisKey)).isEqualTo(hashedOtp);
+        assertThat(redisTemplate.opsForValue().get(redisKey)).isEqualTo(hashedOtp.value());
     }
 
     @Test
     void save_withTtl_ttlIsApplied() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
+        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
         String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
@@ -67,7 +68,7 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
     void find_existingOtp_returnsIt() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
+        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 
@@ -84,7 +85,7 @@ class OtpRepositoryRedisAdapterTest extends RedisTestContainer {
     void delete_existingOtp_removesItFromRedis() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = "$argon2id$hashedOtp";
+        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 

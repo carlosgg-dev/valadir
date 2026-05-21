@@ -3,6 +3,8 @@ package com.valadir.application.service;
 import com.valadir.application.command.VerifyPasswordResetOtpCommand;
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.exception.ApplicationException;
+import com.valadir.application.otp.HashedOtp;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -53,19 +55,19 @@ class VerifyPasswordResetOtpServiceTest {
     private VerifyPasswordResetOtpService service;
 
     private static final Email EMAIL = new Email("bruce.wayne@email.com");
-    private static final String PLAIN_CODE = "123456";
-    private static final String HASHED_OTP = "$argon2id$hashedOtp";
+    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
+    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
     private static final Duration VERIFICATION_TTL = Duration.ofMinutes(10);
 
     @Test
     void verify_validOtp_deletesOtpAndIssuesVerificationToken() {
 
         var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
+        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
-        given(otpHasher.matches(PLAIN_CODE, HASHED_OTP)).willReturn(true);
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
         given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
 
         PasswordResetOtpVerificationResult result = service.verify(command);
@@ -78,7 +80,7 @@ class VerifyPasswordResetOtpServiceTest {
     @Test
     void verify_emailNotFound_guardTimingAndThrowsApplicationException() {
 
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
+        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
 
@@ -96,7 +98,7 @@ class VerifyPasswordResetOtpServiceTest {
     void verify_otpNotFound_throwsApplicationException() {
 
         var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
+        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.empty());
@@ -110,14 +112,14 @@ class VerifyPasswordResetOtpServiceTest {
     }
 
     @Test
-    void verify_wrongCode_throwsApplicationException() {
+    void verify_wrongOtp_throwsApplicationException() {
 
         var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_CODE);
+        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
 
         given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
-        given(otpHasher.matches(PLAIN_CODE, HASHED_OTP)).willReturn(false);
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.verify(command))

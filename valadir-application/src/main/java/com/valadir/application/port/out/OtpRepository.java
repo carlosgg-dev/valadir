@@ -1,5 +1,6 @@
 package com.valadir.application.port.out;
 
+import com.valadir.application.otp.HashedOtp;
 import com.valadir.domain.model.AccountId;
 
 import java.time.Duration;
@@ -7,9 +8,9 @@ import java.util.Optional;
 
 public interface OtpRepository {
 
-    void save(AccountId accountId, String hashedOtp, Duration ttl);
+    void save(AccountId accountId, HashedOtp hashedOtp, Duration ttl);
 
-    Optional<String> find(AccountId accountId);
+    Optional<HashedOtp> find(AccountId accountId);
 
     void delete(AccountId accountId);
 }

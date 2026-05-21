@@ -31,13 +31,13 @@ public class ResendAccountActivationCodeService implements ResendAccountActivati
             account -> {
                 MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
                 if (!account.isPendingActivation()) {
-                    log.warn("Resend account activation code attempted for already active account");
+                    log.warn("Resend account activation OTP attempted for already active account");
                     return;
                 }
                 accountActivationOtpSender.send(account.getId(), email);
-                log.info("Account activation code resent");
+                log.info("Account activation OTP resent");
             },
-            () -> log.warn("Resend account activation code attempted for unknown email")
+            () -> log.warn("Resend account activation OTP attempted for unknown email")
         );
     }
 }

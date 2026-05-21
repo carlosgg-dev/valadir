@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.application.otp.HashedOtp;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
@@ -22,20 +23,21 @@ public class OtpRepositoryRedisAdapter implements OtpRepository {
     }
 
     @Override
-    public void save(AccountId accountId, String hashedOtp, Duration ttl) {
+    public void save(AccountId accountId, HashedOtp hashedOtp, Duration ttl) {
 
         try {
-            redisTemplate.opsForValue().set(redisKey(accountId), hashedOtp, ttl);
+            redisTemplate.opsForValue().set(redisKey(accountId), hashedOtp.value(), ttl);
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp save failed", e);
         }
     }
 
     @Override
-    public Optional<String> find(AccountId accountId) {
+    public Optional<HashedOtp> find(AccountId accountId) {
 
         try {
-            return Optional.ofNullable(redisTemplate.opsForValue().get(redisKey(accountId)));
+            return Optional.ofNullable(redisTemplate.opsForValue().get(redisKey(accountId)))
+                .map(HashedOtp::new);
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — otp lookup failed", e);
         }

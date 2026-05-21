@@ -2,6 +2,7 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
@@ -61,12 +62,12 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
             return;
         }
 
-        var plainCode = OtpGenerator.generate();
-        var hashedOtp = otpHasher.hash(plainCode);
+        var plainOtp = PlainOtp.generate();
+        var hashedOtp = otpHasher.hash(plainOtp);
 
         otpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
-        passwordResetNotifier.sendResetCode(email, plainCode);
+        passwordResetNotifier.sendResetCode(email, plainOtp);
 
-        log.info("Password reset code sent");
+        log.info("Password reset OTP sent");
     }
 }

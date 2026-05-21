@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.command.VerifyPasswordResetOtpCommand;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
@@ -103,7 +104,7 @@ class PasswordResetControllerTest {
     @Test
     void verifyPasswordResetOtp_validRequest_returns200WithVerificationToken() throws Exception {
 
-        given(verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(EMAIL, PASSWORD_RESET_OTP)))
+        given(verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(EMAIL, PlainOtp.from(PASSWORD_RESET_OTP))))
             .willReturn(new PasswordResetOtpVerificationResult(PASSWORD_RESET_VERIFICATION_TOKEN));
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)

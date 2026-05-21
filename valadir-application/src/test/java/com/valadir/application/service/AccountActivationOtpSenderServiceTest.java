@@ -1,6 +1,8 @@
 package com.valadir.application.service;
 
 import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.otp.HashedOtp;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -16,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -39,25 +41,25 @@ class AccountActivationOtpSenderServiceTest {
     private AccountActivationOtpSenderService accountActivationOtpSenderService;
 
     @Captor
-    private ArgumentCaptor<String> plainCodeCaptor;
+    private ArgumentCaptor<PlainOtp> plainOtpCaptor;
 
     @Test
     void send_hashesOtpPersistsAndSendsEmail() {
 
         var accountId = AccountId.generate();
         var email = new Email("bruce.wayne@email.com");
-        var hashedOtp = "$argon2id$hashedOtp";
+        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
         var otpTtl = Duration.ofSeconds(900);
 
-        given(otpHasher.hash(anyString())).willReturn(hashedOtp);
+        given(otpHasher.hash(any(PlainOtp.class))).willReturn(hashedOtp);
         given(accountActivationConfig.otpTtl()).willReturn(otpTtl);
 
         accountActivationOtpSenderService.send(accountId, email);
 
-        then(otpHasher).should().hash(plainCodeCaptor.capture());
-        var capturedCode = plainCodeCaptor.getValue();
+        then(otpHasher).should().hash(plainOtpCaptor.capture());
+        var capturedOtp = plainOtpCaptor.getValue();
 
         then(otpRepository).should().save(accountId, hashedOtp, otpTtl);
-        then(accountActivationNotifier).should().sendActivationCode(email, capturedCode);
+        then(accountActivationNotifier).should().sendActivationCode(email, capturedOtp);
     }
 }

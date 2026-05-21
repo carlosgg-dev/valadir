@@ -1,6 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -30,10 +31,10 @@ public class AccountActivationOtpSenderService implements AccountActivationOtpSe
     @Override
     public void send(AccountId accountId, Email email) {
 
-        var plainCode = OtpGenerator.generate();
-        String hashedOtp = otpHasher.hash(plainCode);
+        var plainOtp = PlainOtp.generate();
+        var hashedOtp = otpHasher.hash(plainOtp);
 
         otpRepository.save(accountId, hashedOtp, accountActivationConfig.otpTtl());
-        accountActivationNotifier.sendActivationCode(email, plainCode);
+        accountActivationNotifier.sendActivationCode(email, plainOtp);
     }
 }

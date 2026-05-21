@@ -1,5 +1,6 @@
 package com.valadir.notifications.adapter;
 
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.domain.model.Email;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class AccountActivationNotifierJavaMailAdapterTest {
 
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final String TO_ADDRESS = "user@example.com";
-    private static final String CODE = "123456";
+    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
 
     @BeforeEach
     void setUp() {
@@ -38,13 +39,13 @@ class AccountActivationNotifierJavaMailAdapterTest {
     @Test
     void sendActivationCode_validInput_sendsMessageWithCorrectFields() {
 
-        adapter.sendActivationCode(new Email(TO_ADDRESS), CODE);
+        adapter.sendActivationCode(new Email(TO_ADDRESS), PLAIN_OTP);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
         assertThat(message.getFrom()).isEqualTo(FROM_ADDRESS);
         assertThat(message.getTo()).containsExactly(TO_ADDRESS);
         assertThat(message.getSubject()).isEqualTo("Valadir - account activation code");
-        assertThat(message.getText()).contains(CODE);
+        assertThat(message.getText()).contains(PLAIN_OTP.value());
     }
 }

@@ -57,7 +57,7 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
         var hashedOtp = otpRepository.find(foundAccountId)
             .orElseThrow(this::applicationException);
 
-        if (!otpHasher.matches(command.code(), hashedOtp)) {
+        if (!otpHasher.matches(command.plainOtp(), hashedOtp)) {
             throw applicationException();
         }
 
@@ -86,6 +86,6 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
 
     private ApplicationException applicationException() {
 
-        return new ApplicationException("Invalid or expired password reset code", ErrorCode.INVALID_PASSWORD_RESET_OTP);
+        return new ApplicationException("Invalid or expired password reset OTP", ErrorCode.INVALID_PASSWORD_RESET_OTP);
     }
 }

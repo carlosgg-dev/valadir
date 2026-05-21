@@ -3,6 +3,7 @@ package com.valadir.web.adapter;
 import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.command.ResendAccountActivationCodeCommand;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
@@ -53,7 +54,7 @@ class AccountRegistrationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
 
-        activateAccountUseCase.activate(new ActivateAccountCommand(request.email(), request.code()));
+        activateAccountUseCase.activate(new ActivateAccountCommand(request.email(), PlainOtp.from(request.code())));
     }
 
     @PostMapping(ApiRoutes.Auth.Registration.RESEND)

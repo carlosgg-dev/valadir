@@ -2,6 +2,8 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
+import com.valadir.application.otp.HashedOtp;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -50,10 +52,10 @@ class InitiatePasswordResetServiceTest {
     private InitiatePasswordResetService service;
 
     @Captor
-    private ArgumentCaptor<String> plainOtpCaptor;
+    private ArgumentCaptor<PlainOtp> plainOtpCaptor;
 
     private static final Email EMAIL = new Email("bruce.wayne@email.com");
-    private static final String HASHED_OTP = "$argon2id$hashedOtp";
+    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
     private static final HashedPassword HASHED_PASSWORD = new HashedPassword("$argon2id$hashed");
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
 

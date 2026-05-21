@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.command.ResendAccountActivationCodeCommand;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
@@ -146,7 +147,7 @@ class AccountRegistrationControllerTest {
                             .content(objectMapper.writeValueAsString(new ActivateAccountRequest(EMAIL, ACCOUNT_ACTIVATION_CODE))))
             .andExpect(status().isNoContent());
 
-        then(activateAccountUseCase).should().activate(new ActivateAccountCommand(EMAIL, ACCOUNT_ACTIVATION_CODE));
+        then(activateAccountUseCase).should().activate(new ActivateAccountCommand(EMAIL, PlainOtp.from(ACCOUNT_ACTIVATION_CODE)));
     }
 
     @Test

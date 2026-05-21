@@ -41,7 +41,7 @@ public class ActivateAccountService implements ActivateAccountUseCase {
         MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
 
         otpRepository.find(account.getId())
-            .filter(hashedOtp -> otpHasher.matches(command.code(), hashedOtp))
+            .filter(hashedOtp -> otpHasher.matches(command.plainOtp(), hashedOtp))
             .orElseThrow(this::applicationException);
 
         accountRepository.activate(account.getId());
@@ -52,6 +52,6 @@ public class ActivateAccountService implements ActivateAccountUseCase {
 
     private ApplicationException applicationException() {
 
-        return new ApplicationException("Invalid or expired account activation code", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
+        return new ApplicationException("Invalid or expired account activation OTP", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
     }
 }

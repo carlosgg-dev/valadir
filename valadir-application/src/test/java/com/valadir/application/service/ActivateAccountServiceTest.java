@@ -2,6 +2,8 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.ActivateAccountCommand;
 import com.valadir.application.exception.ApplicationException;
+import com.valadir.application.otp.HashedOtp;
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -42,18 +44,18 @@ class ActivateAccountServiceTest {
     private ActivateAccountService service;
 
     private static final String EMAIL = "bruce.wayne@email.com";
-    private static final String PLAIN_CODE = "123456";
-    private static final String HASHED_CODE = "$argon2id$hashedOtp";
+    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
+    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
 
     @Test
-    void activate_validCode_activatesAccountAndDeletesToken() {
+    void activate_validOtp_activatesAccountAndDeletesToken() {
 
         var pendingAccount = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
-        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_CODE));
-        given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(true);
+        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
 
         service.activate(command);
 
@@ -64,7 +66,7 @@ class ActivateAccountServiceTest {
     @Test
     void activate_accountNotFound_throwsApplicationException() {
 
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
 
@@ -89,7 +91,7 @@ class ActivateAccountServiceTest {
             AccountStatus.ACTIVE
         );
 
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
@@ -103,10 +105,10 @@ class ActivateAccountServiceTest {
     }
 
     @Test
-    void activate_codeNotFound_throwsApplicationException() {
+    void activate_otpNotFound_throwsApplicationException() {
 
         var pendingAccount = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.empty());
@@ -120,14 +122,14 @@ class ActivateAccountServiceTest {
     }
 
     @Test
-    void activate_wrongCode_throwsApplicationException() {
+    void activate_wrongOtp_throwsApplicationException() {
 
         var account = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_CODE);
+        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
 
         given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(account));
-        given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_CODE));
-        given(otpHasher.matches(PLAIN_CODE, HASHED_CODE)).willReturn(false);
+        given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.activate(command))

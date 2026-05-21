@@ -1,5 +1,6 @@
 package com.valadir.notifications.adapter;
 
+import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.domain.model.Email;
 import org.springframework.mail.SimpleMailMessage;
@@ -17,13 +18,13 @@ public class AccountActivationNotifierJavaMailAdapter implements AccountActivati
     }
 
     @Override
-    public void sendActivationCode(Email email, String code) {
+    public void sendActivationCode(Email email, PlainOtp plainOtp) {
 
         var message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(email.value());
         message.setSubject("Valadir - account activation code");
-        message.setText("Your account activation code is: " + code + "\n\nThis code expires in 15 minutes.");
+        message.setText("Your account activation code is: " + plainOtp.value() + "\n\nThis code expires in 15 minutes.");
         mailSender.send(message);
     }
 }

@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.application.otp.HashedOtp;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import static org.mockito.Mockito.mock;
 class OtpRepositoryRedisAdapterExceptionTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
-    private static final String HASHED_OTP = "$argon2id$hashedOtp";
+    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
     private static final Duration OTP_TTL = Duration.ofMinutes(10);
     private static final UnaryOperator<String> REDIS_KEY_FN = id -> "test:otp:" + id;
 
