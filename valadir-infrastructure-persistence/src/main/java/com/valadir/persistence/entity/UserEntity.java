@@ -20,7 +20,7 @@ public class UserEntity extends AuditableEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "given_name")
+    @Column(name = "given_name", length = 100)
     private String givenName;
 
     protected UserEntity() {
