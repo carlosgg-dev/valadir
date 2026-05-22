@@ -11,8 +11,6 @@ import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
 import com.valadir.persistence.PostgresTestContainer;
-import com.valadir.persistence.entity.AccountEntity;
-import com.valadir.persistence.entity.UserEntity;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -80,23 +78,24 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestC
     @Test
     void delete_activeAccount_doesNotDeleteEvenIfOld() {
 
-        AccountId accountId = AccountId.generate();
-        Account account = Account.reconstitute(
-            accountId,
+        var account = Account.reconstitute(
+            AccountId.generate(),
             new Email("active@email.com"),
             new HashedPassword("$2a$12$hash"),
             Role.USER,
             AccountStatus.ACTIVE
         );
-        AccountEntity entity = AccountMapper.toEntity(account);
 
-        accountJpaRepository.saveAndFlush(entity);
-        forceCreatedAt(accountId, EXPIRED_CREATED_AT);
+        var entity = AccountMapper.toEntity(account);
+        var saved = accountJpaRepository.saveAndFlush(entity);
+
+        var savedAccountId = AccountId.from(saved.getId());
+        forceCreatedAt(savedAccountId, EXPIRED_CREATED_AT);
 
         int deleted = adapter.delete(CUTOFF);
 
         assertThat(deleted).isZero();
-        assertThat(accountJpaRepository.findById(accountId.value())).isPresent();
+        assertThat(accountJpaRepository.findById(savedAccountId.value())).isPresent();
     }
 
     @Test
@@ -123,18 +122,29 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestC
 
     private AccountId savePendingActivationAccountAndUser(String email, Instant createdAt) {
 
-        AccountId accountId = AccountId.generate();
-        Account account = Account.newPendingActivation(accountId, new Email(email), new HashedPassword("$2a$12$hash"), Role.USER);
-        AccountEntity accountEntity = AccountMapper.toEntity(account);
+        var account = Account.newPendingActivation(
+            AccountId.generate(),
+            new Email(email),
+            new HashedPassword("$2a$12$hash"),
+            Role.USER
+        );
 
-        accountJpaRepository.saveAndFlush(accountEntity);
-        forceCreatedAt(accountId, createdAt);
+        var accountEntity = AccountMapper.toEntity(account);
+        var savedAccount = accountJpaRepository.saveAndFlush(accountEntity);
+        var savedAccountId = AccountId.from(savedAccount.getId());
+        forceCreatedAt(savedAccountId, createdAt);
 
-        User user = User.newProfile(UserId.generate(), accountId, new FullName("Test User"), new GivenName("Test"));
-        UserEntity userEntity = UserMapper.toEntity(user);
+        var user = User.newProfile(
+            UserId.generate(),
+            savedAccountId,
+            new FullName("Test User"),
+            new GivenName("Test")
+        );
+
+        var userEntity = UserMapper.toEntity(user);
         userJpaRepository.saveAndFlush(userEntity);
 
-        return accountId;
+        return savedAccountId;
     }
 
     private void forceCreatedAt(AccountId accountId, Instant createdAt) {

@@ -38,10 +38,10 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
     @Test
     void findById_existingAccount_returnsAccount() {
 
-        Account account = buildAccount();
-        jpaRepository.save(AccountMapper.toEntity(account));
+        var account = buildAccount();
+        var saved = jpaRepository.save(AccountMapper.toEntity(account));
 
-        Optional<Account> result = adapter.findById(account.getId());
+        Optional<Account> result = adapter.findById(AccountId.from(saved.getId()));
 
         assertThat(result).isPresent();
         var retrieved = result.get();
@@ -95,10 +95,10 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
             Role.USER
         );
 
-        jpaRepository.save(AccountMapper.toEntity(pendingAccount));
-        adapter.activate(pendingAccount.getId());
+        var saved = jpaRepository.save(AccountMapper.toEntity(pendingAccount));
+        adapter.activate(AccountId.from(saved.getId()));
 
-        var result = adapter.findById(pendingAccount.getId());
+        var result = adapter.findById(AccountId.from(saved.getId()));
 
         assertThat(result)
             .isPresent()
@@ -109,12 +109,12 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
     void updatePassword_existingAccount_updatesHashedPassword() {
 
         var existingAccount = buildAccount();
-        jpaRepository.save(AccountMapper.toEntity(existingAccount));
+        var saved = jpaRepository.save(AccountMapper.toEntity(existingAccount));
 
         var newHash = new HashedPassword("$argon2id$newpassword");
-        adapter.updatePassword(existingAccount.getId(), newHash);
+        adapter.updatePassword(AccountId.from(saved.getId()), newHash);
 
-        var result = adapter.findById(existingAccount.getId());
+        var result = adapter.findById(AccountId.from(saved.getId()));
         assertThat(result)
             .isPresent()
             .hasValueSatisfying(account -> assertThat(account.getPassword())

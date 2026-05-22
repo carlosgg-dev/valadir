@@ -48,12 +48,12 @@ class UserRepositoryJpaAdapterTest extends PostgresTestContainer {
     void findByAccountId_existingUser_returnsUser() {
 
         var account = buildAccount();
-        accountJpaRepository.save(AccountMapper.toEntity(account));
+        var savedAccount = accountJpaRepository.save(AccountMapper.toEntity(account));
 
-        var user = buildUser(account.getId());
-        userJpaRepository.save(UserMapper.toEntity(user));
+        var user = buildUser(AccountId.from(savedAccount.getId()));
+        var savedUser = userJpaRepository.save(UserMapper.toEntity(user));
 
-        Optional<User> result = adapter.findByAccountId(user.getAccountId());
+        Optional<User> result = adapter.findByAccountId(AccountId.from(savedUser.getAccountId()));
 
         assertThat(result).isPresent();
         var retrieved = result.get();
