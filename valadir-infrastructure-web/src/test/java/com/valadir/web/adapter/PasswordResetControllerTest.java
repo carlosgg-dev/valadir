@@ -42,7 +42,7 @@ class PasswordResetControllerTest {
 
     private static final String EMAIL = "user@example.com";
     private static final String PASSWORD = "S3cur3P@ss!";
-    private static final String PASSWORD_RESET_OTP = "718304";
+    private static final String PASSWORD_RESET_CODE = "718304";
     private static final String PASSWORD_RESET_VERIFICATION_TOKEN = "verification-token";
 
     @Autowired
@@ -104,12 +104,12 @@ class PasswordResetControllerTest {
     @Test
     void verifyPasswordResetOtp_validRequest_returns200WithVerificationToken() throws Exception {
 
-        given(verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(EMAIL, PlainOtp.from(PASSWORD_RESET_OTP))))
+        given(verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(EMAIL, PlainOtp.from(PASSWORD_RESET_CODE))))
             .willReturn(new PasswordResetOtpVerificationResult(PASSWORD_RESET_VERIFICATION_TOKEN));
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest(EMAIL, PASSWORD_RESET_OTP))))
+                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest(EMAIL, PASSWORD_RESET_CODE))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.verificationToken").value(PASSWORD_RESET_VERIFICATION_TOKEN));
     }
@@ -119,7 +119,7 @@ class PasswordResetControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest("", PASSWORD_RESET_OTP))))
+                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest("", PASSWORD_RESET_CODE))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -131,7 +131,7 @@ class PasswordResetControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest("invalid-email", PASSWORD_RESET_OTP))))
+                            .content(objectMapper.writeValueAsString(new VerifyPasswordResetOtpRequest("invalid-email", PASSWORD_RESET_CODE))))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
