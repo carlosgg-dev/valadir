@@ -1,8 +1,8 @@
 package com.valadir.notifications.adapter;
 
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 

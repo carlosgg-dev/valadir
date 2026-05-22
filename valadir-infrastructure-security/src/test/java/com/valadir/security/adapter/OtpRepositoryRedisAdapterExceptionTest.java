@@ -1,8 +1,8 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.otp.HashedOtp;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.HashedOtp;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

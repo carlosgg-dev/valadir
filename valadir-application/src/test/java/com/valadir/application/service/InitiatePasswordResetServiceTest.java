@@ -2,8 +2,6 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
-import com.valadir.application.otp.HashedOtp;
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
@@ -12,7 +10,9 @@ import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.PlainOtp;
 import com.valadir.domain.model.Role;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

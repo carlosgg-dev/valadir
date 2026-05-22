@@ -1,8 +1,8 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.otp.HashedOtp;
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.OtpHasher;
+import com.valadir.domain.model.HashedOtp;
+import com.valadir.domain.model.PlainOtp;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 public class OtpHasherArgon2Adapter implements OtpHasher {

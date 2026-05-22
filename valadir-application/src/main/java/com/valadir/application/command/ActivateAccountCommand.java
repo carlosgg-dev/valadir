@@ -1,6 +1,6 @@
 package com.valadir.application.command;
 
-import com.valadir.application.otp.PlainOtp;
+import com.valadir.domain.model.PlainOtp;
 
 public record ActivateAccountCommand(
     String email,

@@ -1,4 +1,7 @@
-package com.valadir.application.otp;
+package com.valadir.domain.model;
+
+import com.valadir.common.error.ErrorCode;
+import com.valadir.domain.exception.DomainException;
 
 import java.security.SecureRandom;
 import java.util.regex.Pattern;
@@ -11,8 +14,9 @@ public record PlainOtp(String value) {
     private static final int OTP_RANGE = 900_000;
 
     public PlainOtp {
+
         if (value == null || !PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException("PlainOtp must be exactly 6 numeric digits");
+            throw new DomainException("PlainOtp must be exactly 6 numeric digits", ErrorCode.INVALID_OTP);
         }
     }
 

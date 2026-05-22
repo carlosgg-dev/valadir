@@ -1,7 +1,7 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.otp.HashedOtp;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.HashedOtp;
 import com.valadir.security.RedisTestContainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

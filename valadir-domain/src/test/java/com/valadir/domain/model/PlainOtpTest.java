@@ -1,5 +1,7 @@
-package com.valadir.application.otp;
+package com.valadir.domain.model;
 
+import com.valadir.common.error.ErrorCode;
+import com.valadir.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -9,7 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class PlainOtpTest {
 
@@ -25,25 +27,33 @@ class PlainOtpTest {
     @MethodSource("blankValues")
     void constructor_blankValues_throwsIllegalArgumentException(String blankValue) {
 
-        assertThatIllegalArgumentException().isThrownBy(() -> new PlainOtp(blankValue));
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new PlainOtp(blankValue))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
     }
 
     @Test
     void constructor_lessThanSixDigits_throwsIllegalArgumentException() {
 
-        assertThatIllegalArgumentException().isThrownBy(() -> new PlainOtp("12345"));
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new PlainOtp("12345"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
     }
 
     @Test
     void constructor_moreThanSixDigits_throwsIllegalArgumentException() {
 
-        assertThatIllegalArgumentException().isThrownBy(() -> new PlainOtp("1234567"));
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new PlainOtp("1234567"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
     }
 
     @Test
     void constructor_nonNumeric_throwsIllegalArgumentException() {
 
-        assertThatIllegalArgumentException().isThrownBy(() -> new PlainOtp("abcdef"));
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new PlainOtp("abcdef"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
     }
 
     @Test
@@ -57,7 +67,9 @@ class PlainOtpTest {
     @Test
     void from_invalidValue_throwsIllegalArgumentException() {
 
-        assertThatIllegalArgumentException().isThrownBy(() -> PlainOtp.from("abc"));
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new PlainOtp("abc"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
     }
 
     @Test

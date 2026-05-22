@@ -1,6 +1,6 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.otp.PlainOtp;
+import com.valadir.domain.model.PlainOtp;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 

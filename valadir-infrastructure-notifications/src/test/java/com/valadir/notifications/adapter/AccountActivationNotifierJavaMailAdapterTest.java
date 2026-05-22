@@ -1,7 +1,7 @@
 package com.valadir.notifications.adapter;
 
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

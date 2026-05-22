@@ -1,7 +1,7 @@
 package com.valadir.application.port.out;
 
-import com.valadir.application.otp.HashedOtp;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.HashedOtp;
 
 import java.time.Duration;
 import java.util.Optional;

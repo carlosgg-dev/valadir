@@ -1,12 +1,12 @@
 package com.valadir.application.service;
 
 import com.valadir.application.config.AccountActivationConfig;
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 
 public class AccountActivationOtpSenderService implements AccountActivationOtpSender {
 

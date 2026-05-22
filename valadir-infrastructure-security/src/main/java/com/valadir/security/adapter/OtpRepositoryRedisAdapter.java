@@ -1,9 +1,9 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.otp.HashedOtp;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.HashedOtp;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 

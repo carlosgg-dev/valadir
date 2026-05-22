@@ -2,7 +2,6 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
-import com.valadir.application.otp.PlainOtp;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
@@ -10,6 +9,7 @@ import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
