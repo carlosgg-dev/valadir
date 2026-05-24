@@ -27,4 +27,9 @@ public record Email(String value) {
             throw new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
         }
     }
+
+    public static Email from(String value) {
+
+        return new Email(value);
+    }
 }

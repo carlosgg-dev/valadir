@@ -6,7 +6,11 @@ import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.FullName;
+import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.dto.request.ActivateAccountRequest;
 import com.valadir.web.dto.request.RegisterRequest;
@@ -43,10 +47,10 @@ class AccountRegistrationController {
     void register(@Valid @RequestBody RegisterRequest request) {
 
         registerUseCase.register(new RegisterCommand(
-            request.email(),
-            request.password(),
-            request.fullName(),
-            request.givenName()
+            Email.from(request.email()),
+            RawPassword.from(request.password()),
+            FullName.from(request.fullName()),
+            GivenName.from(request.givenName())
         ));
     }
 
@@ -54,13 +58,17 @@ class AccountRegistrationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
 
-        activateAccountUseCase.activate(new ActivateAccountCommand(request.email(), PlainOtp.from(request.code())));
+        var command = new ActivateAccountCommand(Email.from(request.email()), PlainOtp.from(request.code()));
+
+        activateAccountUseCase.activate(command);
     }
 
     @PostMapping(ApiRoutes.Auth.Registration.RESEND)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void resendAccountActivationCode(@Valid @RequestBody ResendAccountActivationCodeRequest request) {
 
-        resendAccountActivationCodeUseCase.resend(new ResendAccountActivationCodeCommand(request.email()));
+        var command = new ResendAccountActivationCodeCommand(Email.from(request.email()));
+
+        resendAccountActivationCodeUseCase.resend(command);
     }
 }

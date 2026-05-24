@@ -19,11 +19,11 @@ class PasswordSecurityServiceTest {
     @Test
     void validatePassword_securePassword_passes() {
 
-        RawPassword password = new RawPassword("Secure_P@ss_2026");
-        Email email = new Email("bruce.wayne@email.com");
-        FullName fullName = new FullName("Bruce Wayne");
-        GivenName givenName = new GivenName("Batman");
-        UserProfileData userProfileData = new UserProfileData(fullName, givenName);
+        RawPassword password = RawPassword.from("Secure_P@ss_2026");
+        Email email = Email.from("bruce.wayne@email.com");
+        FullName fullName = FullName.from("Bruce Wayne");
+        GivenName givenName = GivenName.from("Batman");
+        UserProfileData userProfileData = UserProfileData.from(fullName, givenName);
 
         assertDoesNotThrow(() -> securityService.validatePassword(password, email, userProfileData));
     }
@@ -32,11 +32,11 @@ class PasswordSecurityServiceTest {
     void validatePassword_nameTermsBelowMinLength_passes() {
 
         // Terms "jo", "li", "ann" are all < MIN_TERM_LENGTH (4) — they are ignored during validation
-        RawPassword password = new RawPassword("Xk9@Secure1");
-        Email email = new Email("jo@example.com");
-        FullName fullName = new FullName("Jo Li");
-        GivenName givenName = new GivenName("Ann");
-        UserProfileData userProfileData = new UserProfileData(fullName, givenName);
+        RawPassword password = RawPassword.from("Xk9@Secure1");
+        Email email = Email.from("jo@example.com");
+        FullName fullName = FullName.from("Jo Li");
+        GivenName givenName = GivenName.from("Ann");
+        UserProfileData userProfileData = UserProfileData.from(fullName, givenName);
 
         assertDoesNotThrow(() -> securityService.validatePassword(password, email, userProfileData));
     }
@@ -80,11 +80,11 @@ class PasswordSecurityServiceTest {
 
     private void assertInsecurePassword(String pwd, String email, String fullName, String givenName) {
 
-        RawPassword password = new RawPassword(pwd);
-        Email userEmail = new Email(email);
-        FullName userFullName = new FullName(fullName);
-        GivenName userGivenName = new GivenName(givenName);
-        UserProfileData userProfileData = new UserProfileData(userFullName, userGivenName);
+        RawPassword password = RawPassword.from(pwd);
+        Email userEmail = Email.from(email);
+        FullName userFullName = FullName.from(fullName);
+        GivenName userGivenName = GivenName.from(givenName);
+        UserProfileData userProfileData = UserProfileData.from(userFullName, userGivenName);
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> securityService.validatePassword(password, userEmail, userProfileData))

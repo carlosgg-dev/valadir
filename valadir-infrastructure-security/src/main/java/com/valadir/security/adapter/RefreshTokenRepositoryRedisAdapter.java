@@ -38,7 +38,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
             String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
             return accountIdValue == null
                 ? new TokenValidationResult.Invalid()
-                : new TokenValidationResult.Valid(new AccountId(UUID.fromString(accountIdValue)));
+                : new TokenValidationResult.Valid(AccountId.from(UUID.fromString(accountIdValue)));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
         }

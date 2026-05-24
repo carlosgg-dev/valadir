@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class EmailTest {
 
     @Test
-    void new_validEmail_createsEmail() {
+    void constructor_validValue_createsEmail() {
 
         Email email = new Email("user@domain.com");
         assertThat(email.value()).isEqualTo("user@domain.com");
@@ -27,24 +27,24 @@ class EmailTest {
         "user@domain",
         "user@"
     })
-    void new_invalidFormat_throwsDomainException(String invalidEmail) {
+    void constructor_invalidFormat_throwsDomainException(String invalidValue) {
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new Email(invalidEmail))
+            .isThrownBy(() -> new Email(invalidValue))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
     @ParameterizedTest
-    @MethodSource("blankEmails")
-    void new_blankValue_throwsDomainException(String blankEmail) {
+    @MethodSource("blankValues")
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new Email(blankEmail))
+            .isThrownBy(() -> new Email(blankValue))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
     @Test
-    void new_valueAtMaxLength_createsEmail() {
+    void constructor_valueAtMaxLength_createsEmail() {
 
         String localPart = "a".repeat(244);
         Email email = new Email(localPart + "@domain.com");
@@ -52,7 +52,7 @@ class EmailTest {
     }
 
     @Test
-    void new_valueTooLong_throwsDomainException() {
+    void constructor_valueTooLong_throwsDomainException() {
 
         String localPart = "a".repeat(245);
 
@@ -61,7 +61,14 @@ class EmailTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] blankEmails() {
+    @Test
+    void from_validValue_createsEmail() {
+
+        Email email = Email.from("user@domain.com");
+        assertThat(email).isEqualTo(new Email("user@domain.com"));
+    }
+
+    private static String[] blankValues() {
 
         return new String[]{null, "", "   "};
     }

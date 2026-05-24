@@ -48,8 +48,7 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     @Override
     public PasswordResetOtpVerificationResult verify(VerifyPasswordResetOtpCommand command) {
 
-        var email = new Email(command.email());
-        var foundAccount = getAccount(email);
+        var foundAccount = getAccount(command.email());
 
         AccountId foundAccountId = foundAccount.getId();
         MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());

@@ -54,7 +54,6 @@ class VerifyPasswordResetOtpServiceTest {
     @InjectMocks
     private VerifyPasswordResetOtpService service;
 
-    private static final Email EMAIL = new Email("bruce.wayne@email.com");
     private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
     private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
     private static final Duration VERIFICATION_TTL = Duration.ofMinutes(10);
@@ -62,10 +61,11 @@ class VerifyPasswordResetOtpServiceTest {
     @Test
     void verify_validOtp_deletesOtpAndIssuesVerificationToken() {
 
-        var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var account = buildAccount(email.value());
+        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
         given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
@@ -80,9 +80,10 @@ class VerifyPasswordResetOtpServiceTest {
     @Test
     void verify_emailNotFound_guardTimingAndThrowsApplicationException() {
 
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.verify(command))
@@ -97,10 +98,11 @@ class VerifyPasswordResetOtpServiceTest {
     @Test
     void verify_otpNotFound_throwsApplicationException() {
 
-        var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var account = buildAccount(email.value());
+        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -114,10 +116,11 @@ class VerifyPasswordResetOtpServiceTest {
     @Test
     void verify_wrongOtp_throwsApplicationException() {
 
-        var account = buildAccount();
-        var command = new VerifyPasswordResetOtpCommand(EMAIL.value(), PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var account = buildAccount(email.value());
+        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(account));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(false);
 
@@ -129,11 +132,11 @@ class VerifyPasswordResetOtpServiceTest {
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
     }
 
-    private Account buildAccount() {
+    private Account buildAccount(String email) {
 
         return Account.reconstitute(
             AccountId.generate(),
-            EMAIL,
+            Email.from(email),
             new HashedPassword("$argon2id$hashed"),
             Role.USER,
             AccountStatus.ACTIVE

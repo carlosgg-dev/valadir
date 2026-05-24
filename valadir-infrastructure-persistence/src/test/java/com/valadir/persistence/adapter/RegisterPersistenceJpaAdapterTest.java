@@ -64,7 +64,7 @@ class RegisterPersistenceJpaAdapterTest extends PostgresTestContainer {
         var newAccountId = AccountId.generate();
         var pendingAccount = Account.newPendingActivation(
             newAccountId,
-            new Email("bruce.wayne@email.com"),
+            Email.from("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$newhash"),
             Role.USER
         );
@@ -83,7 +83,7 @@ class RegisterPersistenceJpaAdapterTest extends PostgresTestContainer {
 
         return Account.newPendingActivation(
             accountId,
-            new Email("bruce.wayne@email.com"),
+            Email.from("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),
             Role.USER
         );
@@ -94,8 +94,8 @@ class RegisterPersistenceJpaAdapterTest extends PostgresTestContainer {
         return User.newProfile(
             UserId.generate(),
             accountId,
-            new FullName("Bruce Wayne"),
-            new GivenName("Batman")
+            FullName.from("Bruce Wayne"),
+            GivenName.from("Batman")
         );
     }
 }

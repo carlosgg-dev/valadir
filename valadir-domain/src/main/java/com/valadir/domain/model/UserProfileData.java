@@ -21,6 +21,11 @@ public record UserProfileData(FullName fullName, GivenName givenName) {
         }
     }
 
+    public static UserProfileData from(FullName fullName, GivenName givenName) {
+
+        return new UserProfileData(fullName, givenName);
+    }
+
     public Set<String> values() {
 
         return Stream.of(fullName().value(), givenName().value())

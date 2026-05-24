@@ -43,17 +43,17 @@ class ActivateAccountServiceTest {
     @InjectMocks
     private ActivateAccountService service;
 
-    private static final String EMAIL = "bruce.wayne@email.com";
     private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
     private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
 
     @Test
     void activate_validOtp_activatesAccountAndDeletesToken() {
 
-        var pendingAccount = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var pendingAccount = buildPendingActivationAccount(email.value());
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
 
@@ -66,9 +66,10 @@ class ActivateAccountServiceTest {
     @Test
     void activate_accountNotFound_throwsApplicationException() {
 
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.activate(command))
@@ -82,7 +83,7 @@ class ActivateAccountServiceTest {
     @Test
     void activate_accountAlreadyActive_throwsApplicationException() {
 
-        var email = new Email(EMAIL);
+        var email = Email.from("bruce.wayne@email.com");
         var activeAccount = Account.reconstitute(
             AccountId.generate(),
             email,
@@ -91,7 +92,7 @@ class ActivateAccountServiceTest {
             AccountStatus.ACTIVE
         );
 
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
@@ -107,10 +108,11 @@ class ActivateAccountServiceTest {
     @Test
     void activate_otpNotFound_throwsApplicationException() {
 
-        var pendingAccount = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var pendingAccount = buildPendingActivationAccount(email.value());
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(pendingAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -124,10 +126,11 @@ class ActivateAccountServiceTest {
     @Test
     void activate_wrongOtp_throwsApplicationException() {
 
-        var account = buildPendingActivationAccount();
-        var command = new ActivateAccountCommand(EMAIL, PLAIN_OTP);
+        var email = Email.from("bruce.wayne@email.com");
+        var account = buildPendingActivationAccount(email.value());
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.of(account));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(false);
 
@@ -139,11 +142,11 @@ class ActivateAccountServiceTest {
         then(otpRepository).should(never()).delete(any());
     }
 
-    private Account buildPendingActivationAccount() {
+    private Account buildPendingActivationAccount(String email) {
 
         return Account.newPendingActivation(
             AccountId.generate(),
-            new Email(EMAIL),
+            Email.from(email),
             new HashedPassword("$argon2id$hashed"),
             Role.USER
         );

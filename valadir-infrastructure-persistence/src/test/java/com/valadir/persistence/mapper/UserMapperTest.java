@@ -42,8 +42,8 @@ class UserMapperTest {
         User user = User.newProfile(
             UserId.from(id),
             AccountId.from(accountId),
-            new FullName(fullName),
-            new GivenName(givenName)
+            FullName.from(fullName),
+            GivenName.from(givenName)
         );
 
         UserEntity result = UserMapper.toEntity(user);

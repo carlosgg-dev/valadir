@@ -11,6 +11,9 @@ import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
+import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.config.SecurityConfig;
 import com.valadir.web.dto.request.LoginRequest;
@@ -45,12 +48,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class SessionControllerTest {
 
-    private static final String ACCESS_TOKEN = "access.token.value";
-    private static final String REFRESH_TOKEN = "refresh-token-uuid";
-    private static final String ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000";
-    private static final String EMAIL = "user@example.com";
-    private static final String PASSWORD = "S3cur3P@ss!";
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -78,14 +75,19 @@ class SessionControllerTest {
     @Test
     void login_validCredentials_returns200WithTokens() throws Exception {
 
-        given(loginUseCase.login(new LoginCommand(EMAIL, PASSWORD))).willReturn(new AuthTokenResult(ACCESS_TOKEN, REFRESH_TOKEN));
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("S3cur3P@ss!");
+        var accessToken = "access.token.value";
+        var refreshToken = "refresh-token-uuid";
+
+        given(loginUseCase.login(new LoginCommand(email, password))).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest(email.value(), password.value()))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.accessToken").value(ACCESS_TOKEN))
-            .andExpect(jsonPath("$.refreshToken").value(REFRESH_TOKEN));
+            .andExpect(jsonPath("$.accessToken").value(accessToken))
+            .andExpect(jsonPath("$.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -96,7 +98,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", "S3cur3P@ss!"))))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
     }
@@ -106,7 +108,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("", PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("", "S3cur3P@ss!"))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -117,7 +119,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("invalid-email", PASSWORD))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("invalid-email", "S3cur3P@ss!"))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -128,7 +130,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest(EMAIL, ""))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", ""))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -137,14 +139,17 @@ class SessionControllerTest {
     @Test
     void refresh_validToken_returns200WithTokens() throws Exception {
 
-        given(refreshTokenUseCase.refresh(new RefreshTokenCommand(REFRESH_TOKEN))).willReturn(new AuthTokenResult(ACCESS_TOKEN, REFRESH_TOKEN));
+        var accessToken = "access.token.value";
+        var refreshToken = "refresh-token-uuid";
+
+        given(refreshTokenUseCase.refresh(new RefreshTokenCommand(refreshToken))).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.REFRESH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RefreshRequest(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new RefreshRequest(refreshToken))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.accessToken").value(ACCESS_TOKEN))
-            .andExpect(jsonPath("$.refreshToken").value(REFRESH_TOKEN));
+            .andExpect(jsonPath("$.accessToken").value(accessToken))
+            .andExpect(jsonPath("$.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -161,12 +166,14 @@ class SessionControllerTest {
     @Test
     void refresh_invalidToken_returns401() throws Exception {
 
+        var refreshToken = "refresh-token-uuid";
+
         willThrow(new ApplicationException("Invalid token", ErrorCode.INVALID_TOKEN))
             .given(refreshTokenUseCase).refresh(any());
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.REFRESH_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RefreshRequest(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new RefreshRequest(refreshToken))))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_TOKEN.getCode()));
     }
@@ -174,31 +181,36 @@ class SessionControllerTest {
     @Test
     void logout_authenticated_returns204() throws Exception {
 
+        var accountId = AccountId.generate();
+        var refreshToken = "refresh-token-uuid";
+
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGOUT_PATH)
                             .with(jwt().jwt(jwt -> jwt
-                                .subject(ACCOUNT_ID)
+                                .subject(accountId.value().toString())
                                 .claim("jti", "jti-value")
                                 .expiresAt(java.time.Instant.now().plusSeconds(900)))
                             )
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LogoutRequest(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new LogoutRequest(refreshToken))))
             .andExpect(status().isNoContent());
 
         then(logoutUseCase).should().logout(logoutCommandCaptor.capture());
 
         var command = logoutCommandCaptor.getValue();
         assertThat(command.accessTokenJti()).isEqualTo("jti-value");
-        assertThat(command.refreshToken()).isEqualTo(REFRESH_TOKEN);
+        assertThat(command.refreshToken()).isEqualTo(refreshToken);
         assertThat(command.accessTokenRemainingTtl()).isPositive();
-        assertThat(command.accountId()).isEqualTo(ACCOUNT_ID);
+        assertThat(command.accountId()).isEqualTo(accountId);
     }
 
     @Test
     void logout_blankRefreshToken_returns400() throws Exception {
 
+        var accountId = AccountId.generate();
+
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGOUT_PATH)
                             .with(jwt().jwt(jwt -> jwt
-                                .subject(ACCOUNT_ID)
+                                .subject(accountId.value().toString())
                                 .claim("jti", "jti-value")
                                 .expiresAt(java.time.Instant.now().plusSeconds(900)))
                             )
@@ -212,9 +224,11 @@ class SessionControllerTest {
     @Test
     void logout_unauthenticated_returns401() throws Exception {
 
+        var refreshToken = "refresh-token-uuid";
+
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGOUT_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LogoutRequest(REFRESH_TOKEN))))
+                            .content(objectMapper.writeValueAsString(new LogoutRequest(refreshToken))))
             .andExpect(status().isUnauthorized());
 
         then(logoutUseCase).should(never()).logout(any(LogoutCommand.class));

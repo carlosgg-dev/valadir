@@ -2,6 +2,7 @@ package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
@@ -24,7 +25,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
 
     // Atomic: blacklists the access token and removes the refresh token from the user token set
     @Override
-    public void invalidate(String jti, Duration remainingTtl, String refreshToken, String accountId) {
+    public void invalidate(String jti, Duration remainingTtl, String refreshToken, AccountId accountId) {
 
         try {
             redisTemplate.execute(
@@ -32,7 +33,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
                 List.of(
                     RedisKeySpace.forBlacklist(jti),
                     RedisKeySpace.forRefreshToken(refreshToken),
-                    RedisKeySpace.forUserTokens(accountId)
+                    RedisKeySpace.forUserTokens(accountId.value().toString())
                 ),
                 RedisKeySpace.BLACKLIST_REVOKED_VALUE,
                 String.valueOf(remainingTtl.getSeconds()),

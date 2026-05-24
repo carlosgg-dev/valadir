@@ -12,36 +12,29 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class GivenNameTest {
 
     @Test
-    void new_valueProvided_createsGivenName() {
+    void constructor_validValue_createsGivenName() {
 
-        GivenName givenName = new GivenName("Bruce");
-        assertThat(givenName.value()).isEqualTo("Bruce");
+        GivenName givenName = new GivenName("Batman");
+        assertThat(givenName.value()).isEqualTo("Batman");
     }
 
     @ParameterizedTest
-    @MethodSource("blankGivenNames")
-    void new_blankValue_storesNull(String blankGivenName) {
+    @MethodSource("blankValues")
+    void constructor_blankValue_storesNull(String blankValue) {
 
-        GivenName givenName = new GivenName(blankGivenName);
+        GivenName givenName = new GivenName(blankValue);
         assertThat(givenName.value()).isNull();
     }
 
     @Test
-    void empty_createsGivenNameWithNullValue() {
-
-        GivenName givenName = GivenName.empty();
-        assertThat(givenName.value()).isNull();
-    }
-
-    @Test
-    void new_valueAtMaxLength_createsGivenName() {
+    void constructor_valueAtMaxLength_createsGivenName() {
 
         GivenName givenName = new GivenName("a".repeat(100));
         assertThat(givenName.value()).hasSize(100);
     }
 
     @Test
-    void new_valueTooLong_throwsDomainException() {
+    void constructor_valueTooLong_throwsDomainException() {
 
         var tooLong = "a".repeat(101);
 
@@ -50,7 +43,21 @@ class GivenNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] blankGivenNames() {
+    @Test
+    void from_validValue_createsGivenName() {
+
+        GivenName givenName = GivenName.from("Batman");
+        assertThat(givenName).isEqualTo(new GivenName("Batman"));
+    }
+
+    @Test
+    void empty_createsGivenNameWithNullValue() {
+
+        GivenName givenName = GivenName.empty();
+        assertThat(givenName).isEqualTo(new GivenName(null));
+    }
+
+    private static String[] blankValues() {
 
         return new String[]{null, "", "   "};
     }

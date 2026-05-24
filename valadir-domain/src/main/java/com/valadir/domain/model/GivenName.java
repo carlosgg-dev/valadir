@@ -16,6 +16,11 @@ public record GivenName(String value) {
         }
     }
 
+    public static GivenName from(String value) {
+
+        return new GivenName(value);
+    }
+
     public static GivenName empty() {
 
         return new GivenName(null);

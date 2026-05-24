@@ -4,7 +4,6 @@ import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.common.mdc.MdcKeys;
-import com.valadir.domain.model.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -25,7 +24,7 @@ public class ResendAccountActivationCodeService implements ResendAccountActivati
     @Override
     public void resend(ResendAccountActivationCodeCommand command) {
 
-        var email = new Email(command.email());
+        var email = command.email();
 
         accountRepository.findByEmail(email).ifPresentOrElse(
             account -> {

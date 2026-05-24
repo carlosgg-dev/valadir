@@ -1,6 +1,8 @@
 package com.valadir.application.command;
 
+import com.valadir.domain.model.Email;
+
 public record InitiatePasswordResetCommand(
-    String email) {
+    Email email) {
 
 }

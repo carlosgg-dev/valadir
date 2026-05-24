@@ -9,10 +9,6 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.Email;
-import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
@@ -51,15 +47,15 @@ public class RegisterService implements RegisterUseCase {
     @Override
     public void register(RegisterCommand command) {
 
-        var email = new Email(command.email());
-        var rawPassword = new RawPassword(command.password());
-        var fullName = new FullName(command.fullName());
-        var givenName = new GivenName(command.givenName());
+        var email = command.email();
+        var rawPassword = command.password();
+        var fullName = command.fullName();
+        var givenName = command.givenName();
 
         var existingAccountId = accountRepository.findByEmail(email)
             .map(this::resolveExistingAccountId);
 
-        var profileData = new UserProfileData(fullName, givenName);
+        var profileData = UserProfileData.from(fullName, givenName);
         passwordSecurityService.validatePassword(rawPassword, email, profileData);
 
         var accountId = AccountId.generate();

@@ -18,8 +18,8 @@ public class UserMapper {
         return User.reconstitute(
             UserId.from(entity.getId()),
             AccountId.from(entity.getAccountId()),
-            new FullName(entity.getFullName()),
-            new GivenName(entity.getGivenName())
+            FullName.from(entity.getFullName()),
+            GivenName.from(entity.getGivenName())
         );
     }
 

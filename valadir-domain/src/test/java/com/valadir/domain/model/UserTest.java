@@ -11,8 +11,8 @@ class UserTest {
 
         UserId id = UserId.generate();
         AccountId accountId = AccountId.generate();
-        FullName fullName = new FullName("Bruce Wayne");
-        GivenName givenName = new GivenName("Batman");
+        FullName fullName = FullName.from("Bruce Wayne");
+        GivenName givenName = GivenName.from("Batman");
 
         User user = User.newProfile(id, accountId, fullName, givenName);
 
@@ -27,8 +27,8 @@ class UserTest {
 
         UserId id = UserId.generate();
         AccountId accountId = AccountId.generate();
-        FullName fullName = new FullName("Bruce Wayne");
-        GivenName givenName = new GivenName("Batman");
+        FullName fullName = FullName.from("Bruce Wayne");
+        GivenName givenName = GivenName.from("Batman");
 
         User user = User.reconstitute(id, accountId, fullName, givenName);
 

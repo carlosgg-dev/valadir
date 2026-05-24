@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class HashedPasswordTest {
 
     @Test
-    void new_validValue_createsHashedPassword() {
+    void constructor_validValue_createsHashedPassword() {
 
         var password = "$2a$10$someHashValue";
         var hashed = new HashedPassword(password);
@@ -21,15 +21,15 @@ class HashedPasswordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankHashedPasswords")
-    void new_blankHash_throwsDomainException(String blankHash) {
+    @MethodSource("blankValues")
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new HashedPassword(blankHash))
+            .isThrownBy(() -> new HashedPassword(blankValue))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
-    private static String[] blankHashedPasswords() {
+    private static String[] blankValues() {
 
         return new String[]{null, "", "   "};
     }

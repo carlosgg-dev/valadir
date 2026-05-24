@@ -26,7 +26,7 @@ import static org.mockito.Mockito.mock;
 class LoginAttemptRepositoryRedisAdapterExceptionTest {
 
     private static final LoginLockoutPolicy EMPTY_POLICY = new LoginLockoutPolicy(Duration.ofHours(1), List.of());
-    private static final Email EMAIL = new Email("bruce.wayne@email.com");
+    private static final Email EMAIL = Email.from("bruce.wayne@email.com");
 
     @Mock
     private RedisTemplate<String, String> redisTemplate;

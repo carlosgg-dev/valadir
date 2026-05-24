@@ -33,17 +33,15 @@ class ResendAccountActivationCodeServiceTest {
     @InjectMocks
     private ResendAccountActivationCodeService resendAccountActivationCodeService;
 
-    private static final String EMAIL = "bruce.wayne@email.com";
-
     @Test
     void resend_pendingActivationAccount_sendsActivationCode() {
 
-        var email = new Email(EMAIL);
-        var account = buildPendingActivationAccount();
+        var email = Email.from("bruce.wayne@email.com");
+        var account = buildPendingActivationAccount(email.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
 
         then(accountActivationOtpSender).should().send(account.getId(), email);
     }
@@ -51,9 +49,11 @@ class ResendAccountActivationCodeServiceTest {
     @Test
     void resend_unknownEmail_doesNothingSilently() {
 
-        given(accountRepository.findByEmail(new Email(EMAIL))).willReturn(Optional.empty());
+        var email = Email.from("bruce.wayne@email.com");
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
+
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
 
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }
@@ -61,7 +61,7 @@ class ResendAccountActivationCodeServiceTest {
     @Test
     void resend_accountNotPending_doesNothingSilently() {
 
-        var email = new Email(EMAIL);
+        var email = Email.from("bruce.wayne@email.com");
         var activeAccount = Account.reconstitute(
             AccountId.generate(),
             email,
@@ -72,16 +72,16 @@ class ResendAccountActivationCodeServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(EMAIL));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
 
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }
 
-    private Account buildPendingActivationAccount() {
+    private Account buildPendingActivationAccount(String email) {
 
         return Account.newPendingActivation(
             AccountId.generate(),
-            new Email(EMAIL),
+            Email.from(email),
             new HashedPassword("$argon2id$hashed"),
             Role.USER
         );

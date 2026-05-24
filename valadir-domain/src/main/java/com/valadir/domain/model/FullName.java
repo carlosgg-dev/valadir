@@ -19,4 +19,9 @@ public record FullName(String value) {
             throw new DomainException("Full name must not exceed 255 characters", ErrorCode.INVALID_FIELD);
         }
     }
+
+    public static FullName from(String value) {
+
+        return new FullName(value);
+    }
 }

@@ -12,30 +12,30 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class FullNameTest {
 
     @Test
-    void new_validValue_createsFullName() {
+    void constructor_validValue_createsFullName() {
 
         FullName fullName = new FullName("Bruce Wayne");
         assertThat(fullName.value()).isEqualTo("Bruce Wayne");
     }
 
     @ParameterizedTest
-    @MethodSource("blankFullNames")
-    void new_blankValue_throwsDomainException(String blankFullName) {
+    @MethodSource("blankValues")
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new FullName(blankFullName))
+            .isThrownBy(() -> new FullName(blankValue))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
     @Test
-    void new_valueAtMinLength_createsFullName() {
+    void constructor_valueAtMinLength_createsFullName() {
 
         FullName fullName = new FullName("Wa");
         assertThat(fullName.value()).isEqualTo("Wa");
     }
 
     @Test
-    void new_valueTooShort_throwsDomainException() {
+    void constructor_valueTooShort_throwsDomainException() {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new FullName("W"))
@@ -43,14 +43,14 @@ class FullNameTest {
     }
 
     @Test
-    void new_valueAtMaxLength_createsFullName() {
+    void constructor_valueAtMaxLength_createsFullName() {
 
         FullName fullName = new FullName("a".repeat(255));
         assertThat(fullName.value()).hasSize(255);
     }
 
     @Test
-    void new_valueTooLong_throwsDomainException() {
+    void constructor_valueTooLong_throwsDomainException() {
 
         var tooLong = "a".repeat(256);
 
@@ -59,7 +59,14 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    private static String[] blankFullNames() {
+    @Test
+    void from_validValue_createsFullName() {
+
+        FullName fullName = FullName.from("Bruce Wayne");
+        assertThat(fullName).isEqualTo(new FullName("Bruce Wayne"));
+    }
+
+    private static String[] blankValues() {
 
         return new String[]{null, "", "   "};
     }

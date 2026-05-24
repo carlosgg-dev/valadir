@@ -10,7 +10,11 @@ import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.FullName;
+import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.config.SecurityConfig;
 import com.valadir.web.dto.request.ActivateAccountRequest;
@@ -40,12 +44,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AccountRegistrationControllerTest {
 
-    private static final String EMAIL = "user@example.com";
-    private static final String PASSWORD = "S3cur3P@ss!";
-    private static final String FULL_NAME = "Bruce Wayne";
-    private static final String GIVEN_NAME = "Batman";
-    private static final String ACCOUNT_ACTIVATION_CODE = "123456";
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -70,20 +68,30 @@ class AccountRegistrationControllerTest {
     @Test
     void register_validRequest_returns201() throws Exception {
 
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var rawPassword = RawPassword.from("S3cur3P@ss!");
+        var fullName = FullName.from("Bruce Wayne");
+        var givenName = GivenName.from("Batman");
+
+        var request = new RegisterRequest(email.value(), rawPassword.value(), fullName.value(), givenName.value());
+        var command = new RegisterCommand(email, rawPassword, fullName, givenName);
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated());
 
-        then(registerUseCase).should().register(new RegisterCommand(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME));
+        then(registerUseCase).should().register(command);
     }
 
     @Test
     void register_blankEmail_returns400() throws Exception {
 
+        var request = new RegisterRequest("", "S3cur3P@ss!", "Bruce Wayne", "Batman");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest("", PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -93,9 +101,11 @@ class AccountRegistrationControllerTest {
     @Test
     void register_invalidEmail_returns400() throws Exception {
 
+        var request = new RegisterRequest("invalid-email", "S3cur3P@ss!", "Bruce Wayne", "Batman");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest("invalid-email", PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -105,9 +115,11 @@ class AccountRegistrationControllerTest {
     @Test
     void register_blankPassword_returns400() throws Exception {
 
+        var request = new RegisterRequest("bruce.wayne@emailValue.com", "", "Bruce Wayne", "Batman");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, "", FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -117,9 +129,11 @@ class AccountRegistrationControllerTest {
     @Test
     void register_blankFullName_returns400() throws Exception {
 
+        var request = new RegisterRequest("bruce.wayne@emailValue.com", "S3cur3P@ss!", "", "Batman");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, "", GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -129,12 +143,14 @@ class AccountRegistrationControllerTest {
     @Test
     void register_emailAlreadyExists_returns409() throws Exception {
 
+        var request = new RegisterRequest("bruce.wayne@emailValue.com", "S3cur3P@ss!", "Bruce Wayne", "Batman");
+
         willThrow(new ApplicationException("Email already exists", ErrorCode.EMAIL_ALREADY_EXISTS))
             .given(registerUseCase).register(any(RegisterCommand.class));
 
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new RegisterRequest(EMAIL, PASSWORD, FULL_NAME, GIVEN_NAME))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").value(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
     }
@@ -142,20 +158,28 @@ class AccountRegistrationControllerTest {
     @Test
     void activateAccount_validRequest_returns204() throws Exception {
 
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var code = PlainOtp.from("123456");
+
+        var request = new ActivateAccountRequest(email.value(), code.value());
+        var command = new ActivateAccountCommand(email, code);
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest(EMAIL, ACCOUNT_ACTIVATION_CODE))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isNoContent());
 
-        then(activateAccountUseCase).should().activate(new ActivateAccountCommand(EMAIL, PlainOtp.from(ACCOUNT_ACTIVATION_CODE)));
+        then(activateAccountUseCase).should().activate(command);
     }
 
     @Test
     void activateAccount_blankEmail_returns400() throws Exception {
 
+        var request = new ActivateAccountRequest("", "123456");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest("", ACCOUNT_ACTIVATION_CODE))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -165,9 +189,11 @@ class AccountRegistrationControllerTest {
     @Test
     void activateAccount_blankCode_returns400() throws Exception {
 
+        var request = new ActivateAccountRequest("bruce.wayne@emailValue.com", "");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ActivateAccountRequest(EMAIL, ""))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 
@@ -177,20 +203,27 @@ class AccountRegistrationControllerTest {
     @Test
     void resendAccountActivationCode_validRequest_returns204() throws Exception {
 
+        var email = Email.from("bruce.wayne@emailValue.com");
+
+        var request = new ResendAccountActivationCodeRequest(email.value());
+        var command = new ResendAccountActivationCodeCommand(email);
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.RESEND_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ResendAccountActivationCodeRequest(EMAIL))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isNoContent());
 
-        then(resendAccountActivationCodeUseCase).should().resend(new ResendAccountActivationCodeCommand(EMAIL));
+        then(resendAccountActivationCodeUseCase).should().resend(command);
     }
 
     @Test
     void resendAccountActivationCode_blankEmail_returns400() throws Exception {
 
+        var request = new ResendAccountActivationCodeRequest("");
+
         mockMvc.perform(post(ApiRoutes.Auth.Registration.RESEND_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new ResendAccountActivationCodeRequest(""))))
+                            .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
 

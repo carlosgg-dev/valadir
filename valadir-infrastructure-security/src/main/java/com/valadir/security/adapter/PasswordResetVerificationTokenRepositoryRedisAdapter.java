@@ -39,7 +39,7 @@ public class PasswordResetVerificationTokenRepositoryRedisAdapter implements Pas
 
         try {
             return Optional.ofNullable(redisTemplate.opsForValue().get(redisKey(verificationToken)))
-                .map(accountIdValue -> new AccountId(UUID.fromString(accountIdValue)));
+                .map(accountIdValue -> AccountId.from(UUID.fromString(accountIdValue)));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — password reset OTP verification lookup failed", e);
         }

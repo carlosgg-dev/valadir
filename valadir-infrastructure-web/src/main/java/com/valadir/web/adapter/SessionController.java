@@ -7,6 +7,9 @@ import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.result.AuthTokenResult;
+import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.dto.request.LoginRequest;
 import com.valadir.web.dto.request.LogoutRequest;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(ApiRoutes.Auth.BASE)
@@ -48,7 +52,8 @@ class SessionController {
     @PostMapping(ApiRoutes.Auth.Session.LOGIN)
     AuthResponse login(@Valid @RequestBody LoginRequest request) {
 
-        AuthTokenResult result = loginUseCase.login(new LoginCommand(request.email(), request.password()));
+        var command = new LoginCommand(Email.from(request.email()), RawPassword.from(request.password()));
+        AuthTokenResult result = loginUseCase.login(command);
 
         return new AuthResponse(result.accessToken(), result.refreshToken());
     }
@@ -66,7 +71,8 @@ class SessionController {
     void logout(@Valid @RequestBody LogoutRequest request, @AuthenticationPrincipal Jwt jwt) {
 
         Duration remainingTtl = Duration.between(Instant.now(), Objects.requireNonNull(jwt.getExpiresAt()));
+        var accountId = AccountId.from(UUID.fromString(jwt.getSubject()));
 
-        logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), jwt.getSubject()));
+        logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), accountId));
     }
 }

@@ -9,7 +9,6 @@ import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
-import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
@@ -59,8 +58,8 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         var user = userRepository.findByAccountId(accountId)
             .orElseThrow(() -> new ApplicationException("User not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
-        var rawPassword = new RawPassword(command.newPassword());
-        var profileData = new UserProfileData(user.getFullName(), user.getGivenName());
+        var rawPassword = command.newPassword();
+        var profileData = UserProfileData.from(user.getFullName(), user.getGivenName());
         passwordSecurityService.validatePassword(rawPassword, account.getEmail(), profileData);
 
         var hashedPassword = passwordHasher.hash(rawPassword);

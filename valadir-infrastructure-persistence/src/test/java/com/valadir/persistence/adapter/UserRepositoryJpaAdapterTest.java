@@ -75,7 +75,7 @@ class UserRepositoryJpaAdapterTest extends PostgresTestContainer {
 
         return Account.reconstitute(
             AccountId.generate(),
-            new Email("bruce.wayne@example.com"),
+            Email.from("bruce.wayne@example.com"),
             new HashedPassword("$argon2id$hashedpassword"),
             Role.USER,
             AccountStatus.ACTIVE
@@ -87,8 +87,8 @@ class UserRepositoryJpaAdapterTest extends PostgresTestContainer {
         return User.newProfile(
             UserId.generate(),
             accountId,
-            new FullName("Bruce Wayne"),
-            new GivenName("Batman")
+            FullName.from("Bruce Wayne"),
+            GivenName.from("Batman")
         );
     }
 }

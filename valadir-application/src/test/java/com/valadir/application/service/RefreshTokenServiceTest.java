@@ -47,7 +47,7 @@ class RefreshTokenServiceTest {
     private final AccountId accountId = AccountId.generate();
     private final Account account = Account.reconstitute(
         accountId,
-        new Email("bruce.wayne@email.com"),
+        Email.from("bruce.wayne@email.com"),
         new HashedPassword("$2a$12$hashed"),
         Role.USER,
         AccountStatus.ACTIVE

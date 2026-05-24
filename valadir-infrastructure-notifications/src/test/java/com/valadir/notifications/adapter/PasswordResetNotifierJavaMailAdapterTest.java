@@ -39,7 +39,7 @@ class PasswordResetNotifierJavaMailAdapterTest {
     @Test
     void sendResetCode_validInput_sendsMessageWithCorrectFields() {
 
-        adapter.sendResetCode(new Email(TO_ADDRESS), PLAIN_OTP);
+        adapter.sendResetCode(Email.from(TO_ADDRESS), PLAIN_OTP);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();

@@ -19,7 +19,6 @@ class PlainOtpTest {
     void constructor_validValue_storesValue() {
 
         var plainOtp = new PlainOtp("123456");
-
         assertThat(plainOtp.value()).isEqualTo("123456");
     }
 
@@ -60,16 +59,7 @@ class PlainOtpTest {
     void from_validValue_returnsPlainOtp() {
 
         var otp = PlainOtp.from("123456");
-
-        assertThat(otp.value()).isEqualTo("123456");
-    }
-
-    @Test
-    void from_invalidValue_throwsIllegalArgumentException() {
-
-        assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new PlainOtp("abc"))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_OTP);
+        assertThat(otp).isEqualTo(new PlainOtp("123456"));
     }
 
     @Test

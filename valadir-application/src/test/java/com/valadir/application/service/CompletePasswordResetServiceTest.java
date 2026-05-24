@@ -61,11 +61,11 @@ class CompletePasswordResetServiceTest {
     private CompletePasswordResetService service;
 
     private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
-    private static final RawPassword NEW_PASSWORD = new RawPassword("NewP@ssword1");
+    private static final RawPassword NEW_PASSWORD = RawPassword.from("NewP@ssword1");
     private static final HashedPassword HASHED_NEW_PASSWORD = new HashedPassword("$argon2id$newHashed");
-    private static final Email EMAIL = new Email("bruce.wayne@example.com");
-    private static final FullName FULL_NAME = new FullName("Bruce Wayne");
-    private static final GivenName GIVEN_NAME = new GivenName("Batman");
+    private static final Email EMAIL = Email.from("bruce.wayne@example.com");
+    private static final FullName FULL_NAME = FullName.from("Bruce Wayne");
+    private static final GivenName GIVEN_NAME = GivenName.from("Batman");
 
     @Test
     void complete_validToken_updatesPasswordAndRevokesTokens() {
@@ -73,8 +73,8 @@ class CompletePasswordResetServiceTest {
         var accountId = AccountId.generate();
         var account = buildAccount(accountId);
         var user = buildUser(accountId);
-        var profileData = new UserProfileData(FULL_NAME, GIVEN_NAME);
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
+        var profileData = UserProfileData.from(FULL_NAME, GIVEN_NAME);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
@@ -92,7 +92,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_tokenNotFound_throwsApplicationException() {
 
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
@@ -109,7 +109,7 @@ class CompletePasswordResetServiceTest {
     void complete_accountNotFound_throwsApplicationException() {
 
         var accountId = AccountId.generate();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
@@ -128,7 +128,7 @@ class CompletePasswordResetServiceTest {
 
         var accountId = AccountId.generate();
         var account = buildAccount(accountId);
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD.value());
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));

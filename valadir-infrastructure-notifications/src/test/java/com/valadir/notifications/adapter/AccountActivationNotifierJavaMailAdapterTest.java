@@ -39,7 +39,7 @@ class AccountActivationNotifierJavaMailAdapterTest {
     @Test
     void sendActivationCode_validInput_sendsMessageWithCorrectFields() {
 
-        adapter.sendActivationCode(new Email(TO_ADDRESS), PLAIN_OTP);
+        adapter.sendActivationCode(Email.from(TO_ADDRESS), PLAIN_OTP);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();

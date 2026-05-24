@@ -1,7 +1,10 @@
 package com.valadir.application.command;
 
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.RawPassword;
+
 public record LoginCommand(
-    String email,
-    String password) {
+    Email email,
+    RawPassword password) {
 
 }

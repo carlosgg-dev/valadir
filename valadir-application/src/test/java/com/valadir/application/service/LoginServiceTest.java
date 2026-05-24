@@ -54,24 +54,16 @@ class LoginServiceTest {
     @InjectMocks
     private LoginService service;
 
-    private static final Account EXISTING_ACCOUNT = Account.reconstitute(
-        AccountId.generate(),
-        new Email("bruce.wayne@email.com"),
-        new HashedPassword("$2a$12$hashed"),
-        Role.USER,
-        AccountStatus.ACTIVE
-    );
-
     @Test
     void login_validCredentials_returnsTokens() {
 
-        var email = "bruce.wayne@email.com";
-        var password = "SecureP@ss123";
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
         var accessToken = "access-token";
         var refreshToken = "refresh-token";
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(true);
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole())).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
         AuthTokenResult result = service.login(new LoginCommand(email, password));
@@ -84,29 +76,29 @@ class LoginServiceTest {
     @Test
     void login_emailNotFoundGuardsTiming_throwsApplicationException() {
 
-        var email = "unknown@email.com";
-        var password = "SecureP@ss123";
+        var email = Email.from("unknown@email.com");
+        var password = RawPassword.from("SecureP@ss123");
         var command = new LoginCommand(email, password);
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(passwordHasher).should().guardTiming(new RawPassword(password));
+        then(passwordHasher).should().guardTiming(password);
         then(authTokenIssuer).should(never()).issue(any(), any());
     }
 
     @Test
     void login_wrongPassword_throwsApplicationException() {
 
-        var email = "bruce.wayne@email.com";
-        var password = "WrongP@ss123";
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("WrongP@ss123");
         var command = new LoginCommand(email, password);
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
@@ -118,10 +110,9 @@ class LoginServiceTest {
     @Test
     void login_accountPendingActivation_throwsApplicationException() {
 
-        var emailValue = "bruce.wayne@emailValue.com";
-        var password = "SecureP@ss123";
-        var command = new LoginCommand(emailValue, password);
-        var email = new Email(emailValue);
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
+        var command = new LoginCommand(email, password);
         var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
             email,
@@ -130,7 +121,7 @@ class LoginServiceTest {
         );
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
-        given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
@@ -143,12 +134,12 @@ class LoginServiceTest {
     @Test
     void login_withActiveLockout_throwsAccountLockedException() {
 
-        var email = "bruce.wayne@email.com";
-        var password = "SecureP@ss123";
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
         var remainingLockout = Duration.ofSeconds(30);
         var command = new LoginCommand(email, password);
 
-        given(loginAttemptRepository.findActiveLockout(new Email(email))).willReturn(Optional.of(remainingLockout));
+        given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.of(remainingLockout));
 
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> service.login(command))
@@ -160,14 +151,13 @@ class LoginServiceTest {
     @Test
     void login_wrongPassword_recordsFailedAttempt() {
 
-        var emailValue = "bruce.wayne@email.com";
-        var email = new Email(emailValue);
-        var password = "WrongP@ss123";
-        var command = new LoginCommand(emailValue, password);
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
+        var command = new LoginCommand(email, password);
 
         given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.empty());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
@@ -180,11 +170,11 @@ class LoginServiceTest {
     @Test
     void login_emailNotFound_doesNotRecordFailedAttempt() {
 
-        var email = "unknown@email.com";
-        var password = "SecureP@ss123";
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
         var command = new LoginCommand(email, password);
 
-        given(accountRepository.findByEmail(new Email(email))).willReturn(Optional.empty());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
@@ -196,10 +186,9 @@ class LoginServiceTest {
     @Test
     void login_accountPendingActivation_doesNotRecordFailedAttempt() {
 
-        var emailValue = "bruce.wayne@emailValue.com";
-        var email = new Email(emailValue);
-        var password = "SecureP@ss123";
-        var command = new LoginCommand(emailValue, password);
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
+        var command = new LoginCommand(email, password);
         var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
             email,
@@ -208,7 +197,7 @@ class LoginServiceTest {
         );
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
-        given(passwordHasher.matches(new RawPassword(password), pendingAccount.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
@@ -220,17 +209,24 @@ class LoginServiceTest {
     @Test
     void login_validCredentials_clearsAttempts() {
 
-        var emailValue = "bruce.wayne@email.com";
-        var email = new Email(emailValue);
-        var password = "SecureP@ss123";
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("SecureP@ss123");
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(new RawPassword(password), EXISTING_ACCOUNT.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
             .willReturn(new AuthTokenResult("access-token", "refresh-token"));
 
-        service.login(new LoginCommand(emailValue, password));
+        service.login(new LoginCommand(email, password));
 
         then(loginAttemptRepository).should().clearAttempts(email);
     }
+
+    private static final Account EXISTING_ACCOUNT = Account.reconstitute(
+        AccountId.generate(),
+        Email.from("bruce.wayne@email.com"),
+        new HashedPassword("$2a$12$hashed"),
+        Role.USER,
+        AccountStatus.ACTIVE
+    );
 }

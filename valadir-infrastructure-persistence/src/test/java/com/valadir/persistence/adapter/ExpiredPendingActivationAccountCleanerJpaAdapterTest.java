@@ -80,7 +80,7 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestC
 
         var account = Account.reconstitute(
             AccountId.generate(),
-            new Email("active@email.com"),
+            Email.from("active@email.com"),
             new HashedPassword("$2a$12$hash"),
             Role.USER,
             AccountStatus.ACTIVE
@@ -124,7 +124,7 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestC
 
         var account = Account.newPendingActivation(
             AccountId.generate(),
-            new Email(email),
+            Email.from(email),
             new HashedPassword("$2a$12$hash"),
             Role.USER
         );
@@ -137,8 +137,8 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest extends PostgresTestC
         var user = User.newProfile(
             UserId.generate(),
             savedAccountId,
-            new FullName("Test User"),
-            new GivenName("Test")
+            FullName.from("Bruce Wayne"),
+            GivenName.from("Batman")
         );
 
         var userEntity = UserMapper.toEntity(user);

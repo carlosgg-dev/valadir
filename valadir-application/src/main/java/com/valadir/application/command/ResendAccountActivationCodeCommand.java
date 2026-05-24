@@ -1,6 +1,8 @@
 package com.valadir.application.command;
 
+import com.valadir.domain.model.Email;
+
 public record ResendAccountActivationCodeCommand(
-    String email) {
+    Email email) {
 
 }

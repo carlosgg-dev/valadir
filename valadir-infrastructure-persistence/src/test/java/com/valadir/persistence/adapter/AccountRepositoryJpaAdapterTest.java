@@ -80,7 +80,7 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
     @Test
     void findByEmail_nonExistingAccount_returnsEmpty() {
 
-        Optional<Account> result = adapter.findByEmail(new Email("unknown@email.com"));
+        Optional<Account> result = adapter.findByEmail(Email.from("unknown@email.com"));
 
         assertThat(result).isEmpty();
     }
@@ -90,7 +90,7 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
 
         var pendingAccount = Account.newPendingActivation(
             AccountId.generate(),
-            new Email("pending@email.com"),
+            Email.from("pending@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),
             Role.USER
         );
@@ -126,7 +126,7 @@ class AccountRepositoryJpaAdapterTest extends PostgresTestContainer {
 
         return Account.reconstitute(
             AccountId.generate(),
-            new Email("bruce.wayne@email.com"),
+            Email.from("bruce.wayne@email.com"),
             new HashedPassword("$2a$12$hashedpassword"),
             Role.USER,
             AccountStatus.ACTIVE

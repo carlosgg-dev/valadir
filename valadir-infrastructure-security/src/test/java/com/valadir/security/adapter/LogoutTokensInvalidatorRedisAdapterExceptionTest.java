@@ -17,11 +17,6 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class LogoutTokensInvalidatorRedisAdapterExceptionTest {
 
-    private static final String JTI = UUID.randomUUID().toString();
-    private static final Duration REMAINING_TTL = Duration.ofMinutes(10);
-    private static final String REFRESH_TOKEN = UUID.randomUUID().toString();
-    private static final String ACCOUNT_ID = AccountId.generate().toString();
-
     private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
     };
 
@@ -36,10 +31,15 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
     @Test
     void invalidate_redisError_throwsInfrastructureException() {
 
+        var jti = UUID.randomUUID().toString();
+        var remainingTtl = Duration.ofMinutes(10);
+        var refreshToken = UUID.randomUUID().toString();
+        var accountId = AccountId.generate();
+
         var adapter = new LogoutTokensInvalidatorRedisAdapter(redisErrorTemplate());
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.invalidate(JTI, REMAINING_TTL, REFRESH_TOKEN, ACCOUNT_ID))
+            .isThrownBy(() -> adapter.invalidate(jti, remainingTtl, refreshToken, accountId))
             .withCause(REDIS_ERROR);
     }
 }

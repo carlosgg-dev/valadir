@@ -41,7 +41,7 @@ class AccountMapperTest {
 
         var account = Account.reconstitute(
             AccountId.from(id),
-            new Email(email),
+            Email.from(email),
             new HashedPassword(hashedPassword),
             Role.USER,
             AccountStatus.ACTIVE

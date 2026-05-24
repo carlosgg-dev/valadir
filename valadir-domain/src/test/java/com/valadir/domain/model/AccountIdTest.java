@@ -12,6 +12,22 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class AccountIdTest {
 
     @Test
+    void constructor_validValue_reconstitutesId() {
+
+        UUID uuid = UUID.randomUUID();
+        AccountId id = new AccountId(uuid);
+        assertThat(id.value()).isEqualTo(uuid);
+    }
+
+    @Test
+    void constructor_nullValue_throwsDomainException() {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new AccountId(null))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
+    }
+
+    @Test
     void generate_createsNonNullId() {
 
         AccountId id = AccountId.generate();
@@ -27,18 +43,10 @@ class AccountIdTest {
     }
 
     @Test
-    void from_existingUuid_reconstitutesId() {
+    void from_validValue_reconstitutesId() {
 
         UUID uuid = UUID.randomUUID();
         AccountId id = AccountId.from(uuid);
-        assertThat(id.value()).isEqualTo(uuid);
-    }
-
-    @Test
-    void from_nullUuid_throwsDomainException() {
-
-        assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> AccountId.from(null))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
+        assertThat(id).isEqualTo(new AccountId(uuid));
     }
 }

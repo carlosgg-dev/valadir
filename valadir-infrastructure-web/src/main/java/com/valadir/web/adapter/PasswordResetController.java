@@ -7,7 +7,9 @@ import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
+import com.valadir.domain.model.Email;
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.dto.request.CompletePasswordResetRequest;
 import com.valadir.web.dto.request.InitiatePasswordResetRequest;
@@ -44,13 +46,16 @@ class PasswordResetController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void initiatePasswordReset(@Valid @RequestBody InitiatePasswordResetRequest request) {
 
-        initiatePasswordResetUseCase.initiate(new InitiatePasswordResetCommand(request.email()));
+        var command = new InitiatePasswordResetCommand(Email.from(request.email()));
+
+        initiatePasswordResetUseCase.initiate(command);
     }
 
     @PostMapping(ApiRoutes.Auth.PasswordReset.VERIFY)
     PasswordResetOtpVerificationResponse verifyPasswordResetOtp(@Valid @RequestBody VerifyPasswordResetOtpRequest request) {
 
-        PasswordResetOtpVerificationResult result = verifyPasswordResetOtpUseCase.verify(new VerifyPasswordResetOtpCommand(request.email(), PlainOtp.from(request.code())));
+        var command = new VerifyPasswordResetOtpCommand(Email.from(request.email()), PlainOtp.from(request.code()));
+        PasswordResetOtpVerificationResult result = verifyPasswordResetOtpUseCase.verify(command);
 
         return new PasswordResetOtpVerificationResponse(result.verificationToken());
     }
@@ -59,6 +64,8 @@ class PasswordResetController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void completePasswordReset(@Valid @RequestBody CompletePasswordResetRequest request) {
 
-        completePasswordResetUseCase.complete(new CompletePasswordResetCommand(request.verificationToken(), request.newPassword()));
+        var command = new CompletePasswordResetCommand(request.verificationToken(), RawPassword.from(request.newPassword()));
+
+        completePasswordResetUseCase.complete(command);
     }
 }

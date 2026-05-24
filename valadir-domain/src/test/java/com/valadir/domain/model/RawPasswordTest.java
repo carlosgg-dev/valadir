@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class RawPasswordTest {
 
     @Test
-    void new_complexityRequirementsMet_createsRawPassword() {
+    void constructor_complexityRequirementsMet_createsRawPassword() {
 
         RawPassword password = new RawPassword("SecureP@ss123");
         assertThat(password.value()).isEqualTo("SecureP@ss123");
@@ -28,7 +28,7 @@ class RawPasswordTest {
         "NoDigit_Letters",
         "No_Numbers"
     })
-    void new_complexityRequirementsNotMet_throwsDomainException(String invalidPassword) {
+    void constructor_complexityRequirementsNotMet_throwsDomainException(String invalidPassword) {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new RawPassword(invalidPassword))
@@ -37,16 +37,16 @@ class RawPasswordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("nullAndBlankPasswords")
-    void new_nullOrBlankValue_throwsDomainException(String invalidPassword) {
+    @MethodSource("blankValues")
+    void constructor_blankValues_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new RawPassword(invalidPassword))
+            .isThrownBy(() -> new RawPassword(blankValue))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
     @Test
-    void new_valueAtMaxLength_createsRawPassword() {
+    void constructor_valueAtMaxLength_createsRawPassword() {
 
         String password = "Aa1!" + "a".repeat(68);
         RawPassword rawPassword = new RawPassword(password);
@@ -54,7 +54,7 @@ class RawPasswordTest {
     }
 
     @Test
-    void new_valueTooLong_throwsDomainException() {
+    void constructor_valueTooLong_throwsDomainException() {
 
         String password = "Aa1!" + "a".repeat(69);
         assertThatExceptionOfType(DomainException.class)
@@ -62,7 +62,14 @@ class RawPasswordTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
-    private static String[] nullAndBlankPasswords() {
+    @Test
+    void from_validValue_createsRawPassword() {
+
+        RawPassword password = RawPassword.from("SecureP@ss123");
+        assertThat(password).isEqualTo(new RawPassword("SecureP@ss123"));
+    }
+
+    private static String[] blankValues() {
 
         return new String[]{null, "", " "};
     }

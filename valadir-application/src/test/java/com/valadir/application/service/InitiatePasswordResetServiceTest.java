@@ -54,7 +54,6 @@ class InitiatePasswordResetServiceTest {
     @Captor
     private ArgumentCaptor<PlainOtp> plainOtpCaptor;
 
-    private static final Email EMAIL = new Email("bruce.wayne@email.com");
     private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
     private static final HashedPassword HASHED_PASSWORD = new HashedPassword("$argon2id$hashed");
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
@@ -62,17 +61,18 @@ class InitiatePasswordResetServiceTest {
     @Test
     void initiate_existingActiveAccount_sendsResetCode() {
 
+        var email = Email.from("bruce.wayne@email.com");
         var activeAccount = Account.reconstitute(
             AccountId.generate(),
-            EMAIL,
+            email,
             HASHED_PASSWORD,
             Role.USER,
             AccountStatus.ACTIVE
         );
 
-        var command = new InitiatePasswordResetCommand(EMAIL.value());
+        var command = new InitiatePasswordResetCommand(email);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(activeAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
         given(otpHasher.hash(any())).willReturn(HASHED_OTP);
         given(passwordResetConfig.otpTtl()).willReturn(OTP_TTL);
 
@@ -80,15 +80,16 @@ class InitiatePasswordResetServiceTest {
 
         then(otpHasher).should().hash(plainOtpCaptor.capture());
         then(otpRepository).should().save(activeAccount.getId(), HASHED_OTP, OTP_TTL);
-        then(passwordResetNotifier).should().sendResetCode(EMAIL, plainOtpCaptor.getValue());
+        then(passwordResetNotifier).should().sendResetCode(email, plainOtpCaptor.getValue());
     }
 
     @Test
     void initiate_accountNotFound_guardTimingAndReturnsSilently() {
 
-        var command = new InitiatePasswordResetCommand(EMAIL.value());
+        var email = Email.from("bruce.wayne@email.com");
+        var command = new InitiatePasswordResetCommand(email);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.empty());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         service.initiate(command);
 
         then(otpHasher).should().guardTiming();
@@ -100,10 +101,11 @@ class InitiatePasswordResetServiceTest {
     @Test
     void initiate_pendingActivationAccount_guardTimingAndReturnsSilently() {
 
-        var pendingAccount = Account.newPendingActivation(AccountId.generate(), EMAIL, HASHED_PASSWORD, Role.USER);
-        var command = new InitiatePasswordResetCommand(EMAIL.value());
+        var email = Email.from("bruce.wayne@email.com");
+        var pendingAccount = Account.newPendingActivation(AccountId.generate(), email, HASHED_PASSWORD, Role.USER);
+        var command = new InitiatePasswordResetCommand(email);
 
-        given(accountRepository.findByEmail(EMAIL)).willReturn(Optional.of(pendingAccount));
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         service.initiate(command);
 
         then(otpHasher).should().guardTiming();

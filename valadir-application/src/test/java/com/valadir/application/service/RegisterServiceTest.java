@@ -66,22 +66,18 @@ class RegisterServiceTest {
     @Test
     void register_emailNotExist_persistsDataAndSendsOtp() {
 
-        var emailValue = "bruce.wayne@emailValue.com";
-        var email = new Email(emailValue);
-        var rawPasswordValue = "SecureP@ss123";
-        var rawPassword = new RawPassword(rawPasswordValue);
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var rawPassword = RawPassword.from("SecureP@ss123");
+        var fullName = FullName.from("Bruce Wayne");
+        var givenName = GivenName.from("Batman");
         var hashedPassword = new HashedPassword("$2a$12$hashed");
-        var fullNameValue = "Bruce Wayne";
-        var givenNameValue = "Bruce";
-        var fullName = new FullName(fullNameValue);
-        var givenName = new GivenName(givenNameValue);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
 
-        registerService.register(new RegisterCommand(emailValue, rawPasswordValue, fullNameValue, givenNameValue));
+        registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
 
-        then(passwordSecurityService).should().validatePassword(rawPassword, email, new UserProfileData(fullName, givenName));
+        then(passwordSecurityService).should().validatePassword(rawPassword, email, UserProfileData.from(fullName, givenName));
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
         then(registerPersistence).should(never()).replace(any(), any(), any());
 
@@ -102,8 +98,10 @@ class RegisterServiceTest {
     @Test
     void register_activeEmailExists_throwsApplicationException() {
 
-        var emailValue = "bruce.wayne@email.com";
-        var email = new Email(emailValue);
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var rawPassword = RawPassword.from("SecureP@ss123");
+        var fullName = FullName.from("Bruce Wayne");
+        var givenName = GivenName.from("Batman");
         var existing = Account.reconstitute(
             AccountId.generate(),
             email,
@@ -114,7 +112,7 @@ class RegisterServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
-        RegisterCommand command = new RegisterCommand(emailValue, "SecureP@ss123", "Bruce Wayne", "Bruce");
+        RegisterCommand command = new RegisterCommand(email, rawPassword, fullName, givenName);
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -127,8 +125,10 @@ class RegisterServiceTest {
     @Test
     void register_pendingEmailExists_replacesPending() {
 
-        var emailValue = "bruce.wayne@email.com";
-        var email = new Email(emailValue);
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var rawPassword = RawPassword.from("SecureP@ss123");
+        var fullName = FullName.from("Bruce Wayne");
+        var givenName = GivenName.from("Batman");
         var existingAccountId = AccountId.generate();
         var existingAccount = Account.newPendingActivation(
             existingAccountId,
@@ -140,9 +140,9 @@ class RegisterServiceTest {
         var hashedPassword = new HashedPassword("$argon2id$new");
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existingAccount));
-        given(passwordHasher.hash(new RawPassword(rawPasswordValue))).willReturn(hashedPassword);
+        given(passwordHasher.hash(RawPassword.from(rawPasswordValue))).willReturn(hashedPassword);
 
-        registerService.register(new RegisterCommand(emailValue, rawPasswordValue, "Bruce Wayne", "Bruce"));
+        registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
 
         then(registerPersistence).should().replace(eq(existingAccountId), accountCaptor.capture(), userCaptor.capture());
         then(registerPersistence).should(never()).save(any(), any());

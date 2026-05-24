@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AccountTest {
 
     private static final AccountId ID = AccountId.generate();
-    private static final Email EMAIL = new Email("bruce.wayne@email.com");
+    private static final Email EMAIL = Email.from("bruce.wayne@email.com");
     private static final HashedPassword PASSWORD = new HashedPassword("$2a$12$hashedpassword");
     private static final Role ROLE = Role.USER;
 

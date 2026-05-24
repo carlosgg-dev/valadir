@@ -47,7 +47,7 @@ class AccountActivationOtpSenderServiceTest {
     void send_hashesOtpPersistsAndSendsEmail() {
 
         var accountId = AccountId.generate();
-        var email = new Email("bruce.wayne@email.com");
+        var email = Email.from("bruce.wayne@email.com");
         var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
         var otpTtl = Duration.ofSeconds(900);
 

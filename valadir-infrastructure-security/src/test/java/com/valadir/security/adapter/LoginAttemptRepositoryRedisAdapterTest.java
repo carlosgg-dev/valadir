@@ -38,7 +38,7 @@ class LoginAttemptRepositoryRedisAdapterTest extends RedisTestContainer {
 
     private LoginAttemptRepositoryRedisAdapter adapter;
 
-    private final Email email = new Email("bruce.wayne@email.com");
+    private final Email email = Email.from("bruce.wayne@email.com");
 
     @BeforeEach
     void setUp() {
