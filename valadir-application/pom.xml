@@ -19,7 +19,14 @@
             <groupId>com.valadir</groupId>
             <artifactId>valadir-domain</artifactId>
         </dependency>
-        
+
+        <dependency>
+            <groupId>com.valadir</groupId>
+            <artifactId>valadir-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- -->
+
         <!-- Logging API -->
         <dependency>
             <groupId>org.slf4j</groupId>

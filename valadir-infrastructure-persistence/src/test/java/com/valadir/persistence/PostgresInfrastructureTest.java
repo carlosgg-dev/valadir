@@ -1,5 +1,6 @@
 package com.valadir.persistence;
 
+import com.valadir.test.containers.PostgresContainerConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,7 +15,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PostgresInfrastructureTest extends PostgresTestContainer {
+class PostgresInfrastructureTest {
 
     private static Connection connection;
 
@@ -22,9 +23,9 @@ class PostgresInfrastructureTest extends PostgresTestContainer {
     static void setup() throws Exception {
 
         connection = DriverManager.getConnection(
-            POSTGRES.getJdbcUrl(),
-            POSTGRES.getUsername(),
-            POSTGRES.getPassword());
+            PostgresContainerConfig.POSTGRES.getJdbcUrl(),
+            PostgresContainerConfig.POSTGRES.getUsername(),
+            PostgresContainerConfig.POSTGRES.getPassword());
     }
 
     @ParameterizedTest(name = "{1} should be created by init.sql")

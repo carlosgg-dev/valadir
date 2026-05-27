@@ -24,6 +24,12 @@
             <groupId>com.valadir</groupId>
             <artifactId>valadir-common</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.valadir</groupId>
+            <artifactId>valadir-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- -->
 
         <!-- Spring Data Redis -->
@@ -71,6 +77,13 @@
             <groupId>com.redis</groupId>
             <artifactId>testcontainers-redis</artifactId>
             <version>2.2.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot Testcontainers: @ServiceConnection infrastructure -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

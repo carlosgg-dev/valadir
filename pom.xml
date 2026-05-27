@@ -28,6 +28,7 @@
         <module>valadir-infrastructure-persistence</module>
         <module>valadir-infrastructure-security</module>
         <module>valadir-infrastructure-web</module>
+        <module>valadir-test-support</module>
     </modules>
 
     <properties>
@@ -128,6 +129,12 @@
             <dependency>
                 <groupId>com.valadir</groupId>
                 <artifactId>valadir-infrastructure-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.valadir</groupId>
+                <artifactId>valadir-test-support</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- -->

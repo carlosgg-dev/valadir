@@ -2,12 +2,13 @@ package com.valadir.security.adapter;
 
 import com.valadir.application.result.TokenValidationResult;
 import com.valadir.domain.model.AccountId;
-import com.valadir.security.RedisTestContainer;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,7 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class RefreshTokenRepositoryRedisAdapterTest extends RedisTestContainer {
+@Import(RedisContainerConfig.class)
+class RefreshTokenRepositoryRedisAdapterTest {
 
     @Autowired
     private RefreshTokenRepositoryRedisAdapter adapter;

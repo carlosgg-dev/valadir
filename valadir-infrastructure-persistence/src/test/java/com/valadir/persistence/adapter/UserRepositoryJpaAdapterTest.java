@@ -10,17 +10,18 @@ import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
-import com.valadir.persistence.PostgresTestContainer;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
+import com.valadir.test.containers.PostgresContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 import java.util.Optional;
 
@@ -28,7 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-class UserRepositoryJpaAdapterTest extends PostgresTestContainer {
+@Import(PostgresContainerConfig.class)
+class UserRepositoryJpaAdapterTest {
 
     @Autowired
     private AccountJpaRepository accountJpaRepository;

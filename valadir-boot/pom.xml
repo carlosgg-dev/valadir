@@ -34,6 +34,12 @@
             <groupId>com.valadir</groupId>
             <artifactId>valadir-infrastructure-web</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.valadir</groupId>
+            <artifactId>valadir-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- -->
 
         <!-- Core Spring Boot features -->
@@ -56,7 +62,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- PostgreSQL Testcontainers -->
+        <!-- PostgreSQL Testcontainers: Dynamically creates Docker containers for tests -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
