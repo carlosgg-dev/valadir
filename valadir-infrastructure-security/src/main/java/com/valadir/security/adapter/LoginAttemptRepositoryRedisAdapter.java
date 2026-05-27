@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.Duration;
@@ -20,13 +20,13 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
 
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptRepositoryRedisAdapter.class);
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisOperations<String, String> redisOperations;
     private final LoginLockoutPolicy policy;
     private final RedisScript<Long> recordLoginAttemptScript;
 
-    public LoginAttemptRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy policy) {
+    public LoginAttemptRepositoryRedisAdapter(RedisOperations<String, String> redisOperations, LoginLockoutPolicy policy) {
 
-        this.redisTemplate = redisTemplate;
+        this.redisOperations = redisOperations;
         this.policy = policy;
         this.recordLoginAttemptScript = RedisScript.of(new ClassPathResource("scripts/login_attempt_increase_expire.lua"), Long.class);
     }
@@ -35,7 +35,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     public Optional<Duration> findActiveLockout(Email email) {
 
         try {
-            Long ttl = redisTemplate.getExpire(lockoutKey(email), TimeUnit.SECONDS);
+            Long ttl = redisOperations.getExpire(lockoutKey(email), TimeUnit.SECONDS);
             if (ttl == null) {
                 log.warn("Redis returned null TTL for lockout key — skipping lockout check for {}", email.value());
                 return Optional.empty();
@@ -54,7 +54,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
 
         try {
             String attemptsKey = attemptsKey(email);
-            Long count = redisTemplate.execute(
+            Long count = redisOperations.execute(
                 recordLoginAttemptScript,
                 List.of(attemptsKey),
                 String.valueOf(policy.attemptsWindow().getSeconds())
@@ -67,7 +67,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
 
             Duration lockout = policy.lockoutFor(count);
             if (lockout.isPositive()) {
-                redisTemplate.opsForValue().set(lockoutKey(email), RedisKeySpace.LOGIN_LOCKOUT_VALUE, lockout);
+                redisOperations.opsForValue().set(lockoutKey(email), RedisKeySpace.LOGIN_LOCKOUT_VALUE, lockout);
             }
 
         } catch (DataAccessException e) {
@@ -79,7 +79,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     public void clearAttempts(Email email) {
 
         try {
-            redisTemplate.delete(List.of(attemptsKey(email), lockoutKey(email)));
+            redisOperations.delete(List.of(attemptsKey(email), lockoutKey(email)));
         } catch (DataAccessException e) {
             log.warn("Redis unavailable — attempt counter not cleared for {}", email.value(), e);
         }

@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 
+import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class OtpRepositoryRedisAdapterExceptionTest {
@@ -27,11 +27,13 @@ class OtpRepositoryRedisAdapterExceptionTest {
     };
 
     @SuppressWarnings("unchecked")
-    private static RedisTemplate<String, String> redisErrorTemplate() {
+    private static RedisOperations<String, String> redisErrorTemplate() {
 
-        return mock(RedisTemplate.class, invocationOnMock -> {
-            throw REDIS_ERROR;
-        });
+        return (RedisOperations<String, String>) Proxy.newProxyInstance(
+            RedisOperations.class.getClassLoader(),
+            new Class[]{RedisOperations.class},
+            (proxy, method, args) -> {throw REDIS_ERROR;}
+        );
     }
 
     @Test

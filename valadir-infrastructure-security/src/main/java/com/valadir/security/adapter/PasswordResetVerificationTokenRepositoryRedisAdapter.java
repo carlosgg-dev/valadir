@@ -5,7 +5,7 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -13,18 +13,18 @@ import java.util.UUID;
 
 public class PasswordResetVerificationTokenRepositoryRedisAdapter implements PasswordResetVerificationTokenRepository {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisOperations<String, String> redisOperations;
 
-    public PasswordResetVerificationTokenRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate) {
+    public PasswordResetVerificationTokenRepositoryRedisAdapter(RedisOperations<String, String> redisOperations) {
 
-        this.redisTemplate = redisTemplate;
+        this.redisOperations = redisOperations;
     }
 
     @Override
     public void save(String verificationToken, AccountId accountId, Duration ttl) {
 
         try {
-            redisTemplate.opsForValue().set(
+            redisOperations.opsForValue().set(
                 redisKey(verificationToken),
                 accountId.value().toString(),
                 ttl
@@ -38,7 +38,7 @@ public class PasswordResetVerificationTokenRepositoryRedisAdapter implements Pas
     public Optional<AccountId> resolveAccountId(String verificationToken) {
 
         try {
-            return Optional.ofNullable(redisTemplate.opsForValue().get(redisKey(verificationToken)))
+            return Optional.ofNullable(redisOperations.opsForValue().get(redisKey(verificationToken)))
                 .map(accountIdValue -> AccountId.from(UUID.fromString(accountIdValue)));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — password reset OTP verification lookup failed", e);
@@ -49,7 +49,7 @@ public class PasswordResetVerificationTokenRepositoryRedisAdapter implements Pas
     public void delete(String verificationToken) {
 
         try {
-            redisTemplate.delete(redisKey(verificationToken));
+            redisOperations.delete(redisKey(verificationToken));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — password reset OTP verification delete failed", e);
         }

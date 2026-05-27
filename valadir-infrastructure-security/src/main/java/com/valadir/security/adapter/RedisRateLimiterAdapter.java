@@ -5,7 +5,7 @@ import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.Duration;
@@ -15,12 +15,12 @@ import java.util.Objects;
 @SuppressWarnings("rawtypes")
 public class RedisRateLimiterAdapter implements RateLimiter {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisOperations<String, String> redisOperations;
     private final RedisScript<List> rateLimitScript;
 
-    public RedisRateLimiterAdapter(RedisTemplate<String, String> redisTemplate) {
+    public RedisRateLimiterAdapter(RedisOperations<String, String> redisOperations) {
 
-        this.redisTemplate = redisTemplate;
+        this.redisOperations = redisOperations;
         this.rateLimitScript = RedisScript.of(new ClassPathResource("scripts/rate_limit.lua"), List.class);
     }
 
@@ -29,7 +29,7 @@ public class RedisRateLimiterAdapter implements RateLimiter {
 
         try {
             List<?> result = Objects.requireNonNull(
-                redisTemplate.execute(rateLimitScript, List.of(key),
+                redisOperations.execute(rateLimitScript, List.of(key),
                                       String.valueOf(maxRequests),
                                       String.valueOf(window.getSeconds()),
                                       String.valueOf(System.currentTimeMillis())),

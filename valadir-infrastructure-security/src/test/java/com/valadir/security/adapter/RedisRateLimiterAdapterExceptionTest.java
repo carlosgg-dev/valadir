@@ -7,7 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 
 import java.time.Duration;
 
@@ -25,7 +25,7 @@ class RedisRateLimiterAdapterExceptionTest {
     };
 
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisOperations<String, String> redisOperations;
 
     @InjectMocks
     private RedisRateLimiterAdapter adapter;
@@ -33,7 +33,7 @@ class RedisRateLimiterAdapterExceptionTest {
     @Test
     void consume_redisError_throwsInfrastructureException() {
 
-        given(redisTemplate.execute(any(), anyList(), any(), any(), any())).willThrow(REDIS_ERROR);
+        given(redisOperations.execute(any(), anyList(), any(), any(), any())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.consume("rate_limit:ip:test", 10, WINDOW))

@@ -6,7 +6,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.Duration;
@@ -14,12 +14,12 @@ import java.util.List;
 
 public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalidator {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisOperations<String, String> redisOperations;
     private final RedisScript<Long> logoutInvalidateTokensScript;
 
-    public LogoutTokensInvalidatorRedisAdapter(RedisTemplate<String, String> redisTemplate) {
+    public LogoutTokensInvalidatorRedisAdapter(RedisOperations<String, String> redisOperations) {
 
-        this.redisTemplate = redisTemplate;
+        this.redisOperations = redisOperations;
         this.logoutInvalidateTokensScript = RedisScript.of(new ClassPathResource("scripts/logout_invalidate_tokens.lua"), Long.class);
     }
 
@@ -28,7 +28,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
     public void invalidate(String jti, Duration remainingTtl, String refreshToken, AccountId accountId) {
 
         try {
-            redisTemplate.execute(
+            redisOperations.execute(
                 logoutInvalidateTokensScript,
                 List.of(
                     RedisKeySpace.forBlacklist(jti),

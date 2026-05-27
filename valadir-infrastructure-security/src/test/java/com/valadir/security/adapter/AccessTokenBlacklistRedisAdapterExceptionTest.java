@@ -7,7 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,7 +20,7 @@ class AccessTokenBlacklistRedisAdapterExceptionTest {
     };
 
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisOperations<String, String> redisOperations;
 
     @InjectMocks
     private AccessTokenBlacklistRedisAdapter adapter;
@@ -28,7 +28,7 @@ class AccessTokenBlacklistRedisAdapterExceptionTest {
     @Test
     void isRevoked_redisError_throwsInfrastructureException() {
 
-        given(redisTemplate.hasKey(any())).willThrow(REDIS_ERROR);
+        given(redisOperations.hasKey(any())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.isRevoked("some-jti"))

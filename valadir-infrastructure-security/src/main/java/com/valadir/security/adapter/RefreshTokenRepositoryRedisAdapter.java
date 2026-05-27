@@ -8,7 +8,7 @@ import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.util.List;
@@ -16,15 +16,15 @@ import java.util.UUID;
 
 public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepository {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisOperations<String, String> redisOperations;
     private final JwtProperties jwtProperties;
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
     private final RedisScript<Long> revokeAllRefreshTokensScript;
 
-    public RefreshTokenRepositoryRedisAdapter(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
+    public RefreshTokenRepositoryRedisAdapter(RedisOperations<String, String> redisOperations, JwtProperties jwtProperties) {
 
-        this.redisTemplate = redisTemplate;
+        this.redisOperations = redisOperations;
         this.jwtProperties = jwtProperties;
         this.saveRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/save_refresh_token.lua"), Long.class);
         this.rotateRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/rotate_refresh_token.lua"), Long.class);
@@ -35,7 +35,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     public TokenValidationResult validate(String token) {
 
         try {
-            String accountIdValue = redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token));
+            String accountIdValue = redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(token));
             return accountIdValue == null
                 ? new TokenValidationResult.Invalid()
                 : new TokenValidationResult.Valid(AccountId.from(UUID.fromString(accountIdValue)));
@@ -50,7 +50,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
 
         try {
             String accountIdStr = accountId.value().toString();
-            redisTemplate.execute(
+            redisOperations.execute(
                 saveRefreshTokenScript,
                 List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
                 accountIdStr,
@@ -68,7 +68,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
 
         try {
             String accountIdStr = accountId.value().toString();
-            Long result = redisTemplate.execute(
+            Long result = redisOperations.execute(
                 rotateRefreshTokenScript,
                 List.of(
                     RedisKeySpace.forRefreshToken(oldToken),
@@ -92,7 +92,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     public void revokeAllForAccount(AccountId accountId) {
 
         try {
-            redisTemplate.execute(
+            redisOperations.execute(
                 revokeAllRefreshTokensScript,
                 List.of(RedisKeySpace.forUserTokens(accountId.value().toString())),
                 RedisKeySpace.REFRESH_TOKEN_PREFIX

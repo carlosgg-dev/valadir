@@ -8,7 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
@@ -29,7 +29,7 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
     };
 
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisOperations<String, String> redisOperations;
 
     @Mock
     private ValueOperations<String, String> valueOperations;
@@ -42,7 +42,7 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
 
         var tokenTtl = Duration.ofMinutes(10);
 
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisOperations.opsForValue()).willReturn(valueOperations);
         willThrow(REDIS_ERROR).given(valueOperations).set(any(), any(), any(Duration.class));
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -53,7 +53,7 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
     @Test
     void resolveAccountId_redisUnavailable_throwsInfrastructureException() {
 
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisOperations.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get(any())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
@@ -64,7 +64,7 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
     @Test
     void delete_redisUnavailable_throwsInfrastructureException() {
 
-        given(redisTemplate.delete(anyString())).willThrow(REDIS_ERROR);
+        given(redisOperations.delete(anyString())).willThrow(REDIS_ERROR);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.delete(TOKEN))
