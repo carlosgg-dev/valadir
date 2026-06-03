@@ -15,7 +15,6 @@ import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
-import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import org.junit.jupiter.api.Test;
@@ -77,8 +76,8 @@ class RegisterServiceTest {
 
         registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
 
-        then(passwordSecurityService).should().validatePassword(rawPassword, email, UserProfileData.from(fullName, givenName));
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
+        then(passwordSecurityService).should().validatePassword(rawPassword, email, userCaptor.getValue());
         then(registerPersistence).should(never()).replace(any(), any(), any());
 
         var savedAccount = accountCaptor.getValue();

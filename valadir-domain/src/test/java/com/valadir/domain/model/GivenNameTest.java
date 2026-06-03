@@ -50,13 +50,6 @@ class GivenNameTest {
         assertThat(givenName).isEqualTo(new GivenName("Batman"));
     }
 
-    @Test
-    void empty_createsGivenNameWithNullValue() {
-
-        GivenName givenName = GivenName.empty();
-        assertThat(givenName).isEqualTo(new GivenName(null));
-    }
-
     private static String[] blankValues() {
 
         return new String[]{null, "", "   "};

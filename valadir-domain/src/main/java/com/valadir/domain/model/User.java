@@ -1,5 +1,10 @@
 package com.valadir.domain.model;
 
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public class User {
 
     private final UserId id;
@@ -43,5 +48,13 @@ public class User {
     public GivenName getGivenName() {
 
         return givenName;
+    }
+
+    public Set<String> personalData() {
+
+        return Stream.of(fullName.value(), givenName.value())
+            .filter(Objects::nonNull)
+            .filter(value -> !value.isBlank())
+            .collect(Collectors.toSet());
     }
 }

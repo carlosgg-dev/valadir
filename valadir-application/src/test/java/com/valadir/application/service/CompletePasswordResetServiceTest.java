@@ -18,7 +18,6 @@ import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
-import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import org.junit.jupiter.api.Test;
@@ -73,7 +72,6 @@ class CompletePasswordResetServiceTest {
         var accountId = AccountId.generate();
         var account = buildAccount(accountId);
         var user = buildUser(accountId);
-        var profileData = UserProfileData.from(FULL_NAME, GIVEN_NAME);
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
@@ -83,7 +81,7 @@ class CompletePasswordResetServiceTest {
 
         service.complete(command);
 
-        then(passwordSecurityService).should().validatePassword(NEW_PASSWORD, EMAIL, profileData);
+        then(passwordSecurityService).should().validatePassword(NEW_PASSWORD, EMAIL, user);
         then(accountRepository).should().updatePassword(accountId, HASHED_NEW_PASSWORD);
         then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
         then(refreshTokenRepository).should().revokeAllForAccount(accountId);

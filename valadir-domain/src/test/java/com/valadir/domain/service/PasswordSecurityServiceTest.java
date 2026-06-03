@@ -2,11 +2,13 @@ package com.valadir.domain.service;
 
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.model.UserProfileData;
+import com.valadir.domain.model.User;
+import com.valadir.domain.model.UserId;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -19,26 +21,32 @@ class PasswordSecurityServiceTest {
     @Test
     void validatePassword_securePassword_passes() {
 
-        RawPassword password = RawPassword.from("Secure_P@ss_2026");
-        Email email = Email.from("bruce.wayne@email.com");
-        FullName fullName = FullName.from("Bruce Wayne");
-        GivenName givenName = GivenName.from("Batman");
-        UserProfileData userProfileData = UserProfileData.from(fullName, givenName);
+        var password = RawPassword.from("Secure_P@ss_2026");
+        var email = Email.from("bruce.wayne@email.com");
+        var user = User.reconstitute(
+            UserId.generate(),
+            AccountId.generate(),
+            FullName.from("Bruce Wayne"),
+            GivenName.from("Batman")
+        );
 
-        assertDoesNotThrow(() -> securityService.validatePassword(password, email, userProfileData));
+        assertDoesNotThrow(() -> securityService.validatePassword(password, email, user));
     }
 
     @Test
     void validatePassword_nameTermsBelowMinLength_passes() {
 
         // Terms "jo", "li", "ann" are all < MIN_TERM_LENGTH (4) — they are ignored during validation
-        RawPassword password = RawPassword.from("Xk9@Secure1");
-        Email email = Email.from("jo@example.com");
-        FullName fullName = FullName.from("Jo Li");
-        GivenName givenName = GivenName.from("Ann");
-        UserProfileData userProfileData = UserProfileData.from(fullName, givenName);
+        var password = RawPassword.from("Xk9@Secure1");
+        var email = Email.from("jo@example.com");
+        var user = User.reconstitute(
+            UserId.generate(),
+            AccountId.generate(),
+            FullName.from("Jo Li"),
+            GivenName.from("Ann")
+        );
 
-        assertDoesNotThrow(() -> securityService.validatePassword(password, email, userProfileData));
+        assertDoesNotThrow(() -> securityService.validatePassword(password, email, user));
     }
 
     @Test
@@ -80,14 +88,17 @@ class PasswordSecurityServiceTest {
 
     private void assertInsecurePassword(String pwd, String email, String fullName, String givenName) {
 
-        RawPassword password = RawPassword.from(pwd);
-        Email userEmail = Email.from(email);
-        FullName userFullName = FullName.from(fullName);
-        GivenName userGivenName = GivenName.from(givenName);
-        UserProfileData userProfileData = UserProfileData.from(userFullName, userGivenName);
+        var password = RawPassword.from(pwd);
+        var userEmail = Email.from(email);
+        var user = User.reconstitute(
+            UserId.generate(),
+            AccountId.generate(),
+            FullName.from(fullName),
+            GivenName.from(givenName)
+        );
 
         assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> securityService.validatePassword(password, userEmail, userProfileData))
+            .isThrownBy(() -> securityService.validatePassword(password, userEmail, user))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INSECURE_PASSWORD);
     }
 }

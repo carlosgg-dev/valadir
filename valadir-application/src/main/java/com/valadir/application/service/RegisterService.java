@@ -12,7 +12,6 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
-import com.valadir.domain.model.UserProfileData;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import org.slf4j.Logger;
@@ -55,15 +54,14 @@ public class RegisterService implements RegisterUseCase {
         var existingAccountId = accountRepository.findByEmail(email)
             .map(this::resolveExistingAccountId);
 
-        var profileData = UserProfileData.from(fullName, givenName);
-        passwordSecurityService.validatePassword(rawPassword, email, profileData);
-
         var accountId = AccountId.generate();
+        var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
+        passwordSecurityService.validatePassword(rawPassword, email, user);
+
         MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
         var hashedPassword = passwordHasher.hash(rawPassword);
         var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER);
-        var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
 
         if (existingAccountId.isPresent()) {
             log.info("Re-registration: replacing an account pending activation");

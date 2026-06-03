@@ -4,7 +4,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.model.UserProfileData;
+import com.valadir.domain.model.User;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -14,12 +14,12 @@ public class PasswordSecurityService {
 
     private static final int MIN_TERM_LENGTH = 4;
 
-    public void validatePassword(RawPassword password, Email email, UserProfileData profileData) {
+    public void validatePassword(RawPassword password, Email email, User user) {
 
         String pwd = password.value().toLowerCase();
         boolean containsEmail = pwd.contains(email.value().toLowerCase());
 
-        Set<String> nameTerms = profileData.values().stream()
+        Set<String> nameTerms = user.personalData().stream()
             .map(String::toLowerCase)
             .flatMap(term -> Arrays.stream(term.split("[\\s._-]+")))
             .filter(term -> term.length() >= MIN_TERM_LENGTH)
