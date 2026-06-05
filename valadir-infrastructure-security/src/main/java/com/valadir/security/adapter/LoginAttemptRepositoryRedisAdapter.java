@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+// Fail-open on Redis outage: availability over brute-force enforcement
 public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepository {
 
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptRepositoryRedisAdapter.class);
