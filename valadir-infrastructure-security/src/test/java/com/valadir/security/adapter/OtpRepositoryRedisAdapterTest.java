@@ -1,8 +1,8 @@
 package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.HashedOtp;
 import com.valadir.test.containers.RedisContainerConfig;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ class OtpRepositoryRedisAdapterTest {
     void save_savesHashedOtpInRedis() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
+        var hashedOtp = OtpMother.hashed();
         String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
@@ -57,7 +57,7 @@ class OtpRepositoryRedisAdapterTest {
     void save_withTtl_ttlIsApplied() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
+        var hashedOtp = OtpMother.hashed();
         String redisKey = REDIS_KEY_FN.apply(accountId.value().toString());
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
@@ -70,7 +70,7 @@ class OtpRepositoryRedisAdapterTest {
     void find_existingOtp_returnsIt() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
+        var hashedOtp = OtpMother.hashed();
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 
@@ -87,7 +87,7 @@ class OtpRepositoryRedisAdapterTest {
     void delete_existingOtp_removesItFromRedis() {
 
         var accountId = AccountId.generate();
-        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
+        var hashedOtp = OtpMother.hashed();
 
         adapter.save(accountId, hashedOtp, OTP_TTL);
 

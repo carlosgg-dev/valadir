@@ -1,20 +1,14 @@
 package com.valadir.persistence.adapter;
 
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.Role;
-import com.valadir.domain.model.User;
-import com.valadir.domain.model.UserId;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.UserMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,14 +74,7 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
     @Test
     void delete_activeAccount_doesNotDeleteEvenIfOld() {
 
-        var account = Account.reconstitute(
-            AccountId.generate(),
-            Email.from("active@email.com"),
-            new HashedPassword("$2a$12$hash"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
-
+        var account = AccountMother.active().build();
         var entity = AccountMapper.toEntity(account);
         var saved = accountJpaRepository.saveAndFlush(entity);
 
@@ -124,25 +111,13 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
 
     private AccountId savePendingActivationAccountAndUser(String email, Instant createdAt) {
 
-        var account = Account.newPendingActivation(
-            AccountId.generate(),
-            Email.from(email),
-            new HashedPassword("$2a$12$hash"),
-            Role.USER
-        );
-
+        var account = AccountMother.pendingActivation().withEmail(Email.from(email)).build();
         var accountEntity = AccountMapper.toEntity(account);
         var savedAccount = accountJpaRepository.saveAndFlush(accountEntity);
         var savedAccountId = AccountId.from(savedAccount.getId());
         forceCreatedAt(savedAccountId, createdAt);
 
-        var user = User.newProfile(
-            UserId.generate(),
-            savedAccountId,
-            FullName.from("Bruce Wayne"),
-            GivenName.from("Batman")
-        );
-
+        var user = UserMother.builder().withAccountId(savedAccountId).build();
         var userEntity = UserMapper.toEntity(user);
         userJpaRepository.saveAndFlush(userEntity);
 

@@ -3,14 +3,13 @@ package com.valadir.security.adapter;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
+import com.valadir.test.redis.RedisTestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.RedisOperations;
 
-import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -25,51 +24,38 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
     private static final String NEW_TOKEN = UUID.randomUUID().toString();
     private static final AccountId ACCOUNT_ID = AccountId.generate();
 
-    private static final DataAccessException REDIS_ERROR = new DataAccessException("Redis error") {
-    };
-
     @Mock
     private JwtProperties jwtProperties;
-
-    @SuppressWarnings("unchecked")
-    private static RedisOperations<String, String> redisErrorTemplate() {
-
-        return (RedisOperations<String, String>) Proxy.newProxyInstance(
-            RedisOperations.class.getClassLoader(),
-            new Class[]{RedisOperations.class},
-            (proxy, method, args) -> {throw REDIS_ERROR;}
-        );
-    }
 
     @Test
     void validate_redisError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.validate(NEW_TOKEN))
-            .withCause(REDIS_ERROR);
+            .withCauseInstanceOf(DataAccessException.class);
     }
 
     @Test
     void save_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(NEW_TOKEN, ACCOUNT_ID))
-            .withCause(REDIS_ERROR);
+            .withCauseInstanceOf(DataAccessException.class);
     }
 
     @Test
     void rotate_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRepositoryRedisAdapter(redisErrorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))
-            .withCause(REDIS_ERROR);
+            .withCauseInstanceOf(DataAccessException.class);
     }
 }

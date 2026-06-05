@@ -6,14 +6,11 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.model.Account;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
-import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.PlainOtp;
-import com.valadir.domain.model.Role;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,14 +40,14 @@ class ActivateAccountServiceTest {
     @InjectMocks
     private ActivateAccountService service;
 
-    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
-    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
+    private static final PlainOtp PLAIN_OTP = OtpMother.plain();
+    private static final HashedOtp HASHED_OTP = OtpMother.hashed();
 
     @Test
     void activate_validOtp_activatesAccountAndDeletesToken() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var pendingAccount = buildPendingActivationAccount(email.value());
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
         var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
@@ -84,14 +81,7 @@ class ActivateAccountServiceTest {
     void activate_accountAlreadyActive_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var activeAccount = Account.reconstitute(
-            AccountId.generate(),
-            email,
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
-
+        var activeAccount = AccountMother.active().withEmail(email).build();
         var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
@@ -109,7 +99,7 @@ class ActivateAccountServiceTest {
     void activate_otpNotFound_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var pendingAccount = buildPendingActivationAccount(email.value());
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
         var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
@@ -127,7 +117,7 @@ class ActivateAccountServiceTest {
     void activate_wrongOtp_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var account = buildPendingActivationAccount(email.value());
+        var account = AccountMother.pendingActivation().withEmail(email).build();
         var command = new ActivateAccountCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
@@ -140,15 +130,5 @@ class ActivateAccountServiceTest {
 
         then(accountRepository).should(never()).activate(any());
         then(otpRepository).should(never()).delete(any());
-    }
-
-    private Account buildPendingActivationAccount(String email) {
-
-        return Account.newPendingActivation(
-            AccountId.generate(),
-            Email.from(email),
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER
-        );
     }
 }

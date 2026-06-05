@@ -1,6 +1,7 @@
 package com.valadir.security.adapter;
 
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
@@ -12,7 +13,7 @@ class OtpHasherArgon2AdapterTest {
     private static final Argon2PasswordEncoder ENCODER = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     private final OtpHasherArgon2Adapter hasher = new OtpHasherArgon2Adapter(ENCODER);
 
-    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
+    private static final PlainOtp PLAIN_OTP = OtpMother.plain();
 
     @Test
     void hash_plainOtp_returnsArgon2Format() {

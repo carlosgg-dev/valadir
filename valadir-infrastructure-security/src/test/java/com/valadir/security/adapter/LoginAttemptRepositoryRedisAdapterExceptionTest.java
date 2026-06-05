@@ -2,15 +2,14 @@ package com.valadir.security.adapter;
 
 import com.valadir.domain.model.Email;
 import com.valadir.domain.policy.LoginLockoutPolicy;
+import com.valadir.test.redis.RedisTestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
-import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -31,23 +30,10 @@ class LoginAttemptRepositoryRedisAdapterExceptionTest {
     @Mock
     private RedisOperations<String, String> redisOperations;
 
-    @SuppressWarnings("unchecked")
-    private static RedisOperations<String, String> redisErrorTemplate() {
-
-        return (RedisOperations<String, String>) Proxy.newProxyInstance(
-            RedisOperations.class.getClassLoader(),
-            new Class[]{RedisOperations.class},
-            (proxy, method, args) -> {
-                throw new DataAccessException("Redis unavailable") {
-                };
-            }
-        );
-    }
-
     @Test
     void findActiveLockout_redisError_returnsEmpty() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), EMPTY_POLICY);
 
         assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
     }
@@ -64,7 +50,7 @@ class LoginAttemptRepositoryRedisAdapterExceptionTest {
     @Test
     void recordFailedAttempt_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
     }
@@ -82,7 +68,7 @@ class LoginAttemptRepositoryRedisAdapterExceptionTest {
     @Test
     void clearAttempts_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisErrorTemplate(), EMPTY_POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), EMPTY_POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.clearAttempts(EMAIL));
     }

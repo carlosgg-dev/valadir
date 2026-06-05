@@ -12,11 +12,12 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.PasswordMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -66,10 +67,10 @@ class RegisterServiceTest {
     void register_emailNotExist_persistsDataAndSendsOtp() {
 
         var email = Email.from("bruce.wayne@emailValue.com");
-        var rawPassword = RawPassword.from("SecureP@ss123");
+        var rawPassword = PasswordMother.raw();
         var fullName = FullName.from("Bruce Wayne");
         var givenName = GivenName.from("Batman");
-        var hashedPassword = new HashedPassword("$2a$12$hashed");
+        var hashedPassword = PasswordMother.hashed();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
@@ -98,16 +99,10 @@ class RegisterServiceTest {
     void register_activeEmailExists_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@emailValue.com");
-        var rawPassword = RawPassword.from("SecureP@ss123");
+        var rawPassword = PasswordMother.raw();
         var fullName = FullName.from("Bruce Wayne");
         var givenName = GivenName.from("Batman");
-        var existing = Account.reconstitute(
-            AccountId.generate(),
-            email,
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
+        var existing = AccountMother.active().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
@@ -124,22 +119,23 @@ class RegisterServiceTest {
     @Test
     void register_pendingEmailExists_replacesPending() {
 
+        var rawPassword = PasswordMother.raw();
+        var oldHashedPassword = new HashedPassword("$argon2id$old");
+        var newHashedPassword = new HashedPassword("$argon2id$new");
+
         var email = Email.from("bruce.wayne@emailValue.com");
-        var rawPassword = RawPassword.from("SecureP@ss123");
         var fullName = FullName.from("Bruce Wayne");
         var givenName = GivenName.from("Batman");
+
         var existingAccountId = AccountId.generate();
-        var existingAccount = Account.newPendingActivation(
-            existingAccountId,
-            email,
-            new HashedPassword("$argon2id$old"),
-            Role.USER
-        );
-        var rawPasswordValue = "SecureP@ss123";
-        var hashedPassword = new HashedPassword("$argon2id$new");
+        var existingAccount = AccountMother.pendingActivation()
+            .withId(existingAccountId)
+            .withEmail(email)
+            .withPassword(oldHashedPassword)
+            .build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existingAccount));
-        given(passwordHasher.hash(RawPassword.from(rawPasswordValue))).willReturn(hashedPassword);
+        given(passwordHasher.hash(rawPassword)).willReturn(newHashedPassword);
 
         registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
 

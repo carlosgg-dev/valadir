@@ -6,14 +6,11 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.domain.model.Account;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
-import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.PlainOtp;
-import com.valadir.domain.model.Role;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -54,22 +51,14 @@ class InitiatePasswordResetServiceTest {
     @Captor
     private ArgumentCaptor<PlainOtp> plainOtpCaptor;
 
-    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
-    private static final HashedPassword HASHED_PASSWORD = new HashedPassword("$argon2id$hashed");
+    private static final HashedOtp HASHED_OTP = OtpMother.hashed();
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
 
     @Test
     void initiate_existingActiveAccount_sendsResetCode() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var activeAccount = Account.reconstitute(
-            AccountId.generate(),
-            email,
-            HASHED_PASSWORD,
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
-
+        var activeAccount = AccountMother.active().withEmail(email).build();
         var command = new InitiatePasswordResetCommand(email);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
@@ -102,7 +91,7 @@ class InitiatePasswordResetServiceTest {
     void initiate_pendingActivationAccount_guardTimingAndReturnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var pendingAccount = Account.newPendingActivation(AccountId.generate(), email, HASHED_PASSWORD, Role.USER);
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
         var command = new InitiatePasswordResetCommand(email);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));

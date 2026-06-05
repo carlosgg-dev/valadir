@@ -10,13 +10,10 @@ import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.AccountLockedException;
 import com.valadir.domain.model.Account;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.model.Role;
 import com.valadir.domain.service.PasswordHasher;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.PasswordMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,6 +32,10 @@ import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class LoginServiceTest {
+
+    private static final Account EXISTING_ACCOUNT = AccountMother.active()
+        .withEmail(Email.from("bruce.wayne@email.com"))
+        .build();
 
     @Mock
     private AccountRepository accountRepository;
@@ -58,7 +59,7 @@ class LoginServiceTest {
     void login_validCredentials_returnsTokens() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var accessToken = "access-token";
         var refreshToken = "refresh-token";
 
@@ -77,7 +78,7 @@ class LoginServiceTest {
     void login_emailNotFoundGuardsTiming_throwsApplicationException() {
 
         var email = Email.from("unknown@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
@@ -94,7 +95,7 @@ class LoginServiceTest {
     void login_wrongPassword_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("WrongP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
@@ -111,14 +112,9 @@ class LoginServiceTest {
     void login_accountPendingActivation_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
-        var pendingAccount = Account.newPendingActivation(
-            AccountId.generate(),
-            email,
-            new HashedPassword("$2a$12$hashed"),
-            Role.USER
-        );
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
@@ -135,7 +131,7 @@ class LoginServiceTest {
     void login_withActiveLockout_throwsAccountLockedException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var remainingLockout = Duration.ofSeconds(30);
         var command = new LoginCommand(email, password);
 
@@ -152,7 +148,7 @@ class LoginServiceTest {
     void login_wrongPassword_recordsFailedAttempt() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
 
         given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.empty());
@@ -171,7 +167,7 @@ class LoginServiceTest {
     void login_emailNotFound_doesNotRecordFailedAttempt() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
@@ -187,14 +183,9 @@ class LoginServiceTest {
     void login_accountPendingActivation_doesNotRecordFailedAttempt() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
         var command = new LoginCommand(email, password);
-        var pendingAccount = Account.newPendingActivation(
-            AccountId.generate(),
-            email,
-            new HashedPassword("$2a$12$hashed"),
-            Role.USER
-        );
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
@@ -210,7 +201,7 @@ class LoginServiceTest {
     void login_validCredentials_clearsAttempts() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var password = RawPassword.from("SecureP@ss123");
+        var password = PasswordMother.raw();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
@@ -221,12 +212,4 @@ class LoginServiceTest {
 
         then(loginAttemptRepository).should().clearAttempts(email);
     }
-
-    private static final Account EXISTING_ACCOUNT = Account.reconstitute(
-        AccountId.generate(),
-        Email.from("bruce.wayne@email.com"),
-        new HashedPassword("$2a$12$hashed"),
-        Role.USER,
-        AccountStatus.ACTIVE
-    );
 }

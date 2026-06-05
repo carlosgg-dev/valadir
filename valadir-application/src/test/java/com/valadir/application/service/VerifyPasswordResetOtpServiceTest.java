@@ -9,14 +9,11 @@ import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.model.Account;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
-import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.PlainOtp;
-import com.valadir.domain.model.Role;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -54,15 +51,15 @@ class VerifyPasswordResetOtpServiceTest {
     @InjectMocks
     private VerifyPasswordResetOtpService service;
 
-    private static final PlainOtp PLAIN_OTP = PlainOtp.generate();
-    private static final HashedOtp HASHED_OTP = new HashedOtp("$argon2id$hashedOtp");
+    private static final PlainOtp PLAIN_OTP = OtpMother.plain();
+    private static final HashedOtp HASHED_OTP = OtpMother.hashed();
     private static final Duration VERIFICATION_TTL = Duration.ofMinutes(10);
 
     @Test
     void verify_validOtp_deletesOtpAndIssuesVerificationToken() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var account = buildAccount(email.value());
+        var account = AccountMother.active().withEmail(email).build();
         var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
@@ -99,7 +96,7 @@ class VerifyPasswordResetOtpServiceTest {
     void verify_otpNotFound_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var account = buildAccount(email.value());
+        var account = AccountMother.active().withEmail(email).build();
         var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
@@ -117,7 +114,7 @@ class VerifyPasswordResetOtpServiceTest {
     void verify_wrongOtp_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var account = buildAccount(email.value());
+        var account = AccountMother.active().withEmail(email).build();
         var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
@@ -130,16 +127,5 @@ class VerifyPasswordResetOtpServiceTest {
 
         then(otpRepository).should(never()).delete(any());
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
-    }
-
-    private Account buildAccount(String email) {
-
-        return Account.reconstitute(
-            AccountId.generate(),
-            Email.from(email),
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
     }
 }

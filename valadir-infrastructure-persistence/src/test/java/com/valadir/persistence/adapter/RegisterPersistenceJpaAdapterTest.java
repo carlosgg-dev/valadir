@@ -1,17 +1,11 @@
 package com.valadir.persistence.adapter;
 
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.Email;
-import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.Role;
-import com.valadir.domain.model.User;
-import com.valadir.domain.model.UserId;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.UserMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +39,8 @@ class RegisterPersistenceJpaAdapterTest {
     void save_validAccountAndUser_persistsBoth() {
 
         var accountId = AccountId.generate();
-        var account = buildAccount(accountId);
-        var user = buildUser(accountId);
+        var account = AccountMother.pendingActivation().withId(accountId).build();
+        var user = UserMother.builder().withAccountId(accountId).build();
 
         adapter.save(account, user);
 
@@ -58,46 +52,21 @@ class RegisterPersistenceJpaAdapterTest {
     void replace_deletesExistingAndPersistsNew() {
 
         var existingAccountId = AccountId.generate();
-        var existingAccount = buildAccount(existingAccountId);
-        var existingUser = buildUser(existingAccountId);
+        var existingAccount = AccountMother.pendingActivation().withId(existingAccountId).build();
+        var existingUser = UserMother.builder().withAccountId(existingAccountId).build();
 
         adapter.save(existingAccount, existingUser);
 
         var newAccountId = AccountId.generate();
-        var pendingAccount = Account.newPendingActivation(
-            newAccountId,
-            Email.from("bruce.wayne@email.com"),
-            new HashedPassword("$2a$12$newhash"),
-            Role.USER
-        );
-        var newUser = buildUser(newAccountId);
+        var newAccount = AccountMother.pendingActivation().withId(newAccountId).build();
+        var newUser = UserMother.builder().withAccountId(newAccountId).build();
 
-        adapter.replace(existingAccountId, pendingAccount, newUser);
+        adapter.replace(existingAccountId, newAccount, newUser);
 
         assertThat(accountJpaRepository.findById(existingAccountId.value())).isEmpty();
         assertThat(userJpaRepository.findById(existingUser.getId().value())).isEmpty();
 
         assertThat(accountJpaRepository.findById(newAccountId.value())).isPresent();
         assertThat(userJpaRepository.findById(newUser.getId().value())).isPresent();
-    }
-
-    private Account buildAccount(AccountId accountId) {
-
-        return Account.newPendingActivation(
-            accountId,
-            Email.from("bruce.wayne@email.com"),
-            new HashedPassword("$2a$12$hashedpassword"),
-            Role.USER
-        );
-    }
-
-    private User buildUser(AccountId accountId) {
-
-        return User.newProfile(
-            UserId.generate(),
-            accountId,
-            FullName.from("Bruce Wayne"),
-            GivenName.from("Batman")
-        );
     }
 }

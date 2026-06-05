@@ -1,20 +1,14 @@
 package com.valadir.persistence.adapter;
 
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
-import com.valadir.domain.model.Email;
-import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
-import com.valadir.domain.model.UserId;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.UserMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +43,10 @@ class UserRepositoryJpaAdapterTest {
     @Test
     void findByAccountId_existingUser_returnsUser() {
 
-        var account = buildAccount();
+        var account = AccountMother.active().build();
         var savedAccount = accountJpaRepository.save(AccountMapper.toEntity(account));
 
-        var user = buildUser(AccountId.from(savedAccount.getId()));
+        var user = UserMother.builder().withAccountId(AccountId.from(savedAccount.getId())).build();
         var savedUser = userJpaRepository.save(UserMapper.toEntity(user));
 
         Optional<User> result = adapter.findByAccountId(AccountId.from(savedUser.getAccountId()));
@@ -71,26 +65,5 @@ class UserRepositoryJpaAdapterTest {
         Optional<User> result = adapter.findByAccountId(AccountId.generate());
 
         assertThat(result).isEmpty();
-    }
-
-    private Account buildAccount() {
-
-        return Account.reconstitute(
-            AccountId.generate(),
-            Email.from("bruce.wayne@example.com"),
-            new HashedPassword("$argon2id$hashedpassword"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
-    }
-
-    private User buildUser(AccountId accountId) {
-
-        return User.newProfile(
-            UserId.generate(),
-            accountId,
-            FullName.from("Bruce Wayne"),
-            GivenName.from("Batman")
-        );
     }
 }

@@ -2,13 +2,12 @@ package com.valadir.persistence.adapter;
 
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.Role;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
+import com.valadir.test.mother.AccountMother;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +39,7 @@ class AccountRepositoryJpaAdapterTest {
     @Test
     void findById_existingAccount_returnsAccount() {
 
-        var account = buildAccount();
+        var account = AccountMother.active().build();
         var saved = jpaRepository.save(AccountMapper.toEntity(account));
 
         Optional<Account> result = adapter.findById(AccountId.from(saved.getId()));
@@ -65,7 +64,7 @@ class AccountRepositoryJpaAdapterTest {
     @Test
     void findByEmail_existingAccount_returnsAccount() {
 
-        Account account = buildAccount();
+        Account account = AccountMother.active().build();
         jpaRepository.save(AccountMapper.toEntity(account));
 
         Optional<Account> result = adapter.findByEmail(account.getEmail());
@@ -90,13 +89,7 @@ class AccountRepositoryJpaAdapterTest {
     @Test
     void activate_pendingActivationAccount_updatesStatusToActive() {
 
-        var pendingAccount = Account.newPendingActivation(
-            AccountId.generate(),
-            Email.from("pending@email.com"),
-            new HashedPassword("$2a$12$hashedpassword"),
-            Role.USER
-        );
-
+        var pendingAccount = AccountMother.pendingActivation().build();
         var saved = jpaRepository.save(AccountMapper.toEntity(pendingAccount));
         adapter.activate(AccountId.from(saved.getId()));
 
@@ -110,28 +103,17 @@ class AccountRepositoryJpaAdapterTest {
     @Test
     void updatePassword_existingAccount_updatesHashedPassword() {
 
-        var existingAccount = buildAccount();
+        var existingAccount = AccountMother.active().build();
         var saved = jpaRepository.save(AccountMapper.toEntity(existingAccount));
 
-        var newHash = new HashedPassword("$argon2id$newpassword");
-        adapter.updatePassword(AccountId.from(saved.getId()), newHash);
+        var newHashedPassword = new HashedPassword("$argon2id$newpassword");
+        adapter.updatePassword(AccountId.from(saved.getId()), newHashedPassword);
 
         var result = adapter.findById(AccountId.from(saved.getId()));
         assertThat(result)
             .isPresent()
             .hasValueSatisfying(account -> assertThat(account.getPassword())
-                .isEqualTo(newHash)
+                .isEqualTo(newHashedPassword)
                 .isNotEqualTo(existingAccount.getPassword()));
-    }
-
-    private Account buildAccount() {
-
-        return Account.reconstitute(
-            AccountId.generate(),
-            Email.from("bruce.wayne@email.com"),
-            new HashedPassword("$2a$12$hashedpassword"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
     }
 }

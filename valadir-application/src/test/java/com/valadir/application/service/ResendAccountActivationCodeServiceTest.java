@@ -2,12 +2,8 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.ResendAccountActivationCodeCommand;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.domain.model.Account;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.Role;
+import com.valadir.test.mother.AccountMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,7 +33,7 @@ class ResendAccountActivationCodeServiceTest {
     void resend_pendingActivationAccount_sendsActivationCode() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var account = buildPendingActivationAccount(email.value());
+        var account = AccountMother.pendingActivation().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
 
@@ -62,28 +58,12 @@ class ResendAccountActivationCodeServiceTest {
     void resend_accountNotPending_doesNothingSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var activeAccount = Account.reconstitute(
-            AccountId.generate(),
-            email,
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER,
-            AccountStatus.ACTIVE
-        );
+        var activeAccount = AccountMother.active().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
         resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
 
         then(accountActivationOtpSender).should(never()).send(any(), any());
-    }
-
-    private Account buildPendingActivationAccount(String email) {
-
-        return Account.newPendingActivation(
-            AccountId.generate(),
-            Email.from(email),
-            new HashedPassword("$argon2id$hashed"),
-            Role.USER
-        );
     }
 }

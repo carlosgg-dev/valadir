@@ -7,19 +7,13 @@ import com.valadir.application.port.out.PasswordResetVerificationTokenRepository
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
-import com.valadir.domain.model.HashedPassword;
-import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.model.Role;
-import com.valadir.domain.model.User;
-import com.valadir.domain.model.UserId;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.PasswordMother;
+import com.valadir.test.mother.UserMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,29 +54,27 @@ class CompletePasswordResetServiceTest {
     private CompletePasswordResetService service;
 
     private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
-    private static final RawPassword NEW_PASSWORD = RawPassword.from("NewP@ssword1");
-    private static final HashedPassword HASHED_NEW_PASSWORD = new HashedPassword("$argon2id$newHashed");
-    private static final Email EMAIL = Email.from("bruce.wayne@example.com");
-    private static final FullName FULL_NAME = FullName.from("Bruce Wayne");
-    private static final GivenName GIVEN_NAME = GivenName.from("Batman");
 
     @Test
     void complete_validToken_updatesPasswordAndRevokesTokens() {
 
+        var newPassword = PasswordMother.raw();
+        var hashedPassword = PasswordMother.hashed();
         var accountId = AccountId.generate();
-        var account = buildAccount(accountId);
-        var user = buildUser(accountId);
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
+        var email = Email.from("bruce.wayne@example.com");
+        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var user = UserMother.builder().withAccountId(accountId).build();
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(HASHED_NEW_PASSWORD);
+        given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
 
         service.complete(command);
 
-        then(passwordSecurityService).should().validatePassword(NEW_PASSWORD, EMAIL, user);
-        then(accountRepository).should().updatePassword(accountId, HASHED_NEW_PASSWORD);
+        then(passwordSecurityService).should().validatePassword(newPassword, email, user);
+        then(accountRepository).should().updatePassword(accountId, hashedPassword);
         then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
         then(refreshTokenRepository).should().revokeAllForAccount(accountId);
     }
@@ -90,7 +82,8 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_tokenNotFound_throwsApplicationException() {
 
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
+        var newPassword = PasswordMother.raw();
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
@@ -106,8 +99,9 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_accountNotFound_throwsApplicationException() {
 
+        var newPassword = PasswordMother.raw();
         var accountId = AccountId.generate();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
@@ -124,9 +118,11 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_userNotFound_throwsApplicationException() {
 
+        var newPassword = PasswordMother.raw();
+        var email = Email.from("bruce.wayne@example.com");
         var accountId = AccountId.generate();
-        var account = buildAccount(accountId);
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, NEW_PASSWORD);
+        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
@@ -139,15 +135,5 @@ class CompletePasswordResetServiceTest {
         then(accountRepository).should(never()).updatePassword(any(), any());
         then(verificationTokenRepository).should(never()).delete(any());
         then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
-    }
-
-    private Account buildAccount(AccountId accountId) {
-
-        return Account.reconstitute(accountId, EMAIL, HASHED_NEW_PASSWORD, Role.USER, AccountStatus.ACTIVE);
-    }
-
-    private User buildUser(AccountId accountId) {
-
-        return User.reconstitute(UserId.generate(), accountId, FULL_NAME, GIVEN_NAME);
     }
 }

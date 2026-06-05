@@ -6,8 +6,8 @@ import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -48,7 +48,7 @@ class AccountActivationOtpSenderServiceTest {
 
         var accountId = AccountId.generate();
         var email = Email.from("bruce.wayne@email.com");
-        var hashedOtp = new HashedOtp("$argon2id$hashedOtp");
+        var hashedOtp = OtpMother.hashed();
         var otpTtl = Duration.ofSeconds(900);
 
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(hashedOtp);
