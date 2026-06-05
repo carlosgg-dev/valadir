@@ -9,6 +9,7 @@ import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
@@ -26,8 +27,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,8 +73,8 @@ class VerifyPasswordResetOtpServiceTest {
         PasswordResetOtpVerificationResult result = service.verify(command);
 
         assertThat(result.verificationToken()).isNotBlank();
-        then(otpRepository).should().delete(account.getId());
         then(passwordResetVerificationTokenRepository).should().save(result.verificationToken(), account.getId(), VERIFICATION_TTL);
+        then(otpRepository).should().delete(account.getId());
     }
 
     @Test
@@ -88,8 +91,8 @@ class VerifyPasswordResetOtpServiceTest {
 
         then(otpHasher).should().guardTiming();
         then(otpRepository).should(never()).find(any());
-        then(otpRepository).should(never()).delete(any());
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     @Test
@@ -106,8 +109,8 @@ class VerifyPasswordResetOtpServiceTest {
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
-        then(otpRepository).should(never()).delete(any());
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
+        then(otpRepository).should(never()).delete(any());
     }
 
     @Test
@@ -125,7 +128,27 @@ class VerifyPasswordResetOtpServiceTest {
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
-        then(otpRepository).should(never()).delete(any());
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
+        then(otpRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void verify_otpDeletionFails_verificationTokenAlreadySaved() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var account = AccountMother.active().withEmail(email).build();
+        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
+        given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
+        given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
+
+        willThrow(InfrastructureException.class).given(otpRepository).delete(account.getId());
+
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> service.verify(command));
+
+        then(passwordResetVerificationTokenRepository).should().save(any(), eq(account.getId()), eq(VERIFICATION_TTL));
     }
 }

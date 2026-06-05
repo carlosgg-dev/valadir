@@ -60,10 +60,10 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
             throw applicationException();
         }
 
-        otpRepository.delete(foundAccountId);
-
         var verificationToken = UUID.randomUUID().toString();
         passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
+
+        otpRepository.delete(foundAccountId);
 
         log.info("Password reset OTP verified, verification token issued");
 
