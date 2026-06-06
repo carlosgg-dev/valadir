@@ -8,6 +8,7 @@ import com.valadir.application.port.out.PasswordResetVerificationTokenRepository
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
@@ -62,9 +63,16 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
 
         var hashedPassword = passwordHasher.hash(rawPassword);
         accountRepository.updatePassword(accountId, hashedPassword);
-        passwordResetVerificationTokenRepository.delete(command.verificationToken());
-        refreshTokenRepository.revokeAllForAccount(accountId);
 
-        log.info("Password reset completed, all sessions revoked");
+        // Redis cleanup is best-effort: password change is the critical operation.
+        // Failure leaves a reusable verification token and active sessions until their TTLs expire.
+        try {
+            passwordResetVerificationTokenRepository.delete(command.verificationToken());
+            refreshTokenRepository.revokeAllForAccount(accountId);
+        } catch (InfrastructureException e) {
+            log.error("Password reset succeeded but Redis cleanup failed — sessions may remain active until TTL expires", e);
+        }
+
+        log.info("Password reset completed");
     }
 }
