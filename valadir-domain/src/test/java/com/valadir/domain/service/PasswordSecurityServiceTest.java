@@ -11,8 +11,8 @@ import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class PasswordSecurityServiceTest {
 
@@ -30,7 +30,7 @@ class PasswordSecurityServiceTest {
             GivenName.from("Batman")
         );
 
-        assertDoesNotThrow(() -> securityService.validatePassword(password, email, user));
+        assertThatCode(() -> securityService.validatePassword(password, email, user)).doesNotThrowAnyException();
     }
 
     @Test
@@ -46,7 +46,7 @@ class PasswordSecurityServiceTest {
             GivenName.from("Ann")
         );
 
-        assertDoesNotThrow(() -> securityService.validatePassword(password, email, user));
+        assertThatCode(() -> securityService.validatePassword(password, email, user)).doesNotThrowAnyException();
     }
 
     @Test
