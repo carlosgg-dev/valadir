@@ -6,7 +6,7 @@ public enum ErrorCode {
     INVALID_FIELD("VAL-001", Category.VALIDATION),
     INVALID_PASSWORD("VAL-002", Category.VALIDATION),
     REQUIRED_FIELD_MISSING("VAL-003", Category.VALIDATION),
-    INVALID_OTP("BIZ-005", Category.VALIDATION),
+    INVALID_OTP("VAL-004", Category.VALIDATION),
 
     // Business Rules (BIZ-xxx)
     INSECURE_PASSWORD("BIZ-001", Category.VALIDATION),
