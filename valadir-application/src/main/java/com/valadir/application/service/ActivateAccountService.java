@@ -7,6 +7,7 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import org.slf4j.Logger;
@@ -42,7 +43,14 @@ public class ActivateAccountService implements ActivateAccountUseCase {
             .orElseThrow(this::applicationException);
 
         accountRepository.activate(account.getId());
-        otpRepository.delete(account.getId());
+
+        // Redis cleanup is best-effort: account activation is the critical operation.
+        // Failure leaves a stale OTP that cannot be reused, since the account is no longer pending activation.
+        try {
+            otpRepository.delete(account.getId());
+        } catch (InfrastructureException e) {
+            log.warn("Account activated but OTP Redis cleanup failed — OTP will expire via TTL", e);
+        }
 
         log.info("Account activated successfully");
     }

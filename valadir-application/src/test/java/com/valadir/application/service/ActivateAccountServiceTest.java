@@ -6,6 +6,7 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
@@ -19,10 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
@@ -130,5 +133,23 @@ class ActivateAccountServiceTest {
 
         then(accountRepository).should(never()).activate(any());
         then(otpRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void activate_otpDeletionFails_accountActivatedAndExceptionSwallowed() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
+        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
+        given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_OTP));
+        given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
+
+        willThrow(InfrastructureException.class).given(otpRepository).delete(pendingAccount.getId());
+
+        assertThatCode(() -> service.activate(command)).doesNotThrowAnyException();
+
+        then(accountRepository).should().activate(pendingAccount.getId());
     }
 }
