@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -133,7 +134,7 @@ class VerifyPasswordResetOtpServiceTest {
     }
 
     @Test
-    void verify_otpDeletionFails_verificationTokenAlreadySaved() {
+    void verify_otpDeletionFails_verificationTokenIssuedAndExceptionSwallowed() {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
@@ -146,8 +147,7 @@ class VerifyPasswordResetOtpServiceTest {
 
         willThrow(InfrastructureException.class).given(otpRepository).delete(account.getId());
 
-        assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> service.verify(command));
+        assertThatCode(() -> service.verify(command)).doesNotThrowAnyException();
 
         then(passwordResetVerificationTokenRepository).should().save(any(), eq(account.getId()), eq(VERIFICATION_TTL));
     }

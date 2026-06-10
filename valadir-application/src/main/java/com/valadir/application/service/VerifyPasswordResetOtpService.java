@@ -10,6 +10,7 @@ import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
@@ -63,7 +64,13 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
         var verificationToken = UUID.randomUUID().toString();
         passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
 
-        otpRepository.delete(foundAccountId);
+        // Redis cleanup is best-effort: the verification token is the critical operation.
+        // Failure leaves a reusable OTP that can be verified again until its TTL expires.
+        try {
+            otpRepository.delete(foundAccountId);
+        } catch (InfrastructureException e) {
+            log.warn("Verification token issued but OTP Redis cleanup failed — OTP will expire via TTL", e);
+        }
 
         log.info("Password reset OTP verified, verification token issued");
 
