@@ -8,6 +8,7 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -34,13 +35,17 @@ public class AccountRepositoryJpaAdapter implements AccountRepository {
             .map(AccountMapper::toDomain);
     }
 
+    // @Modifying queries require an active transaction; Spring Data does not provide one for them
     @Override
+    @Transactional
     public void activate(AccountId accountId) {
 
         jpaRepository.updateStatusById(accountId.value(), AccountStatus.ACTIVE);
     }
 
+    // @Modifying queries require an active transaction; Spring Data does not provide one for them
     @Override
+    @Transactional
     public void updatePassword(AccountId accountId, HashedPassword hashedPassword) {
 
         jpaRepository.updatePasswordById(accountId.value(), hashedPassword.value());

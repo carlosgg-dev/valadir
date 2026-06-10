@@ -1,39 +1,47 @@
 package com.valadir.persistence.adapter;
 
+import com.valadir.application.port.out.AccountRepository;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.persistence.config.PersistenceWiring;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
 import com.valadir.test.mother.AccountMother;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// Runs without a test-managed transaction so the adapter executes with the same
+// transactional semantics as production — a missing @Transactional fails here.
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-@Import(PostgresContainerConfig.class)
+@Import({PostgresContainerConfig.class, PersistenceWiring.class})
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class AccountRepositoryJpaAdapterTest {
 
     @Autowired
     private AccountJpaRepository jpaRepository;
 
-    private AccountRepositoryJpaAdapter adapter;
+    @Autowired
+    private AccountRepository adapter;
 
-    @BeforeEach
-    void setUp() {
+    @AfterEach
+    void cleanUp() {
 
-        adapter = new AccountRepositoryJpaAdapter(jpaRepository);
+        jpaRepository.deleteAll();
     }
 
     @Test

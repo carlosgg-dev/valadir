@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-class PersistenceWiring {
+public class PersistenceWiring {
 
     @Bean
     AccountRepository accountRepository(AccountJpaRepository accountJpaRepository) {

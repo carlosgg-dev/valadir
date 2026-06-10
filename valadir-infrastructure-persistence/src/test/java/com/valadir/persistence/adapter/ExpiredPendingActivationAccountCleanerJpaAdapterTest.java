@@ -1,7 +1,9 @@
 package com.valadir.persistence.adapter;
 
+import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
+import com.valadir.persistence.config.PersistenceWiring;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.mapper.UserMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -9,7 +11,7 @@ import com.valadir.persistence.repository.UserJpaRepository;
 import com.valadir.test.containers.PostgresContainerConfig;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.UserMother;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -17,6 +19,8 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -24,9 +28,12 @@ import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// Runs without a test-managed transaction so the adapter executes with the same
+// transactional semantics as production — a missing @Transactional fails here.
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-@Import(PostgresContainerConfig.class)
+@Import({PostgresContainerConfig.class, PersistenceWiring.class})
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
 
     private static final Instant CUTOFF = Instant.now().minus(72, ChronoUnit.HOURS);
@@ -40,12 +47,14 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private ExpiredPendingActivationAccountCleanerJpaAdapter adapter;
+    @Autowired
+    private ExpiredPendingActivationAccountCleaner adapter;
 
-    @BeforeEach
-    void setUp() {
+    @AfterEach
+    void cleanUp() {
 
-        adapter = new ExpiredPendingActivationAccountCleanerJpaAdapter(accountJpaRepository);
+        userJpaRepository.deleteAll();
+        accountJpaRepository.deleteAll();
     }
 
     @Test
