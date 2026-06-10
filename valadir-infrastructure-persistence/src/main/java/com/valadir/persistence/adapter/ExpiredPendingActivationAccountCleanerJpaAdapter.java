@@ -3,7 +3,6 @@ package com.valadir.persistence.adapter;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.persistence.repository.AccountJpaRepository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
@@ -17,7 +16,6 @@ public class ExpiredPendingActivationAccountCleanerJpaAdapter implements Expired
     }
 
     @Override
-    @Transactional
     public int delete(Instant cutoff) {
 
         // users rows are removed automatically via ON DELETE CASCADE on users.account_id
