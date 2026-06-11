@@ -12,9 +12,9 @@ public record RateLimitProperties(
 
     public RateLimitProperties {
 
-        rules = rules != null
-            ? List.copyOf(rules)
-            : List.of();
+        rules = rules == null
+            ? List.of()
+            : List.copyOf(rules);
     }
 
     public record Rule(
