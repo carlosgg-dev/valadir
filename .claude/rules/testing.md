@@ -14,6 +14,17 @@ Never introduce a new testing library without discussing it first.
 Do not default to full integration tests for everything — use the narrowest slice
 that gives meaningful coverage.
 
+## Coverage
+
+- A coverage target is only meaningful if it is measured: prefer wiring measurement
+  and threshold enforcement into the standard test build over manual, ad-hoc checks.
+- Branch coverage is the primary signal — 100% line or instruction coverage can still
+  hide untested decision outcomes (`if`, `switch`, `&&`, `||`).
+- Never write a test whose only purpose is to raise the coverage number.
+- Exempt from the target: DI wiring and configuration classes, the application entry
+  point, framework-managed accessors, and compiler-generated synthetic branches
+  (e.g. the implicit default of a switch over a sealed type).
+
 ## Unit tests
 
 - One test class per production class. Mirror the package structure under `src/test/`.
@@ -45,6 +56,10 @@ that gives meaningful coverage.
 ## General rules
 
 - Tests are production code: apply the same Clean Code standards.
+- Every test must be able to fail due to a plausible regression in our own code.
+  Never assert language or framework behavior: exception message/cause storage,
+  record accessors, trivial field assignment. Custom logic in constructors
+  (validation, defensive copies, defaults) is our code and must be tested.
 - Extract repeated primitive values to local variables when the same data appears multiple
   times in a test. Two objects with the same primitive value are not the same data
   (e.g. `new Id("5")` and `new Year("5")` are unrelated despite sharing `"5"`).
