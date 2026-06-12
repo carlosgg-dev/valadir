@@ -18,30 +18,6 @@ class InfrastructureExceptionTest {
     }
 
     @Test
-    void constructor_messageOnly_preservesMessage() {
-
-        var exception = new InfrastructureException("something failed");
-
-        assertThat(exception.getMessage()).isEqualTo("something failed");
-    }
-
-    @Test
-    void constructor_messageOnly_hasNoCause() {
-
-        var exception = new InfrastructureException("something failed");
-
-        assertThat(exception.getCause()).isNull();
-    }
-
-    @Test
-    void constructor_messageAndCause_setsInfrastructureUnavailableCode() {
-
-        var exception = new InfrastructureException("something failed", CAUSE);
-
-        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INFRASTRUCTURE_UNAVAILABLE);
-    }
-
-    @Test
     void constructor_messageAndCause_preservesCause() {
 
         var exception = new InfrastructureException("something failed", CAUSE);

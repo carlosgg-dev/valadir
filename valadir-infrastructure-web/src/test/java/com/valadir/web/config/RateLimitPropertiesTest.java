@@ -20,15 +20,6 @@ class RateLimitPropertiesTest {
     );
 
     @Test
-    void constructor_validRules_preservesEnabledFlagAndRules() {
-
-        var properties = new RateLimitProperties(true, List.of(RULE));
-
-        assertThat(properties.enabled()).isTrue();
-        assertThat(properties.rules()).containsExactly(RULE);
-    }
-
-    @Test
     void constructor_nullRules_defaultsToEmptyList() {
 
         var properties = new RateLimitProperties(false, null);

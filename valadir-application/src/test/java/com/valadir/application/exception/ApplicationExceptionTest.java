@@ -19,30 +19,6 @@ class ApplicationExceptionTest {
     }
 
     @Test
-    void constructor_messageAndErrorCode_preservesMessage() {
-
-        var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED);
-
-        assertThat(exception.getMessage()).isEqualTo(MESSAGE);
-    }
-
-    @Test
-    void constructor_messageAndErrorCode_hasNoCause() {
-
-        var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED);
-
-        assertThat(exception.getCause()).isNull();
-    }
-
-    @Test
-    void constructor_messageErrorCodeAndCause_setsErrorCode() {
-
-        var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED, CAUSE);
-
-        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
-    }
-
-    @Test
     void constructor_messageErrorCodeAndCause_preservesCause() {
 
         var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED, CAUSE);

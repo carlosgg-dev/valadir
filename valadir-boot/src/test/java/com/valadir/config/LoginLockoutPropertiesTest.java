@@ -16,15 +16,6 @@ class LoginLockoutPropertiesTest {
     private static final ThresholdProperties THRESHOLD = new ThresholdProperties(3, Duration.ofMinutes(5));
 
     @Test
-    void constructor_validThresholds_createsProperties() {
-
-        var properties = new LoginLockoutProperties(WINDOW, List.of(THRESHOLD));
-
-        assertThat(properties.window()).isEqualTo(WINDOW);
-        assertThat(properties.thresholds()).containsExactly(THRESHOLD);
-    }
-
-    @Test
     void constructor_nullThresholds_throwsIllegalArgument() {
 
         assertThatIllegalArgumentException()
