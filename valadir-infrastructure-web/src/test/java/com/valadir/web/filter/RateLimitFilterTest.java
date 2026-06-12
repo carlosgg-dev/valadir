@@ -9,6 +9,9 @@ import com.valadir.web.config.RateLimitProperties.Strategy;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -22,8 +25,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -166,11 +171,11 @@ class RateLimitFilterTest {
         assertThat(new String(bodyAfterFilter)).contains(EMAIL);
     }
 
-    @Test
-    void doFilter_multipleRules_passesTheMostRestrictiveResultToWriteAllowedHeaders() throws Exception {
+    @ParameterizedTest
+    @MethodSource("mostRestrictiveResults")
+    void doFilter_multipleAllowedRules_passesMostRestrictiveResultToWriteAllowedHeaders(
+        RateLimitResult ipResult, RateLimitResult emailResult, RateLimitResult mostRestrictive) throws Exception {
 
-        var ipResult = new RateLimitResult(true, 8L, 10, Duration.ofSeconds(55));    // 2 remaining
-        var emailResult = new RateLimitResult(true, 2L, 5, Duration.ofSeconds(800));    // 3 remaining
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
         given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(ipResult);
@@ -183,9 +188,8 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        // IP has 2 remaining, EMAIL has 3 remaining → IP is most restrictive
         then(responseWriter).should().writeAllowedRequestHeaders(eq(response), resultCaptor.capture());
-        assertThat(resultCaptor.getValue()).isEqualTo(ipResult);
+        assertThat(resultCaptor.getValue()).isEqualTo(mostRestrictive);
     }
 
     @Test
@@ -280,5 +284,18 @@ class RateLimitFilterTest {
         var request = new MockHttpServletRequest();
         request.setRequestURI(path);
         return request;
+    }
+
+    private static Stream<Arguments> mostRestrictiveResults() {
+
+        var ipWithTwoRemaining = new RateLimitResult(true, 8L, 10, Duration.ofSeconds(55));
+        var ipWithFourRemaining = new RateLimitResult(true, 6L, 10, Duration.ofSeconds(55));
+        var emailWithOneRemaining = new RateLimitResult(true, 4L, 5, Duration.ofSeconds(800));
+        var emailWithThreeRemaining = new RateLimitResult(true, 2L, 5, Duration.ofSeconds(800));
+
+        return Stream.of(
+            arguments(ipWithTwoRemaining, emailWithThreeRemaining, ipWithTwoRemaining),
+            arguments(ipWithFourRemaining, emailWithOneRemaining, emailWithOneRemaining)
+        );
     }
 }

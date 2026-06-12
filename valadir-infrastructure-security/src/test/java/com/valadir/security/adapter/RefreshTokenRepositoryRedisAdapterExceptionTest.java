@@ -58,4 +58,14 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
             .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))
             .withCauseInstanceOf(DataAccessException.class);
     }
+
+    @Test
+    void revokeAllForAccount_redisError_throwsInfrastructureException() {
+
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
+
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.revokeAllForAccount(ACCOUNT_ID))
+            .withCauseInstanceOf(DataAccessException.class);
+    }
 }
