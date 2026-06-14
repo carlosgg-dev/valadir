@@ -14,7 +14,7 @@ import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
 import com.valadir.security.adapter.PasswordHasherArgon2Adapter;
 import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedisAdapter;
-import com.valadir.security.adapter.RedisRateLimiterAdapter;
+import com.valadir.security.adapter.RateLimiterRedisAdapter;
 import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.context.annotation.Bean;
@@ -59,7 +59,7 @@ class SecurityWiring {
     @Bean
     RateLimiter rateLimiter(RedisTemplate<String, String> redisTemplate) {
 
-        return new RedisRateLimiterAdapter(redisTemplate);
+        return new RateLimiterRedisAdapter(redisTemplate);
     }
 
     @Bean

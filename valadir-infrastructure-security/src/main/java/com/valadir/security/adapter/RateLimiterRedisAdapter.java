@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Objects;
 
 @SuppressWarnings("rawtypes")
-public class RedisRateLimiterAdapter implements RateLimiter {
+public class RateLimiterRedisAdapter implements RateLimiter {
 
     private final RedisOperations<String, String> redisOperations;
     private final RedisScript<List> rateLimitScript;
 
-    public RedisRateLimiterAdapter(RedisOperations<String, String> redisOperations) {
+    public RateLimiterRedisAdapter(RedisOperations<String, String> redisOperations) {
 
         this.redisOperations = redisOperations;
         this.rateLimitScript = RedisScript.of(new ClassPathResource("scripts/rate_limit.lua"), List.class);
@@ -30,9 +30,9 @@ public class RedisRateLimiterAdapter implements RateLimiter {
         try {
             List<?> result = Objects.requireNonNull(
                 redisOperations.execute(rateLimitScript, List.of(key),
-                                      String.valueOf(maxRequests),
-                                      String.valueOf(window.getSeconds()),
-                                      String.valueOf(System.currentTimeMillis())),
+                                        String.valueOf(maxRequests),
+                                        String.valueOf(window.getSeconds()),
+                                        String.valueOf(System.currentTimeMillis())),
                 "Rate limit script returned no result for key: " + key
             );
 

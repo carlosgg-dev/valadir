@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class RedisRateLimiterAdapterTest {
+class RateLimiterRedisAdapterTest {
 
     private static final String KEY = "test:rate_limit:key";
     private static final int MAX_REQUESTS = 5;

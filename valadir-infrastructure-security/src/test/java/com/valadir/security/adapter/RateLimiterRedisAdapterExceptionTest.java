@@ -17,7 +17,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class RedisRateLimiterAdapterExceptionTest {
+class RateLimiterRedisAdapterExceptionTest {
 
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
@@ -28,7 +28,7 @@ class RedisRateLimiterAdapterExceptionTest {
     private RedisOperations<String, String> redisOperations;
 
     @InjectMocks
-    private RedisRateLimiterAdapter adapter;
+    private RateLimiterRedisAdapter adapter;
 
     @Test
     void consume_redisError_throwsInfrastructureException() {
