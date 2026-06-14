@@ -23,7 +23,13 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 
 - **Adapters live in infrastructure** and implement domain ports.
 - A persistence adapter implements a domain repository port.
-- A REST controller is a driving adapter — it calls application use cases, never domain objects directly.
+- A REST controller is a driving adapter — it calls application use cases and **must not depend
+  on the domain layer at all**. It maps the external request into an application command of
+  primitives; constructing domain types (value objects included) is the use case's job, never the
+  adapter's. Driving adapters speak only to the application boundary.
+- Driven adapters (persistence, security, notifications) implement domain/application ports and
+  therefore legitimately reference domain types — to map persistence models to domain objects and
+  back. This domain access is confined to driven adapters; it never extends to driving adapters.
 - Adapters translate between external representations and domain objects using mappers.
   Persistence models never cross into the domain.
 
@@ -39,7 +45,11 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 
 - Use cases orchestrate domain objects and call driven ports.
 - One use case per user action. No business logic in use cases — delegate to the domain.
-- Use cases receive and return DTOs or primitives at their boundary, never domain objects.
+- Use cases receive and return application DTOs (commands/results) or primitives at their
+  boundary — **never domain types** (value objects, entities, or aggregates). Commands and results
+  are application-layer types built from primitives; the use case constructs the domain value
+  objects it needs internally (e.g. `Email.from(command.email())`). This keeps the application's
+  contract free of domain types so any driving adapter can call it without depending on the domain.
 - Domain events are defined in the domain and published through a driven port — never dispatched directly to
   infrastructure.
 
@@ -69,7 +79,10 @@ adapter, etc.), not in the DTO itself.
 ## Common violations to detect and report
 
 - Domain class importing anything from `infrastructure` or `application` packages.
-- Controller calling a domain object directly, bypassing the use case.
+- Driving adapter (controller or any `infrastructure-web` class) depending on the domain layer —
+  it must speak only to application use cases with primitives/DTOs.
+- Command or result carrying a domain type (value object, entity, or aggregate) instead of
+  primitives — the application boundary must stay free of domain types.
 - Business logic living in a controller or repository adapter.
 - Domain service receiving an application service as a dependency.
 - Use case returning a domain entity instead of a DTO.
