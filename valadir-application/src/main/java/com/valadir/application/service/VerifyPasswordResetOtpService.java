@@ -12,6 +12,7 @@ import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
@@ -50,34 +51,33 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     @Override
     public PasswordResetOtpVerificationResult verify(VerifyPasswordResetOtpCommand command) {
 
-        var email = Email.from(command.email());
-        var plainOtp = PlainOtp.from(command.plainOtp());
-
-        var foundAccount = getAccount(email);
-        AccountId foundAccountId = foundAccount.getId();
-        MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
-
-        var hashedOtp = otpRepository.find(foundAccountId)
-            .orElseThrow(this::applicationException);
-
-        if (!otpHasher.matches(plainOtp, hashedOtp)) {
-            throw applicationException();
-        }
-
-        var verificationToken = UUID.randomUUID().toString();
-        passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
-
-        // Redis cleanup is best-effort: the verification token is the critical operation.
-        // Failure leaves a reusable OTP that can be verified again until its TTL expires.
         try {
-            otpRepository.delete(foundAccountId);
-        } catch (InfrastructureException e) {
-            log.warn("Verification token issued but OTP Redis cleanup failed — OTP will expire via TTL", e);
+            var email = Email.from(command.email());
+            var plainOtp = PlainOtp.from(command.plainOtp());
+
+            var foundAccount = getAccount(email);
+            AccountId foundAccountId = foundAccount.getId();
+            MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
+
+            var hashedOtp = otpRepository.find(foundAccountId)
+                .orElseThrow(this::applicationException);
+
+            if (!otpHasher.matches(plainOtp, hashedOtp)) {
+                throw applicationException();
+            }
+
+            var verificationToken = UUID.randomUUID().toString();
+            passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
+
+            deleteOtp(foundAccountId);
+
+            log.info("Password reset OTP verified, verification token issued");
+
+            return new PasswordResetOtpVerificationResult(verificationToken);
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
         }
-
-        log.info("Password reset OTP verified, verification token issued");
-
-        return new PasswordResetOtpVerificationResult(verificationToken);
     }
 
     private Account getAccount(Email email) {
@@ -96,5 +96,16 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     private ApplicationException applicationException() {
 
         return new ApplicationException("Invalid or expired password reset OTP", ErrorCode.INVALID_PASSWORD_RESET_OTP);
+    }
+
+    private void deleteOtp(AccountId accountId) {
+
+        // Redis cleanup is best-effort: the verification token is the critical operation.
+        // Failure leaves a reusable OTP that can be verified again until its TTL expires.
+        try {
+            otpRepository.delete(accountId);
+        } catch (InfrastructureException e) {
+            log.warn("Verification token issued but OTP Redis cleanup failed — OTP will expire via TTL", e);
+        }
     }
 }

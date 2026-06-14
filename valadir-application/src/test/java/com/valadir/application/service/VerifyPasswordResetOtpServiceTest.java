@@ -10,6 +10,7 @@ import com.valadir.application.port.out.PasswordResetVerificationTokenRepository
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
@@ -150,5 +151,18 @@ class VerifyPasswordResetOtpServiceTest {
         assertThatCode(() -> service.verify(command)).doesNotThrowAnyException();
 
         then(passwordResetVerificationTokenRepository).should().save(any(), eq(account.getId()), eq(VERIFICATION_TTL));
+    }
+
+    @Test
+    void verify_invalidEmail_translatesDomainExceptionPreservingErrorCode() {
+
+        var command = new VerifyPasswordResetOtpCommand("not-an-email", PLAIN_OTP.value());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.verify(command))
+            .withCauseInstanceOf(DomainException.class)
+            .extracting("errorCode").isEqualTo(ErrorCode.INVALID_FIELD);
+
+        then(accountRepository).should(never()).findByEmail(any());
     }
 }

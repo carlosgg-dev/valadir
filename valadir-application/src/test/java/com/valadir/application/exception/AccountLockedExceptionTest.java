@@ -1,4 +1,4 @@
-package com.valadir.domain.exception;
+package com.valadir.application.exception;
 
 import com.valadir.common.error.ErrorCode;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.LoginCommand;
+import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.out.AccountRepository;
@@ -10,7 +11,7 @@ import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
-import com.valadir.domain.exception.AccountLockedException;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
@@ -49,35 +50,40 @@ public class LoginService implements LoginUseCase {
     @Override
     public AuthTokenResult login(LoginCommand command) {
 
-        var email = Email.from(command.email());
-        var rawPassword = RawPassword.from(command.password());
+        try {
+            var email = Email.from(command.email());
+            var rawPassword = RawPassword.from(command.password());
 
-        loginAttemptRepository.findActiveLockout(email).ifPresent(remaining -> {
-            throw new AccountLockedException(remaining);
-        });
+            loginAttemptRepository.findActiveLockout(email).ifPresent(remaining -> {
+                throw new AccountLockedException(remaining);
+            });
 
-        Optional<Account> found = accountRepository.findByEmail(email);
-        if (found.isEmpty()) {
-            passwordHasher.guardTiming(rawPassword);
-            throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            Optional<Account> found = accountRepository.findByEmail(email);
+            if (found.isEmpty()) {
+                passwordHasher.guardTiming(rawPassword);
+                throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            }
+
+            var account = found.get();
+            MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
+            if (!passwordHasher.matches(rawPassword, account.getPassword())) {
+                loginAttemptRepository.recordFailedAttempt(email);
+                throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            }
+
+            if (!account.isActive()) {
+                throw new ApplicationException("Account pending activation", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
+            }
+
+            loginAttemptRepository.clearAttempts(email);
+            AuthTokenResult result = authTokenIssuer.issue(account.getId(), account.getRole());
+            refreshTokenRepository.save(result.refreshToken(), account.getId());
+            log.info("Login successful");
+
+            return result;
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
         }
-
-        var account = found.get();
-        MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
-        if (!passwordHasher.matches(rawPassword, account.getPassword())) {
-            loginAttemptRepository.recordFailedAttempt(email);
-            throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
-        }
-
-        if (!account.isActive()) {
-            throw new ApplicationException("Account pending activation", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
-        }
-
-        loginAttemptRepository.clearAttempts(email);
-        AuthTokenResult result = authTokenIssuer.issue(account.getId(), account.getRole());
-        refreshTokenRepository.save(result.refreshToken(), account.getId());
-        log.info("Login successful");
-
-        return result;
     }
 }

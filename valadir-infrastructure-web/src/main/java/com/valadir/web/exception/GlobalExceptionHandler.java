@@ -1,10 +1,9 @@
 package com.valadir.web.exception;
 
+import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
-import com.valadir.domain.exception.AccountLockedException;
-import com.valadir.domain.exception.DomainException;
 import com.valadir.web.dto.response.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,16 +65,6 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity
             .status(status)
             .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
-    }
-
-    @ExceptionHandler(DomainException.class)
-    ResponseEntity<ErrorResponse> handleDomain(DomainException e) {
-
-        log.warn("Domain rule violation: {}", e.getMessage());
-
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
 
     @ExceptionHandler(ApplicationException.class)

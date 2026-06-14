@@ -7,6 +7,7 @@ import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
@@ -151,5 +152,18 @@ class ActivateAccountServiceTest {
         assertThatCode(() -> service.activate(command)).doesNotThrowAnyException();
 
         then(accountRepository).should().activate(pendingAccount.getId());
+    }
+
+    @Test
+    void activate_invalidEmail_translatesDomainExceptionPreservingErrorCode() {
+
+        var command = new ActivateAccountCommand("not-an-email", PLAIN_OTP.value());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.activate(command))
+            .withCauseInstanceOf(DomainException.class)
+            .extracting("errorCode").isEqualTo(ErrorCode.INVALID_FIELD);
+
+        then(accountRepository).should(never()).findByEmail(any());
     }
 }

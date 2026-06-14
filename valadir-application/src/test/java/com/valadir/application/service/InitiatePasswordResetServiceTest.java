@@ -2,10 +2,13 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
+import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
+import com.valadir.common.error.ErrorCode;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
@@ -22,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -101,5 +105,18 @@ class InitiatePasswordResetServiceTest {
         then(otpHasher).should(never()).hash(any());
         then(otpRepository).should(never()).save(any(), any(), any());
         then(passwordResetNotifier).should(never()).sendResetCode(any(), any());
+    }
+
+    @Test
+    void initiate_invalidEmail_translatesDomainExceptionPreservingErrorCode() {
+
+        var command = new InitiatePasswordResetCommand("not-an-email");
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.initiate(command))
+            .withCauseInstanceOf(DomainException.class)
+            .extracting("errorCode").isEqualTo(ErrorCode.INVALID_FIELD);
+
+        then(accountRepository).should(never()).findByEmail(any());
     }
 }

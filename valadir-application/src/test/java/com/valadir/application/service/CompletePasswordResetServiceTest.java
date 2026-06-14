@@ -8,6 +8,7 @@ import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.service.PasswordHasher;
@@ -162,5 +163,30 @@ class CompletePasswordResetServiceTest {
 
         then(passwordSecurityService).should().validatePassword(newPassword, email, user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
+    }
+
+    @Test
+    void complete_insecurePassword_translatesDomainExceptionPreservingErrorCode() {
+
+        var newPassword = PasswordMother.raw();
+        var accountId = AccountId.generate();
+        var email = Email.from("bruce.wayne@example.com");
+        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var user = UserMother.builder().withAccountId(accountId).build();
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+        var domainException = new DomainException("Password is insecure", ErrorCode.INSECURE_PASSWORD);
+
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
+        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
+        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
+        willThrow(domainException).given(passwordSecurityService).validatePassword(newPassword, email, user);
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.complete(command))
+            .withCause(domainException)
+            .extracting("errorCode").isEqualTo(ErrorCode.INSECURE_PASSWORD);
+
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
     }
 }

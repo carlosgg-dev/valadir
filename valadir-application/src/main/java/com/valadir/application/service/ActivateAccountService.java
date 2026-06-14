@@ -9,7 +9,9 @@ import com.valadir.application.port.out.OtpRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
@@ -34,34 +36,44 @@ public class ActivateAccountService implements ActivateAccountUseCase {
     @Override
     public void activate(ActivateAccountCommand command) {
 
-        var email = Email.from(command.email());
-        var plainOtp = PlainOtp.from(command.plainOtp());
-
-        var account = accountRepository.findByEmail(email)
-            .filter(Account::isPendingActivation)
-            .orElseThrow(this::applicationException);
-
-        MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
-
-        otpRepository.find(account.getId())
-            .filter(hashedOtp -> otpHasher.matches(plainOtp, hashedOtp))
-            .orElseThrow(this::applicationException);
-
-        accountRepository.activate(account.getId());
-
-        // Redis cleanup is best-effort: account activation is the critical operation.
-        // Failure leaves a stale OTP that cannot be reused, since the account is no longer pending activation.
         try {
-            otpRepository.delete(account.getId());
-        } catch (InfrastructureException e) {
-            log.warn("Account activated but OTP Redis cleanup failed — OTP will expire via TTL", e);
-        }
+            var email = Email.from(command.email());
+            var plainOtp = PlainOtp.from(command.plainOtp());
 
-        log.info("Account activated successfully");
+            var account = accountRepository.findByEmail(email)
+                .filter(Account::isPendingActivation)
+                .orElseThrow(this::applicationException);
+
+            MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
+
+            otpRepository.find(account.getId())
+                .filter(hashedOtp -> otpHasher.matches(plainOtp, hashedOtp))
+                .orElseThrow(this::applicationException);
+
+            accountRepository.activate(account.getId());
+
+            deleteOtp(account.getId());
+
+            log.info("Account activated successfully");
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
+        }
     }
 
     private ApplicationException applicationException() {
 
         return new ApplicationException("Invalid or expired account activation OTP", ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP);
+    }
+
+    private void deleteOtp(AccountId accountId) {
+
+        // Redis cleanup is best-effort: account activation is the critical operation.
+        // Failure leaves a stale OTP that cannot be reused, since the account is no longer pending activation.
+        try {
+            otpRepository.delete(accountId);
+        } catch (InfrastructureException e) {
+            log.warn("Account activated but OTP Redis cleanup failed — OTP will expire via TTL", e);
+        }
     }
 }

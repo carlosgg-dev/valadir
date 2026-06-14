@@ -1,11 +1,9 @@
 package com.valadir.web.exception;
 
+import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
-import com.valadir.domain.exception.AccountLockedException;
-import java.time.Duration;
-import com.valadir.domain.exception.DomainException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -57,17 +57,9 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleExceptionInternal_unsupportedMethod_preservesStatusWithSysCode() throws Exception {
 
-        mockMvc.perform(delete("/domain"))
+        mockMvc.perform(delete("/application/validation"))
             .andExpect(status().isMethodNotAllowed())
             .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
-    }
-
-    @Test
-    void handleDomain_domainException_returns400WithCode() throws Exception {
-
-        mockMvc.perform(get("/domain"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(ErrorCode.INSECURE_PASSWORD.getCode()));
     }
 
     @Test
@@ -153,12 +145,6 @@ class GlobalExceptionHandlerTest {
         void validated(@RequestBody @Valid ValidatedBody body) {
 
             // stub — never reached; Spring rejects the request before this method executes
-        }
-
-        @GetMapping("/domain")
-        void domain() {
-
-            throw new DomainException("domain error", ErrorCode.INSECURE_PASSWORD);
         }
 
         @GetMapping("/application/validation")

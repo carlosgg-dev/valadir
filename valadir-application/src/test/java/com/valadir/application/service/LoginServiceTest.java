@@ -1,6 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.LoginCommand;
+import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
@@ -8,7 +9,7 @@ import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.domain.exception.AccountLockedException;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.service.PasswordHasher;
@@ -211,5 +212,18 @@ class LoginServiceTest {
         service.login(new LoginCommand(email.value(), password.value()));
 
         then(loginAttemptRepository).should().clearAttempts(email);
+    }
+
+    @Test
+    void login_invalidEmail_translatesDomainExceptionPreservingErrorCode() {
+
+        var command = new LoginCommand("not-an-email", PasswordMother.raw().value());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
+            .withCauseInstanceOf(DomainException.class)
+            .extracting("errorCode").isEqualTo(ErrorCode.INVALID_FIELD);
+
+        then(accountRepository).should(never()).findByEmail(any());
     }
 }

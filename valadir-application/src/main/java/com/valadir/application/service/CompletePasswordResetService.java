@@ -10,6 +10,8 @@ import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.DomainException;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
@@ -48,32 +50,42 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
     @Override
     public void complete(CompletePasswordResetCommand command) {
 
-        var accountId = passwordResetVerificationTokenRepository.resolveAccountId(command.verificationToken())
-            .orElseThrow(() -> new ApplicationException("Invalid or expired password reset verification", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN));
+        try {
+            var accountId = passwordResetVerificationTokenRepository.resolveAccountId(command.verificationToken())
+                .orElseThrow(() -> new ApplicationException("Invalid or expired password reset verification", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN));
 
-        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
+            MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
-        var account = accountRepository.findById(accountId)
-            .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
+            var account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
-        var user = userRepository.findByAccountId(accountId)
-            .orElseThrow(() -> new ApplicationException("User not found", ErrorCode.DATA_INTEGRITY_ERROR));
+            var user = userRepository.findByAccountId(accountId)
+                .orElseThrow(() -> new ApplicationException("User not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
-        var rawPassword = RawPassword.from(command.newPassword());
-        passwordSecurityService.validatePassword(rawPassword, account.getEmail(), user);
+            var rawPassword = RawPassword.from(command.newPassword());
+            passwordSecurityService.validatePassword(rawPassword, account.getEmail(), user);
 
-        var hashedPassword = passwordHasher.hash(rawPassword);
-        accountRepository.updatePassword(accountId, hashedPassword);
+            var hashedPassword = passwordHasher.hash(rawPassword);
+            accountRepository.updatePassword(accountId, hashedPassword);
+
+            revokeResetArtifactsQuietly(command.verificationToken(), accountId);
+
+            log.info("Password reset completed");
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
+        }
+    }
+
+    private void revokeResetArtifactsQuietly(String verificationToken, AccountId accountId) {
 
         // Redis cleanup is best-effort: password change is the critical operation.
         // Failure leaves a reusable verification token and active sessions until their TTLs expire.
         try {
-            passwordResetVerificationTokenRepository.delete(command.verificationToken());
+            passwordResetVerificationTokenRepository.delete(verificationToken);
             refreshTokenRepository.revokeAllForAccount(accountId);
         } catch (InfrastructureException e) {
             log.error("Password reset succeeded but Redis cleanup failed — sessions may remain active until TTL expires", e);
         }
-
-        log.info("Password reset completed");
     }
 }

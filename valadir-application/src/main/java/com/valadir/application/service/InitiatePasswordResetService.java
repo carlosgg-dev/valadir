@@ -2,12 +2,14 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.config.PasswordResetConfig;
+import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
@@ -42,32 +44,37 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
     @Override
     public void initiate(InitiatePasswordResetCommand command) {
 
-        var email = Email.from(command.email());
-        var account = accountRepository.findByEmail(email);
+        try {
+            var email = Email.from(command.email());
+            var account = accountRepository.findByEmail(email);
 
-        if (account.isEmpty()) {
-            // Prevent timing-based account enumeration: simulate the OTP hashing cost.
-            otpHasher.guardTiming();
-            log.warn("Password reset requested for non-existent email");
-            return;
+            if (account.isEmpty()) {
+                // Prevent timing-based account enumeration: simulate the OTP hashing cost.
+                otpHasher.guardTiming();
+                log.warn("Password reset requested for non-existent email");
+                return;
+            }
+
+            var foundAccount = account.get();
+            var foundAccountId = foundAccount.getId();
+            MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
+
+            if (foundAccount.isPendingActivation()) {
+                otpHasher.guardTiming();
+                log.warn("Password reset requested for pending activation account");
+                return;
+            }
+
+            var plainOtp = PlainOtp.generate();
+            var hashedOtp = otpHasher.hash(plainOtp);
+
+            otpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
+            passwordResetNotifier.sendResetCode(email, plainOtp);
+
+            log.info("Password reset OTP sent");
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
         }
-
-        var foundAccount = account.get();
-        var foundAccountId = foundAccount.getId();
-        MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
-
-        if (foundAccount.isPendingActivation()) {
-            otpHasher.guardTiming();
-            log.warn("Password reset requested for pending activation account");
-            return;
-        }
-
-        var plainOtp = PlainOtp.generate();
-        var hashedOtp = otpHasher.hash(plainOtp);
-
-        otpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
-        passwordResetNotifier.sendResetCode(email, plainOtp);
-
-        log.info("Password reset OTP sent");
     }
 }

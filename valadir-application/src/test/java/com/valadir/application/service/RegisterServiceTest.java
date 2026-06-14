@@ -5,6 +5,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
@@ -112,6 +114,30 @@ class RegisterServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).replace(any(), any(), any());
+        then(registerPersistence).should(never()).save(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any(), any());
+    }
+
+    @Test
+    void register_insecurePassword_translatesDomainExceptionPreservingErrorCode() {
+
+        var email = Email.from("bruce.wayne@emailValue.com");
+        var rawPassword = PasswordMother.raw();
+        var fullName = FullName.from("Bruce Wayne");
+        var givenName = GivenName.from("Batman");
+        var domainException = new DomainException("Password is insecure", ErrorCode.INSECURE_PASSWORD);
+
+        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
+        willThrow(domainException).given(passwordSecurityService).validatePassword(eq(rawPassword), eq(email), any(User.class));
+
+        RegisterCommand command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> registerService.register(command))
+            .withMessage(domainException.getMessage())
+            .withCause(domainException)
+            .extracting("errorCode")
+            .isEqualTo(ErrorCode.INSECURE_PASSWORD);
+
         then(registerPersistence).should(never()).save(any(), any());
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }

@@ -7,6 +7,7 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
@@ -50,33 +51,38 @@ public class RegisterService implements RegisterUseCase {
     @Override
     public void register(RegisterCommand command) {
 
-        var email = Email.from(command.email());
-        var rawPassword = RawPassword.from(command.password());
-        var fullName = FullName.from(command.fullName());
-        var givenName = GivenName.from(command.givenName());
+        try {
+            var email = Email.from(command.email());
+            var rawPassword = RawPassword.from(command.password());
+            var fullName = FullName.from(command.fullName());
+            var givenName = GivenName.from(command.givenName());
 
-        var existingAccountId = accountRepository.findByEmail(email)
-            .map(this::resolveExistingAccountId);
+            var existingAccountId = accountRepository.findByEmail(email)
+                .map(this::resolveExistingAccountId);
 
-        var accountId = AccountId.generate();
-        var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
-        passwordSecurityService.validatePassword(rawPassword, email, user);
+            var accountId = AccountId.generate();
+            var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
+            passwordSecurityService.validatePassword(rawPassword, email, user);
 
-        MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
+            MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
-        var hashedPassword = passwordHasher.hash(rawPassword);
-        var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER);
+            var hashedPassword = passwordHasher.hash(rawPassword);
+            var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER);
 
-        if (existingAccountId.isPresent()) {
-            log.info("Re-registration: replacing an account pending activation");
-            registerPersistence.replace(existingAccountId.get(), account, user);
-        } else {
-            registerPersistence.save(account, user);
+            if (existingAccountId.isPresent()) {
+                log.info("Re-registration: replacing an account pending activation");
+                registerPersistence.replace(existingAccountId.get(), account, user);
+            } else {
+                registerPersistence.save(account, user);
+            }
+
+            accountActivationOtpSender.send(accountId, email);
+
+            log.info("Registration successful, pending account activation");
+
+        } catch (DomainException e) {
+            throw ApplicationException.translate(e);
         }
-
-        accountActivationOtpSender.send(accountId, email);
-
-        log.info("Registration successful, pending account activation");
     }
 
     private AccountId resolveExistingAccountId(Account existing) {
