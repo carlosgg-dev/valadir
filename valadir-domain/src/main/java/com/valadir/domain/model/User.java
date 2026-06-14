@@ -54,7 +54,6 @@ public class User {
 
         return Stream.of(fullName.value(), givenName.value())
             .filter(Objects::nonNull)
-            .filter(value -> !value.isBlank())
             .collect(Collectors.toSet());
     }
 }
