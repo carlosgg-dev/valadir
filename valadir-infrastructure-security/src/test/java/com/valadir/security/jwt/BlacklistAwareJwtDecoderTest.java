@@ -1,4 +1,4 @@
-package com.valadir.security.adapter;
+package com.valadir.security.jwt;
 
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.common.exception.InfrastructureException;

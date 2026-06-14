@@ -7,13 +7,13 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import java.util.UUID;
 
-public class Argon2PasswordHasher implements PasswordHasher {
+public class PasswordHasherArgon2Adapter implements PasswordHasher {
 
     private final Argon2PasswordEncoder encoder;
     // Computed once at startup with a random value to equalize response time in guardTiming()
     private final String dummyHash;
 
-    public Argon2PasswordHasher(Argon2PasswordEncoder encoder) {
+    public PasswordHasherArgon2Adapter(Argon2PasswordEncoder encoder) {
 
         this.encoder = encoder;
         this.dummyHash = encoder.encode(UUID.randomUUID().toString());

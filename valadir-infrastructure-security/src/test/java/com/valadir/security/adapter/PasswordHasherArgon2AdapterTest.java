@@ -8,10 +8,10 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-class Argon2PasswordHasherTest {
+class PasswordHasherArgon2AdapterTest {
 
     private static final Argon2PasswordEncoder ENCODER = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-    private final Argon2PasswordHasher hasher = new Argon2PasswordHasher(ENCODER);
+    private final PasswordHasherArgon2Adapter hasher = new PasswordHasherArgon2Adapter(ENCODER);
 
     private static final RawPassword RAW_PASSWORD = PasswordMother.raw();
 

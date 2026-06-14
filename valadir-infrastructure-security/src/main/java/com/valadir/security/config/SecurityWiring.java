@@ -9,10 +9,10 @@ import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.security.adapter.AccessTokenBlacklistRedisAdapter;
-import com.valadir.security.adapter.Argon2PasswordHasher;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
+import com.valadir.security.adapter.PasswordHasherArgon2Adapter;
 import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedisAdapter;
 import com.valadir.security.adapter.RedisRateLimiterAdapter;
 import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
@@ -53,7 +53,7 @@ class SecurityWiring {
     @Bean
     PasswordHasher passwordHasher(Argon2PasswordEncoder argon2PasswordEncoder) {
 
-        return new Argon2PasswordHasher(argon2PasswordEncoder);
+        return new PasswordHasherArgon2Adapter(argon2PasswordEncoder);
     }
 
     @Bean
