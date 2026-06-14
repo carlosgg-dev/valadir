@@ -36,6 +36,8 @@
         <project.encoding>UTF-8</project.encoding>
         <project.build.sourceEncoding>${project.encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${project.encoding}</project.reporting.outputEncoding>
+        <pitest.version>1.19.1</pitest.version>
+        <pitest.junit5.version>1.2.2</pitest.junit5.version>
     </properties>
 
     <dependencies>
@@ -151,6 +153,49 @@
     </dependencyManagement>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <!-- PIT: mutation testing. Shared config; only activated by the `mutation`
+                     profile in the pure-logic modules (domain, application). -->
+                <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>${pitest.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.pitest</groupId>
+                            <artifactId>pitest-junit5-plugin</artifactId>
+                            <version>${pitest.junit5.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <targetClasses>
+                            <param>com.valadir.*</param>
+                        </targetClasses>
+                        <targetTests>
+                            <param>com.valadir.*</param>
+                        </targetTests>
+                        <outputFormats>
+                            <value>HTML</value>
+                            <value>XML</value>
+                        </outputFormats>
+                        <timestampedReports>false</timestampedReports>
+                        <!-- 95 leaves headroom for legitimate future equivalent mutants without
+                             masking real regressions -->
+                        <mutationThreshold>95</mutationThreshold>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>mutation-coverage</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>mutationCoverage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <!-- JaCoCo: Code coverage measurement and enforcement -->
             <plugin>

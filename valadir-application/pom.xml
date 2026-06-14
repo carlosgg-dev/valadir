@@ -34,4 +34,32 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <!-- Mutation testing. Opt-in: ./mvnw -Pmutation test -->
+        <profile>
+            <id>mutation</id>
+            <properties>
+                <!-- PIT and JaCoCo both instrument bytecode; injecting the JaCoCo agent into
+                     PIT's minion crashes it. Coverage and mutation are separate goals. -->
+                <jacoco.skip>true</jacoco.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <configuration>
+                            <!-- Scan only this module's own tests. The shared `com.valadir.*`
+                                 would also pull in test-support's container configs, which import
+                                 Testcontainers (absent here) and crash PIT's discovery. -->
+                            <targetTests combine.self="override">
+                                <param>com.valadir.application.*</param>
+                            </targetTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
