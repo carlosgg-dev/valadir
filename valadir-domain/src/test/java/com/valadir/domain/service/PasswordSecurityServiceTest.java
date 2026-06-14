@@ -10,44 +10,43 @@ import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class PasswordSecurityServiceTest {
 
+    private static final String EMAIL = "brucewayne@email.com";
+
     private final PasswordSecurityService securityService = new PasswordSecurityService();
 
+    // ── Happy path ──
+
     @Test
-    void validatePassword_securePassword_passes() {
+    void validatePassword_passwordWithNoPersonalData_passes() {
 
-        var password = RawPassword.from("Secure_P@ss_2026");
-        var email = Email.from("bruce.wayne@email.com");
-        var user = User.reconstitute(
-            UserId.generate(),
-            AccountId.generate(),
-            FullName.from("Bruce Wayne"),
-            GivenName.from("Batman")
-        );
+        assertSecurePassword("Secure_P@ss_2026", "bruce.wayne@email.com", "Bruce Wayne", "Batman");
+    }
 
-        assertThatCode(() -> securityService.validatePassword(password, email, user)).doesNotThrowAnyException();
+    // ── Per-word length threshold (isolated with single-word names) ──
+
+    @Test
+    void validatePassword_termBelowMinLength_passes() {
+
+        // "ann" has 3 chars (< MIN_TERM_LENGTH 4): it is ignored even when the password contains it
+        assertSecurePassword("Ann@Secure9!", EMAIL, "Ann", "Batman");
     }
 
     @Test
-    void validatePassword_nameTermsBelowMinLength_passes() {
+    void validatePassword_termAtMinLength_throwsDomainException() {
 
-        // Terms "jo", "li", "ann" are all < MIN_TERM_LENGTH (4) — they are ignored during validation
-        var password = RawPassword.from("Xk9@Secure1");
-        var email = Email.from("jo@example.com");
-        var user = User.reconstitute(
-            UserId.generate(),
-            AccountId.generate(),
-            FullName.from("Jo Li"),
-            GivenName.from("Ann")
-        );
-
-        assertThatCode(() -> securityService.validatePassword(password, email, user)).doesNotThrowAnyException();
+        // "jack" has exactly MIN_TERM_LENGTH (4) chars: it is checked and must reject the password
+        assertInsecurePassword("Jack@2026", EMAIL, "Jack", "Batman");
     }
+
+    // ── Email ──
 
     @Test
     void validatePassword_passwordContainsEmail_throwsDomainException() {
@@ -55,41 +54,83 @@ class PasswordSecurityServiceTest {
         assertInsecurePassword("bruce.wayne@email.com1A", "bruce.wayne@email.com", "Bruce Wayne", "Batman");
     }
 
-    @Test
-    void validatePassword_passwordContainsFullNameWithDotSeparator_throwsDomainException() {
+    // ── Full name (checked per word) ──
 
-        assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce.Wayne", "Batman");
-        assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce.Wayne", "Batman");
-        assertInsecurePassword("Bruce-wayne@2026", "brucewayne@email.com", "Bruce.Wayne", "Batman");
+    @Test
+    void validatePassword_passwordContainsFirstFullNameWord_throwsDomainException() {
+
+        assertInsecurePassword("Bruce@2026", EMAIL, "Bruce Wayne", "Batman");
     }
 
     @Test
-    void validatePassword_passwordContainsFullNameWithDashSeparator_throwsDomainException() {
+    void validatePassword_passwordContainsSecondFullNameWord_throwsDomainException() {
 
-        assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce-Wayne", "Batman");
-        assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce-Wayne", "Batman");
-        assertInsecurePassword("Bruce-wayne@2026", "brucewayne@email.com", "Bruce-Wayne", "Batman");
+        assertInsecurePassword("Wayne@2026", EMAIL, "Bruce Wayne", "Batman");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {".", "-", "_"})
+    void validatePassword_fullNameWordsSeparatedBySymbol_throwsDomainException(String separator) {
+
+        String fullName = "Bruce" + separator + "Wayne";
+        assertInsecurePassword("Bruce@2026", EMAIL, fullName, "Batman");
+        assertInsecurePassword("Wayne@2026", EMAIL, fullName, "Batman");
     }
 
     @Test
-    void validatePassword_passwordContainsFullNameWithUnderscoreSeparator_throwsDomainException() {
+    void validatePassword_multiWordNameShortWordPresent_passes() {
 
-        assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Bruce_Wayne", "Batman");
-        assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Bruce_Wayne", "Batman");
-        assertInsecurePassword("Bruce_wayne@2026", "brucewayne@email.com", "Bruce_Wayne", "Batman");
+        // In "Jo Wayne", the short word "jo" (2 < MIN_TERM_LENGTH) is ignored even when present;
+        // the long word "wayne" is absent, so the password is accepted (per-word, not per-name)
+        assertSecurePassword("Jo@Secure9!", EMAIL, "Jo Wayne", "Batman");
+    }
+
+    // ── Given name (optional, checked per word) ──
+
+    @Test
+    void validatePassword_passwordContainsGivenNameWord_throwsDomainException() {
+
+        assertInsecurePassword("Bruce@2026", EMAIL, "Batman", "Bruce Wayne");
+        assertInsecurePassword("Wayne@2026", EMAIL, "Batman", "Bruce Wayne");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {".", "-", "_"})
+    void validatePassword_givenNameWordsSeparatedBySymbol_throwsDomainException(String separator) {
+
+        String givenName = "Bruce" + separator + "Wayne";
+        assertInsecurePassword("Bruce@2026", EMAIL, "Batman", givenName);
+        assertInsecurePassword("Wayne@2026", EMAIL, "Batman", givenName);
     }
 
     @Test
-    void validatePassword_passwordContainsGivenName_throwsDomainException() {
+    void validatePassword_userWithoutGivenName_passes() {
 
-        assertInsecurePassword("Bruce@2026", "brucewayne@email.com", "Batman", "Bruce Wayne");
-        assertInsecurePassword("Wayne@2026", "brucewayne@email.com", "Batman", "Bruce Wayne");
+        // Given name is optional (blank -> null): a clean password is accepted, the absent term is skipped
+        assertSecurePassword("Secure_P@ss_2026", "bruce.wayne@email.com", "Bruce Wayne", "   ");
+    }
+
+    @Test
+    void validatePassword_userWithoutGivenNamePasswordContainsFullName_throwsDomainException() {
+
+        // The full name is still enforced when the given name is absent (null term skipped, not fatal)
+        assertInsecurePassword("Wayne@2026", EMAIL, "Bruce Wayne", "   ");
+    }
+
+    private void assertSecurePassword(String pwd, String email, String fullName, String givenName) {
+
+        assertThatCode(() -> validate(pwd, email, fullName, givenName)).doesNotThrowAnyException();
     }
 
     private void assertInsecurePassword(String pwd, String email, String fullName, String givenName) {
 
-        var password = RawPassword.from(pwd);
-        var userEmail = Email.from(email);
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> validate(pwd, email, fullName, givenName))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INSECURE_PASSWORD);
+    }
+
+    private void validate(String pwd, String email, String fullName, String givenName) {
+
         var user = User.reconstitute(
             UserId.generate(),
             AccountId.generate(),
@@ -97,8 +138,6 @@ class PasswordSecurityServiceTest {
             GivenName.from(givenName)
         );
 
-        assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> securityService.validatePassword(password, userEmail, user))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INSECURE_PASSWORD);
+        securityService.validatePassword(RawPassword.from(pwd), Email.from(email), user);
     }
 }
