@@ -12,6 +12,8 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.AccountLockedException;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +49,8 @@ public class LoginService implements LoginUseCase {
     @Override
     public AuthTokenResult login(LoginCommand command) {
 
-        var email = command.email();
-        var rawPassword = command.password();
+        var email = Email.from(command.email());
+        var rawPassword = RawPassword.from(command.password());
 
         loginAttemptRepository.findActiveLockout(email).ifPresent(remaining -> {
             throw new AccountLockedException(remaining);

@@ -67,7 +67,7 @@ class LoginServiceTest {
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole())).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
-        AuthTokenResult result = service.login(new LoginCommand(email, password));
+        AuthTokenResult result = service.login(new LoginCommand(email.value(), password.value()));
 
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
@@ -79,7 +79,7 @@ class LoginServiceTest {
 
         var email = Email.from("unknown@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
@@ -96,7 +96,7 @@ class LoginServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
@@ -113,7 +113,7 @@ class LoginServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
@@ -133,7 +133,7 @@ class LoginServiceTest {
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
         var remainingLockout = Duration.ofSeconds(30);
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
 
         given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.of(remainingLockout));
 
@@ -149,7 +149,7 @@ class LoginServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
 
         given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.empty());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
@@ -168,7 +168,7 @@ class LoginServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
@@ -184,7 +184,7 @@ class LoginServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email, password);
+        var command = new LoginCommand(email.value(), password.value());
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
@@ -208,7 +208,7 @@ class LoginServiceTest {
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
             .willReturn(new AuthTokenResult("access-token", "refresh-token"));
 
-        service.login(new LoginCommand(email, password));
+        service.login(new LoginCommand(email.value(), password.value()));
 
         then(loginAttemptRepository).should().clearAttempts(email);
     }

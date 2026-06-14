@@ -37,7 +37,7 @@ class ResendAccountActivationCodeServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
         then(accountActivationOtpSender).should().send(account.getId(), email);
     }
@@ -49,7 +49,7 @@ class ResendAccountActivationCodeServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }
@@ -62,7 +62,7 @@ class ResendAccountActivationCodeServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
-        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email));
+        resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
         then(accountActivationOtpSender).should(never()).send(any(), any());
     }

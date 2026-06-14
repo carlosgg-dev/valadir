@@ -64,7 +64,7 @@ class VerifyPasswordResetOtpServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
-        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+        var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
@@ -82,7 +82,7 @@ class VerifyPasswordResetOtpServiceTest {
     void verify_emailNotFound_guardTimingAndThrowsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+        var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
@@ -101,7 +101,7 @@ class VerifyPasswordResetOtpServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
-        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+        var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.empty());
@@ -119,7 +119,7 @@ class VerifyPasswordResetOtpServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
-        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+        var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
@@ -138,7 +138,7 @@ class VerifyPasswordResetOtpServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
-        var command = new VerifyPasswordResetOtpCommand(email, PLAIN_OTP);
+        var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));

@@ -59,7 +59,7 @@ class InitiatePasswordResetServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var activeAccount = AccountMother.active().withEmail(email).build();
-        var command = new InitiatePasswordResetCommand(email);
+        var command = new InitiatePasswordResetCommand(email.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
         given(otpHasher.hash(any())).willReturn(HASHED_OTP);
@@ -76,7 +76,7 @@ class InitiatePasswordResetServiceTest {
     void initiate_accountNotFound_guardTimingAndReturnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var command = new InitiatePasswordResetCommand(email);
+        var command = new InitiatePasswordResetCommand(email.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         service.initiate(command);
@@ -92,7 +92,7 @@ class InitiatePasswordResetServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
-        var command = new InitiatePasswordResetCommand(email);
+        var command = new InitiatePasswordResetCommand(email.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         service.initiate(command);

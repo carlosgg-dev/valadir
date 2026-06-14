@@ -11,7 +11,6 @@ import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.PlainOtp;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
 import com.valadir.web.config.SecurityConfig;
@@ -69,7 +68,7 @@ class PasswordResetControllerTest {
         var email = Email.from("bruce.wayne@email.com");
 
         var request = new InitiatePasswordResetRequest(email.value());
-        var command = new InitiatePasswordResetCommand(email);
+        var command = new InitiatePasswordResetCommand(email.value());
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.INITIATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -115,7 +114,7 @@ class PasswordResetControllerTest {
         var verificationToken = "verification-token";
 
         var request = new VerifyPasswordResetOtpRequest(email.value(), resetCode);
-        var command = new VerifyPasswordResetOtpCommand(email, PlainOtp.from(resetCode));
+        var command = new VerifyPasswordResetOtpCommand(email.value(), resetCode);
 
         given(verifyPasswordResetOtpUseCase.verify(command))
             .willReturn(new PasswordResetOtpVerificationResult(verificationToken));
@@ -176,7 +175,7 @@ class PasswordResetControllerTest {
         var password = RawPassword.from("S3cur3P@ss!");
 
         var request = new CompletePasswordResetRequest(verificationToken, password.value());
-        var command = new CompletePasswordResetCommand(verificationToken, password);
+        var command = new CompletePasswordResetCommand(verificationToken, password.value());
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)

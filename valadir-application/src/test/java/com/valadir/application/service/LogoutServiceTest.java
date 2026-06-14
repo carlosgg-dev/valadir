@@ -38,7 +38,7 @@ class LogoutServiceTest {
 
         var accountId = AccountId.generate();
 
-        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId));
+        service.logout(new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId.value().toString()));
 
         then(logoutTokensInvalidator).should().invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId);
     }
@@ -48,7 +48,7 @@ class LogoutServiceTest {
 
         var accountId = AccountId.generate();
 
-        var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId);
+        var command = new LogoutCommand(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId.value().toString());
 
         willThrow(INFRA_ERROR)
             .given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId);

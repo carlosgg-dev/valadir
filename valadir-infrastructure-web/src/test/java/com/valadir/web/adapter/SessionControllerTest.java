@@ -79,8 +79,9 @@ class SessionControllerTest {
         var password = RawPassword.from("S3cur3P@ss!");
         var accessToken = "access.token.value";
         var refreshToken = "refresh-token-uuid";
+        var command = new LoginCommand(email.value(), password.value());
 
-        given(loginUseCase.login(new LoginCommand(email, password))).willReturn(new AuthTokenResult(accessToken, refreshToken));
+        given(loginUseCase.login(command)).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -200,7 +201,7 @@ class SessionControllerTest {
         assertThat(command.accessTokenJti()).isEqualTo("jti-value");
         assertThat(command.refreshToken()).isEqualTo(refreshToken);
         assertThat(command.accessTokenRemainingTtl()).isPositive();
-        assertThat(command.accountId()).isEqualTo(accountId);
+        assertThat(command.accountId()).isEqualTo(accountId.value().toString());
     }
 
     @Test

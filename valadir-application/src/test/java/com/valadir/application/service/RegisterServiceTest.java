@@ -75,7 +75,7 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
 
-        registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
+        registerService.register(new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value()));
 
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
         then(passwordSecurityService).should().validatePassword(rawPassword, email, userCaptor.getValue());
@@ -106,7 +106,7 @@ class RegisterServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
-        RegisterCommand command = new RegisterCommand(email, rawPassword, fullName, givenName);
+        RegisterCommand command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -137,7 +137,7 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existingAccount));
         given(passwordHasher.hash(rawPassword)).willReturn(newHashedPassword);
 
-        registerService.register(new RegisterCommand(email, rawPassword, fullName, givenName));
+        registerService.register(new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value()));
 
         then(registerPersistence).should().replace(eq(existingAccountId), accountCaptor.capture(), userCaptor.capture());
         then(registerPersistence).should(never()).save(any(), any());

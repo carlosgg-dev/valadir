@@ -67,7 +67,7 @@ class CompletePasswordResetServiceTest {
         var email = Email.from("bruce.wayne@example.com");
         var account = AccountMother.active().withId(accountId).withEmail(email).build();
         var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
@@ -86,7 +86,7 @@ class CompletePasswordResetServiceTest {
     void complete_tokenNotFound_throwsApplicationException() {
 
         var newPassword = PasswordMother.raw();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
@@ -104,7 +104,7 @@ class CompletePasswordResetServiceTest {
 
         var newPassword = PasswordMother.raw();
         var accountId = AccountId.generate();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.empty());
@@ -125,7 +125,7 @@ class CompletePasswordResetServiceTest {
         var email = Email.from("bruce.wayne@example.com");
         var accountId = AccountId.generate();
         var account = AccountMother.active().withId(accountId).withEmail(email).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
@@ -149,7 +149,7 @@ class CompletePasswordResetServiceTest {
         var email = Email.from("bruce.wayne@example.com");
         var account = AccountMother.active().withId(accountId).withEmail(email).build();
         var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword);
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));

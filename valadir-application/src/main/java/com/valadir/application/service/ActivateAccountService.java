@@ -10,6 +10,8 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -32,14 +34,17 @@ public class ActivateAccountService implements ActivateAccountUseCase {
     @Override
     public void activate(ActivateAccountCommand command) {
 
-        var account = accountRepository.findByEmail(command.email())
+        var email = Email.from(command.email());
+        var plainOtp = PlainOtp.from(command.plainOtp());
+
+        var account = accountRepository.findByEmail(email)
             .filter(Account::isPendingActivation)
             .orElseThrow(this::applicationException);
 
         MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
 
         otpRepository.find(account.getId())
-            .filter(hashedOtp -> otpHasher.matches(command.plainOtp(), hashedOtp))
+            .filter(hashedOtp -> otpHasher.matches(plainOtp, hashedOtp))
             .orElseThrow(this::applicationException);
 
         accountRepository.activate(account.getId());

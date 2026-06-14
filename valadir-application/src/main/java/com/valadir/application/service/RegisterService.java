@@ -9,6 +9,10 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.FullName;
+import com.valadir.domain.model.GivenName;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
@@ -46,10 +50,10 @@ public class RegisterService implements RegisterUseCase {
     @Override
     public void register(RegisterCommand command) {
 
-        var email = command.email();
-        var rawPassword = command.password();
-        var fullName = command.fullName();
-        var givenName = command.givenName();
+        var email = Email.from(command.email());
+        var rawPassword = RawPassword.from(command.password());
+        var fullName = FullName.from(command.fullName());
+        var givenName = GivenName.from(command.givenName());
 
         var existingAccountId = accountRepository.findByEmail(email)
             .map(this::resolveExistingAccountId);

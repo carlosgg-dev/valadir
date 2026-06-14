@@ -15,6 +15,7 @@ import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -49,15 +50,17 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
     @Override
     public PasswordResetOtpVerificationResult verify(VerifyPasswordResetOtpCommand command) {
 
-        var foundAccount = getAccount(command.email());
+        var email = Email.from(command.email());
+        var plainOtp = PlainOtp.from(command.plainOtp());
 
+        var foundAccount = getAccount(email);
         AccountId foundAccountId = foundAccount.getId();
         MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
 
         var hashedOtp = otpRepository.find(foundAccountId)
             .orElseThrow(this::applicationException);
 
-        if (!otpHasher.matches(command.plainOtp(), hashedOtp)) {
+        if (!otpHasher.matches(plainOtp, hashedOtp)) {
             throw applicationException();
         }
 

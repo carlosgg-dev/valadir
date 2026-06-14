@@ -8,6 +8,7 @@ import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.model.Email;
 import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
     @Override
     public void initiate(InitiatePasswordResetCommand command) {
 
-        var email = command.email();
+        var email = Email.from(command.email());
         var account = accountRepository.findByEmail(email);
 
         if (account.isEmpty()) {

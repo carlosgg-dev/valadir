@@ -74,7 +74,7 @@ class AccountRegistrationControllerTest {
         var givenName = GivenName.from("Batman");
 
         var request = new RegisterRequest(email.value(), rawPassword.value(), fullName.value(), givenName.value());
-        var command = new RegisterCommand(email, rawPassword, fullName, givenName);
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
 
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +162,7 @@ class AccountRegistrationControllerTest {
         var code = PlainOtp.from("123456");
 
         var request = new ActivateAccountRequest(email.value(), code.value());
-        var command = new ActivateAccountCommand(email, code);
+        var command = new ActivateAccountCommand(email.value(), code.value());
 
         mockMvc.perform(post(ApiRoutes.Auth.Registration.ACTIVATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -206,7 +206,7 @@ class AccountRegistrationControllerTest {
         var email = Email.from("bruce.wayne@emailValue.com");
 
         var request = new ResendAccountActivationCodeRequest(email.value());
-        var command = new ResendAccountActivationCodeCommand(email);
+        var command = new ResendAccountActivationCodeCommand(email.value());
 
         mockMvc.perform(post(ApiRoutes.Auth.Registration.RESEND_PATH)
                             .contentType(MediaType.APPLICATION_JSON)

@@ -51,7 +51,7 @@ class ActivateAccountServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_OTP));
@@ -67,7 +67,7 @@ class ActivateAccountServiceTest {
     void activate_accountNotFound_throwsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
@@ -85,7 +85,7 @@ class ActivateAccountServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var activeAccount = AccountMother.active().withEmail(email).build();
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(activeAccount));
 
@@ -103,7 +103,7 @@ class ActivateAccountServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.empty());
@@ -121,7 +121,7 @@ class ActivateAccountServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.pendingActivation().withEmail(email).build();
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
@@ -140,7 +140,7 @@ class ActivateAccountServiceTest {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
-        var command = new ActivateAccountCommand(email, PLAIN_OTP);
+        var command = new ActivateAccountCommand(email.value(), PLAIN_OTP.value());
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(otpRepository.find(pendingAccount.getId())).willReturn(Optional.of(HASHED_OTP));

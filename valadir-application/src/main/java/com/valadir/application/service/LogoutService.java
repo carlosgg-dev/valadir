@@ -7,8 +7,11 @@ import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.common.error.ErrorCode;
 
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.domain.model.AccountId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
 
 public class LogoutService implements LogoutUseCase {
 
@@ -24,12 +27,14 @@ public class LogoutService implements LogoutUseCase {
     @Override
     public void logout(LogoutCommand command) {
 
+        var accountId = AccountId.from(UUID.fromString(command.accountId()));
+
         try {
             logoutTokensInvalidator.invalidate(
                 command.accessTokenJti(),
                 command.accessTokenRemainingTtl(),
                 command.refreshToken(),
-                command.accountId()
+                accountId
             );
             log.info("Logout successful");
         } catch (InfrastructureException e) {
