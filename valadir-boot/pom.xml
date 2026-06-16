@@ -55,6 +55,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ArchUnit: executable specification of the hexagonal architecture rules.
+             Hosted here because valadir-boot is the only module with every layer on its
+             classpath, so the full dependency graph can be analysed in a single pass. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Testcontainers JUnit 5 support -->
         <dependency>
             <groupId>org.testcontainers</groupId>
