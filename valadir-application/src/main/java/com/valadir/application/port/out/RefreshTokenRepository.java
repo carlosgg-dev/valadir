@@ -1,11 +1,12 @@
 package com.valadir.application.port.out;
 
-import com.valadir.application.result.TokenValidationResult;
 import com.valadir.domain.model.AccountId;
+
+import java.util.Optional;
 
 public interface RefreshTokenRepository {
 
-    TokenValidationResult validate(String token);
+    Optional<AccountId> validate(String token);
 
     void save(String token, AccountId accountId);
 

@@ -1,6 +1,5 @@
 package com.valadir.security.adapter;
 
-import com.valadir.application.result.TokenValidationResult;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.containers.RedisContainerConfig;
@@ -14,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,24 +39,23 @@ class RefreshTokenRepositoryRedisAdapterTest {
     }
 
     @Test
-    void validate_existingToken_returnsValid() {
+    void validate_existingToken_returnsAccountId() {
 
         var accountId = AccountId.generate();
         var token = UUID.randomUUID().toString();
 
         adapter.save(token, accountId);
-        TokenValidationResult result = adapter.validate(token);
+        Optional<AccountId> result = adapter.validate(token);
 
-        assertThat(result).isInstanceOf(TokenValidationResult.Valid.class);
-        assertThat(((TokenValidationResult.Valid) result).accountId()).isEqualTo(accountId);
+        assertThat(result).contains(accountId);
     }
 
     @Test
-    void validate_nonExistingToken_returnsInvalid() {
+    void validate_nonExistingToken_returnsEmpty() {
 
-        TokenValidationResult result = adapter.validate(UUID.randomUUID().toString());
+        Optional<AccountId> result = adapter.validate(UUID.randomUUID().toString());
 
-        assertThat(result).isInstanceOf(TokenValidationResult.Invalid.class);
+        assertThat(result).isEmpty();
     }
 
     @Test

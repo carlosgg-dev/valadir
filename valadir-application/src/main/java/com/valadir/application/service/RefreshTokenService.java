@@ -7,8 +7,6 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
-import com.valadir.application.result.TokenValidationResult.Invalid;
-import com.valadir.application.result.TokenValidationResult.Valid;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.model.AccountId;
@@ -34,10 +32,9 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     @Override
     public AuthTokenResult refresh(RefreshTokenCommand command) {
 
-        return switch (refreshTokenRepository.validate(command.refreshToken())) {
-            case Valid(AccountId accountId) -> rotateToken(command.refreshToken(), accountId);
-            case Invalid ignored -> throw new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN);
-        };
+        return refreshTokenRepository.validate(command.refreshToken())
+            .map(accountId -> rotateToken(command.refreshToken(), accountId))
+            .orElseThrow(() -> new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN));
     }
 
     private AuthTokenResult rotateToken(String oldRefreshToken, AccountId accountId) {

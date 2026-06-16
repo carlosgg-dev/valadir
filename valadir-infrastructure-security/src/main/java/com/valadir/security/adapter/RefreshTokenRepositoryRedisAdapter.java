@@ -1,7 +1,6 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.RefreshTokenRepository;
-import com.valadir.application.result.TokenValidationResult;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
@@ -12,6 +11,7 @@ import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepository {
@@ -32,13 +32,12 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     }
 
     @Override
-    public TokenValidationResult validate(String token) {
+    public Optional<AccountId> validate(String token) {
 
         try {
             String accountIdValue = redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(token));
-            return accountIdValue == null
-                ? new TokenValidationResult.Invalid()
-                : new TokenValidationResult.Valid(AccountId.from(UUID.fromString(accountIdValue)));
+            return Optional.ofNullable(accountIdValue)
+                .map(value -> AccountId.from(UUID.fromString(value)));
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
         }
