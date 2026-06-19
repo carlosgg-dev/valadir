@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class LoginAttemptRepositoryRedisAdapterTest {
+class LoginAttemptRepositoryRedisAdapterIT {
 
     private static final LoginLockoutPolicy POLICY = new LoginLockoutPolicy(
         Duration.ofHours(1),

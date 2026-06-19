@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({PostgresContainerConfig.class, PersistenceWiring.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
+class ExpiredPendingActivationAccountCleanerJpaAdapterIT {
 
     private static final Instant CUTOFF = Instant.now().minus(72, ChronoUnit.HOURS);
     private static final Instant EXPIRED_CREATED_AT = CUTOFF.minus(8, ChronoUnit.HOURS);

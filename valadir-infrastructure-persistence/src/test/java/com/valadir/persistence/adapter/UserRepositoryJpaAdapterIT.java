@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import(PostgresContainerConfig.class)
-class UserRepositoryJpaAdapterTest {
+class UserRepositoryJpaAdapterIT {
 
     @Autowired
     private AccountJpaRepository accountJpaRepository;

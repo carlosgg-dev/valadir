@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class OtpRepositoryRedisAdapterTest {
+class OtpRepositoryRedisAdapterIT {
 
     private static final Duration OTP_TTL = Duration.ofMinutes(10);
     private static final UnaryOperator<String> REDIS_KEY_FN = id -> "test:otp:" + id;

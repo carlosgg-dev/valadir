@@ -13,6 +13,12 @@
 
     <artifactId>valadir-test-support</artifactId>
 
+    <properties>
+        <!-- Pure test fixtures: no production code to gate.
+             Skip JaCoCo entirely so no coverage execution runs here. -->
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
     <dependencies>
         <!-- Project modules -->
         <dependency>

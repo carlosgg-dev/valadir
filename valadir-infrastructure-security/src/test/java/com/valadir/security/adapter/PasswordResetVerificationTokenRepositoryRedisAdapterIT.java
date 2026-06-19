@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class PasswordResetVerificationTokenRepositoryRedisAdapterTest {
+class PasswordResetVerificationTokenRepositoryRedisAdapterIT {
 
     private static final Duration TOKEN_TTL = Duration.ofMinutes(10);
 

@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({PostgresContainerConfig.class, PersistenceWiring.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-class RegisterPersistenceJpaAdapterTest {
+class RegisterPersistenceJpaAdapterIT {
 
     @Autowired
     private AccountJpaRepository accountJpaRepository;

@@ -12,7 +12,7 @@ import org.testcontainers.utility.MountableFile;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ValadirApplicationTest {
+class ValadirApplicationIT {
 
     private static final PostgreSQLContainer<?> POSTGRES;
     private static final RedisContainer REDIS;

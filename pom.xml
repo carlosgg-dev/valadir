@@ -39,6 +39,19 @@
         <pitest.version>1.19.1</pitest.version>
         <pitest.junit5.version>1.2.2</pitest.junit5.version>
         <archunit.version>1.3.0</archunit.version>
+
+        <!-- JaCoCo agent argLines, populated at runtime by the prepare-agent goals.
+             Declared empty so the build still works when JaCoCo is skipped (e.g. the
+             `mutation` profile) instead of passing a literal `${...}` to the JVM. -->
+        <surefireArgLine/>
+        <failsafeArgLine/>
+
+        <!-- Coverage gate defaults = strict unit gate (domain/application/common):
+             `test` phase, unit-only exec, 100% branch+instruction. Infrastructure and
+             boot modules override these to the union gate (`verify`, merged exec, 90%). -->
+        <jacoco.check.phase>test</jacoco.check.phase>
+        <jacoco.check.dataFile>${project.build.directory}/jacoco-unit.exec</jacoco.check.dataFile>
+        <jacoco.coverage.minimum>1.00</jacoco.coverage.minimum>
     </properties>
 
     <dependencies>
@@ -198,32 +211,124 @@
             </plugins>
         </pluginManagement>
         <plugins>
-            <!-- JaCoCo: Code coverage measurement and enforcement -->
+            <!-- Surefire: fast unit tests (*Test) in the `test` phase. Never boots Docker;
+                 keeps the inner loop (`./mvnw test`) Testcontainers-free. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- @{...}: late property evaluation, resolved at test time so it picks up
+                         the agent argLine set by jacoco prepare-agent (a plain ${...} would
+                         resolve early to the empty default and the agent would never attach). -->
+                    <argLine>@{surefireArgLine}</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- Failsafe: integration / E2E tests (*IT) in the `verify` phase. Everything that
+                 boots Testcontainers lives here — slice and E2E share one execution bucket.
+                 The integration-test+verify binding is inherited from spring-boot-starter-parent;
+                 we only declare the plugin to activate it and inject the JaCoCo agent argLine. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>@{failsafeArgLine}</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo: two-exec, two-gate coverage attribution by test type.
+                 Unit tests feed jacoco-unit.exec; integration/E2E feed jacoco-it.exec.
+                 Coverage can never be inflated (masked) across test types. -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.13</version>
                 <executions>
+                    <!-- Unit agent -> jacoco-unit.exec, wired into Surefire. -->
                     <execution>
-                        <id>prepare-agent</id>
+                        <id>prepare-unit-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-unit.exec</destFile>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
                     </execution>
+
+                    <!-- Integration agent -> jacoco-it.exec, wired into Failsafe. -->
                     <execution>
-                        <id>report</id>
+                        <id>prepare-it-agent</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
+                            <propertyName>failsafeArgLine</propertyName>
+                        </configuration>
+                    </execution>
+
+                    <!-- Unit HTML report: what unit tests touch (diagnostic, per test type). -->
+                    <execution>
+                        <id>unit-report</id>
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-unit.exec</dataFile>
+                            <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
+                        </configuration>
                     </execution>
+
+                    <!-- Merge unit + integration into a single union exec for the verify gate.
+                         Missing files (modules without *IT) are silently skipped. -->
                     <execution>
-                        <id>check</id>
-                        <phase>test</phase>
+                        <id>merge-exec</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>jacoco-unit.exec</include>
+                                        <include>jacoco-it.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <destFile>${project.build.directory}/jacoco-merged.exec</destFile>
+                        </configuration>
+                    </execution>
+
+                    <!-- Integration HTML report: what integration/E2E tests touch. -->
+                    <execution>
+                        <id>integration-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-it.exec</dataFile>
+                            <outputDirectory>${project.build.directory}/site/jacoco-it</outputDirectory>
+                        </configuration>
+                    </execution>
+
+                    <!-- Coverage gate. Phase, exec file and threshold vary by module via the jacoco.check.* properties:
+                           - domain/application/common: `test`, jacoco-unit.exec, 100% (unit gate).
+                             Integration tests are invisible to it -> un-inflatable.
+                           - infrastructure-*/boot: `verify`, jacoco-merged.exec, 90% (union gate).
+                             Declared after merge-exec so the merged file already exists at `verify`. -->
+                    <execution>
+                        <id>coverage-check</id>
+                        <phase>${jacoco.check.phase}</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <dataFile>${jacoco.check.dataFile}</dataFile>
                             <!-- Spring wiring and entry point: no unit-testable logic -->
                             <excludes>
                                 <exclude>**/*Wiring*</exclude>
@@ -237,12 +342,12 @@
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
+                                            <minimum>${jacoco.coverage.minimum}</minimum>
                                         </limit>
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
+                                            <minimum>${jacoco.coverage.minimum}</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

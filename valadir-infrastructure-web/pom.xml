@@ -13,6 +13,12 @@
 
     <artifactId>valadir-infrastructure-web</artifactId>
 
+    <properties>
+        <jacoco.check.phase>verify</jacoco.check.phase>
+        <jacoco.check.dataFile>${project.build.directory}/jacoco-merged.exec</jacoco.check.dataFile>
+        <jacoco.coverage.minimum>0.90</jacoco.coverage.minimum>
+    </properties>
+
     <dependencies>
         <!-- Project modules -->
         <dependency>

@@ -71,11 +71,21 @@ docker compose -f docker/docker-compose.yml --env-file .env up -d
 
 ### Build and Test
 
-Run the full build including infrastructure validation:
+Tests are split by Maven phase, so the inner loop never needs Docker:
 
 ```bash
-mvn clean install
+# Fast inner loop — unit tests only (Surefire, *Test), no Docker.
+./mvnw test
+
+# Full build — also runs the integration/E2E slices (Failsafe, *IT) against
+# Testcontainers Postgres + Redis. Requires Docker to be running.
+./mvnw verify
 ```
+
+Coverage is attributed by test type via two JaCoCo exec files and two gates: a strict **unit gate**
+(`domain`/`application`/`common`, 100% at the `test` phase, unit coverage only) and a **union gate**
+(`infrastructure-*`/`boot`, 90% at the `verify` phase). The unit gate cannot be satisfied by integration
+tests, so a business-logic gap can never be masked by an E2E.
 
 ## License
 

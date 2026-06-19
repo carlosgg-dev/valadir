@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class AccessTokenBlacklistRedisAdapterTest {
+class AccessTokenBlacklistRedisAdapterIT {
 
     @Autowired
     private AccessTokenBlacklistRedisAdapter adapter;

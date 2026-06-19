@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class LogoutTokensInvalidatorRedisAdapterTest {
+class LogoutTokensInvalidatorRedisAdapterIT {
 
     @Autowired
     private LogoutTokensInvalidatorRedisAdapter tokenInvalidatorAdapter;

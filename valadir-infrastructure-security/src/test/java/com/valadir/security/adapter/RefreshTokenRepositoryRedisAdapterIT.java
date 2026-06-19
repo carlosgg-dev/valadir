@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(RedisContainerConfig.class)
-class RefreshTokenRepositoryRedisAdapterTest {
+class RefreshTokenRepositoryRedisAdapterIT {
 
     @Autowired
     private RefreshTokenRepositoryRedisAdapter adapter;
