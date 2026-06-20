@@ -70,14 +70,14 @@ rate-limit:
   rules:
     # public endpoints
     # --- login: brute-force + credential stuffing ---
+    # IP only: per-account brute-force is handled by the domain login lockout.
+    # An EMAIL rule here would run in the filter before the controller and mask
+    # the lockout (SEC-006 instead of SEC-007), freezing the attempt counter
+    # and making the 10/15 thresholds unreachable.
     - path: /api/auth/login
       strategy: IP
       max-requests: 10
       window: 60s
-    - path: /api/auth/login
-      strategy: EMAIL
-      max-requests: 5
-      window: 15m
 
     # --- register: email enumeration via EMAIL_ALREADY_EXISTS ---
     - path: /api/auth/register
