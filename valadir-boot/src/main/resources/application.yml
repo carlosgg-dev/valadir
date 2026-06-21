@@ -36,6 +36,10 @@ spring:
 notifications:
   mail:
     from: noreply@valadir.local
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+    queue-capacity: 50
 
 auth:
   account-activation:

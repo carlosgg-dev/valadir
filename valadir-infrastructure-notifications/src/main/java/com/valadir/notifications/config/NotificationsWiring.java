@@ -1,8 +1,10 @@
 package com.valadir.notifications.config;
 
 import com.valadir.application.port.out.AccountActivationNotifier;
+import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.notifications.adapter.AccountActivationNotifierJavaMailAdapter;
+import com.valadir.notifications.adapter.AccountLockedNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.PasswordResetNotifierJavaMailAdapter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +21,15 @@ class NotificationsWiring {
     ) {
 
         return new AccountActivationNotifierJavaMailAdapter(mailSender, fromAddress);
+    }
+
+    @Bean
+    AccountLockedNotifier accountLockedNotifier(
+        JavaMailSender mailSender,
+        @Value("${notifications.mail.from}") String fromAddress
+    ) {
+
+        return new AccountLockedNotifierJavaMailAdapter(mailSender, fromAddress);
     }
 
     @Bean
