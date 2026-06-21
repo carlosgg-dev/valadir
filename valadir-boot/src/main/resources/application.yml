@@ -47,7 +47,8 @@ auth:
     verification-token:
       ttl: 10m
   lockout:
-    window: 1h  # sliding window for counting failed attempts
+    window: 1h  # fixed window for counting failed attempts (does not slide on each attempt)
+    challenge-threshold: 3  # failures before a CAPTCHA step-up is required; must stay below the first lockout tier
     thresholds:
       - min-failures: 5
         lockout: 60s

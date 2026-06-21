@@ -27,8 +27,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(RedisContainerConfig.class)
 class LoginAttemptRepositoryRedisAdapterIT {
 
+    private static final Email EMAIL = Email.from("bruce.wayne@email.com");
+
     private static final LoginLockoutPolicy POLICY = new LoginLockoutPolicy(
         Duration.ofHours(1),
+        2,
         List.of(
             new LoginLockoutThreshold(3, Duration.ofSeconds(30)),
             new LoginLockoutThreshold(5, Duration.ofSeconds(120)),
@@ -40,8 +43,6 @@ class LoginAttemptRepositoryRedisAdapterIT {
     private RedisTemplate<String, String> redisTemplate;
 
     private LoginAttemptRepositoryRedisAdapter adapter;
-
-    private final Email email = Email.from("bruce.wayne@email.com");
 
     @BeforeEach
     void setUp() {
@@ -56,16 +57,16 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void findActiveLockout_withNoLockout_returnsEmpty() {
 
-        assertThat(adapter.findActiveLockout(email)).isEmpty();
+        assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
     }
 
     @Test
     void findActiveLockout_withActiveLockout_returnsTtl() {
 
-        String lockoutKey = RedisKeySpace.forLoginLockout(email.value());
+        String lockoutKey = RedisKeySpace.forLoginLockout(EMAIL.value());
         redisTemplate.opsForValue().set(lockoutKey, "3", Duration.ofSeconds(30));
 
-        assertThat(adapter.findActiveLockout(email))
+        assertThat(adapter.findActiveLockout(EMAIL))
             .isPresent()
             .hasValueSatisfying(ttl -> assertThat(ttl.toSeconds()).isGreaterThan(0).isLessThanOrEqualTo(30));
     }
@@ -73,23 +74,23 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void recordFailedAttempt_below3Failures_noLockout() {
 
-        String attemptsKey = RedisKeySpace.forLoginAttempts(email.value());
+        String attemptsKey = RedisKeySpace.forLoginAttempts(EMAIL.value());
 
-        adapter.recordFailedAttempt(email);
-        adapter.recordFailedAttempt(email);
+        adapter.recordFailedAttempt(EMAIL);
+        adapter.recordFailedAttempt(EMAIL);
 
-        assertThat(adapter.findActiveLockout(email)).isEmpty();
+        assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
         assertThat(redisTemplate.opsForValue().get(attemptsKey)).isEqualTo("2");
     }
 
     @Test
     void recordFailedAttempt_at3Failures_appliesShortLockout() {
 
-        adapter.recordFailedAttempt(email);
-        adapter.recordFailedAttempt(email);
-        adapter.recordFailedAttempt(email);
+        adapter.recordFailedAttempt(EMAIL);
+        adapter.recordFailedAttempt(EMAIL);
+        adapter.recordFailedAttempt(EMAIL);
 
-        assertThat(adapter.findActiveLockout(email))
+        assertThat(adapter.findActiveLockout(EMAIL))
             .isPresent()
             .hasValueSatisfying(ttl -> assertThat(ttl.toSeconds()).isGreaterThan(0).isLessThanOrEqualTo(30));
     }
@@ -97,9 +98,9 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void recordFailedAttempt_at5Failures_applies2MinuteLockout() {
 
-        IntStream.range(0, 5).forEach(i -> adapter.recordFailedAttempt(email));
+        IntStream.range(0, 5).forEach(i -> adapter.recordFailedAttempt(EMAIL));
 
-        assertThat(adapter.findActiveLockout(email))
+        assertThat(adapter.findActiveLockout(EMAIL))
             .isPresent()
             .hasValueSatisfying(ttl -> assertThat(ttl.toSeconds()).isGreaterThan(60).isLessThanOrEqualTo(120));
     }
@@ -107,9 +108,9 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void recordFailedAttempt_at7Failures_appliesMaxLockout() {
 
-        IntStream.range(0, 7).forEach(i -> adapter.recordFailedAttempt(email));
+        IntStream.range(0, 7).forEach(i -> adapter.recordFailedAttempt(EMAIL));
 
-        assertThat(adapter.findActiveLockout(email))
+        assertThat(adapter.findActiveLockout(EMAIL))
             .isPresent()
             .hasValueSatisfying(ttl -> assertThat(ttl.toSeconds()).isGreaterThan(120).isLessThanOrEqualTo(600));
     }
@@ -117,13 +118,13 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void recordFailedAttempt_subsequentIncrement_doesNotRefreshWindow() {
 
-        String attemptsKey = RedisKeySpace.forLoginAttempts(email.value());
+        String attemptsKey = RedisKeySpace.forLoginAttempts(EMAIL.value());
         Duration elapsedWindow = Duration.ofSeconds(10);
 
         // Simulate a window already in progress: counter present with a short remaining TTL.
         redisTemplate.opsForValue().set(attemptsKey, "1", elapsedWindow);
 
-        adapter.recordFailedAttempt(email);
+        adapter.recordFailedAttempt(EMAIL);
 
         Long ttl = redisTemplate.getExpire(attemptsKey, TimeUnit.SECONDS);
         assertThat(ttl)
@@ -136,17 +137,17 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @Test
     void clearAttempts_removesCounterAndLockout() {
 
-        String attemptsKey = RedisKeySpace.forLoginAttempts(email.value());
+        String attemptsKey = RedisKeySpace.forLoginAttempts(EMAIL.value());
 
-        adapter.recordFailedAttempt(email);
-        adapter.recordFailedAttempt(email);
-        adapter.recordFailedAttempt(email);
+        adapter.recordFailedAttempt(EMAIL);
+        adapter.recordFailedAttempt(EMAIL);
+        adapter.recordFailedAttempt(EMAIL);
 
-        assertThat(adapter.findActiveLockout(email)).isPresent();
+        assertThat(adapter.findActiveLockout(EMAIL)).isPresent();
 
-        adapter.clearAttempts(email);
+        adapter.clearAttempts(EMAIL);
 
-        assertThat(adapter.findActiveLockout(email)).isEmpty();
+        assertThat(adapter.findActiveLockout(EMAIL)).isEmpty();
         assertThat(redisTemplate.opsForValue().get(attemptsKey)).isNull();
     }
 }

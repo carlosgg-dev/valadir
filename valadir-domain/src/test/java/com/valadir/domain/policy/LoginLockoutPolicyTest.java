@@ -3,6 +3,7 @@ package com.valadir.domain.policy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,34 +21,30 @@ class LoginLockoutPolicyTest {
         new LoginLockoutThreshold(7, Duration.ofSeconds(600))
     );
 
-    private static final LoginLockoutPolicy POLICY = new LoginLockoutPolicy(Duration.ofHours(1), VALID_THRESHOLDS);
+    private static final int CHALLENGE_THRESHOLD = 2;
 
-    @Test
-    void constructor_storesWindowAndThresholds() {
-
-        var window = Duration.ofMinutes(30);
-        var policy = new LoginLockoutPolicy(window, VALID_THRESHOLDS);
-
-        assertThat(policy.attemptsWindow()).isEqualTo(window);
-        assertThat(policy.thresholds()).containsExactlyElementsOf(VALID_THRESHOLDS);
-    }
-
-    @Test
-    void constructor_thresholdsAreImmutable() {
-
-        var thresholds = POLICY.thresholds();
-        var extra = new LoginLockoutThreshold(10, Duration.ofSeconds(1000));
-
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-            .isThrownBy(() -> thresholds.add(extra));
-    }
+    private static final LoginLockoutPolicy POLICY = new LoginLockoutPolicy(Duration.ofHours(1), CHALLENGE_THRESHOLD, VALID_THRESHOLDS);
 
     @ParameterizedTest
     @MethodSource("nonPositiveAttemptsWindows")
     void constructor_nonPositiveAttemptsWindow_throwsIllegalArgumentException(Duration window) {
 
         assertThatIllegalArgumentException()
-            .isThrownBy(() -> new LoginLockoutPolicy(window, VALID_THRESHOLDS));
+            .isThrownBy(() -> new LoginLockoutPolicy(window, CHALLENGE_THRESHOLD, VALID_THRESHOLDS));
+    }
+
+    @Test
+    void constructor_nullThresholds_throwsIllegalArgumentException() {
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> new LoginLockoutPolicy(Duration.ofHours(1), CHALLENGE_THRESHOLD, null));
+    }
+
+    @Test
+    void constructor_emptyThresholds_throwsIllegalArgumentException() {
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> new LoginLockoutPolicy(Duration.ofHours(1), CHALLENGE_THRESHOLD, List.of()));
     }
 
     @Test
@@ -56,6 +53,7 @@ class LoginLockoutPolicyTest {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new LoginLockoutPolicy(
                 Duration.ofHours(1),
+                CHALLENGE_THRESHOLD,
                 List.of(
                     new LoginLockoutThreshold(3, Duration.ofSeconds(30)),
                     new LoginLockoutThreshold(3, Duration.ofSeconds(60))
@@ -69,6 +67,7 @@ class LoginLockoutPolicyTest {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new LoginLockoutPolicy(
                 Duration.ofHours(1),
+                CHALLENGE_THRESHOLD,
                 List.of(
                     new LoginLockoutThreshold(3, Duration.ofSeconds(600)),
                     new LoginLockoutThreshold(5, Duration.ofSeconds(30))
@@ -82,11 +81,39 @@ class LoginLockoutPolicyTest {
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new LoginLockoutPolicy(
                 Duration.ofHours(1),
+                CHALLENGE_THRESHOLD,
                 List.of(
                     new LoginLockoutThreshold(3, Duration.ofSeconds(30)),
                     new LoginLockoutThreshold(5, Duration.ofSeconds(30))
                 )
             ));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void constructor_nonPositiveChallengeThreshold_throwsIllegalArgumentException(int challengeThreshold) {
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> new LoginLockoutPolicy(Duration.ofHours(1), challengeThreshold, VALID_THRESHOLDS));
+    }
+
+    @Test
+    void constructor_challengeThresholdNotBelowFirstTier_throwsIllegalArgumentException() {
+
+        int firstTierMinFailures = VALID_THRESHOLDS.getFirst().minFailures();
+
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> new LoginLockoutPolicy(Duration.ofHours(1), firstTierMinFailures, VALID_THRESHOLDS));
+    }
+
+    @Test
+    void constructor_thresholdsAreImmutable() {
+
+        var thresholds = POLICY.thresholds();
+        var extra = new LoginLockoutThreshold(10, Duration.ofSeconds(1000));
+
+        assertThatExceptionOfType(UnsupportedOperationException.class)
+            .isThrownBy(() -> thresholds.add(extra));
     }
 
     @Test
@@ -124,6 +151,7 @@ class LoginLockoutPolicyTest {
 
         var policy = new LoginLockoutPolicy(
             Duration.ofHours(1),
+            CHALLENGE_THRESHOLD,
             List.of(
                 new LoginLockoutThreshold(7, Duration.ofSeconds(600)),
                 new LoginLockoutThreshold(3, Duration.ofSeconds(30))
@@ -132,6 +160,27 @@ class LoginLockoutPolicyTest {
 
         assertThat(policy.lockoutFor(3)).isEqualTo(Duration.ofSeconds(30));
         assertThat(policy.lockoutFor(7)).isEqualTo(Duration.ofSeconds(600));
+    }
+
+    @Test
+    void decideByCount_belowChallengeThreshold_returnsAllowed() {
+
+        assertThat(POLICY.decideByCount(CHALLENGE_THRESHOLD - 1))
+            .isInstanceOf(LoginAttemptDecision.Allowed.class);
+    }
+
+    @Test
+    void decideByCount_atChallengeThreshold_returnsChallengeRequired() {
+
+        assertThat(POLICY.decideByCount(CHALLENGE_THRESHOLD))
+            .isInstanceOf(LoginAttemptDecision.ChallengeRequired.class);
+    }
+
+    @Test
+    void decideByCount_aboveChallengeThreshold_returnsChallengeRequired() {
+
+        assertThat(POLICY.decideByCount(CHALLENGE_THRESHOLD + 1))
+            .isInstanceOf(LoginAttemptDecision.ChallengeRequired.class);
     }
 
     static Stream<Duration> nonPositiveAttemptsWindows() {

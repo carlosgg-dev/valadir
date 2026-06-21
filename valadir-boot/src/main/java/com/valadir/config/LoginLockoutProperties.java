@@ -8,13 +8,10 @@ import java.util.List;
 @ConfigurationProperties("auth.lockout")
 public record LoginLockoutProperties(
     Duration window,
+    int challengeThreshold,
     List<ThresholdProperties> thresholds) {
 
     public LoginLockoutProperties {
-
-        if (thresholds == null || thresholds.isEmpty()) {
-            throw new IllegalArgumentException("auth.lockout.thresholds requires at least one threshold entry in application.yml");
-        }
 
         thresholds = List.copyOf(thresholds);
     }

@@ -165,7 +165,7 @@ class ApplicationWiring {
             .map(threshold -> new LoginLockoutThreshold(threshold.minFailures(), threshold.lockout()))
             .toList();
 
-        return new LoginLockoutPolicy(properties.window(), thresholds);
+        return new LoginLockoutPolicy(properties.window(), properties.challengeThreshold(), thresholds);
     }
 
     @Bean
