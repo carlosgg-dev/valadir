@@ -165,9 +165,9 @@ class LoginServiceTest {
     }
 
     @Test
-    void login_emailNotFound_doesNotRecordFailedAttempt() {
+    void login_unknownEmail_recordsFailedAttempt() {
 
-        var email = Email.from("bruce.wayne@email.com");
+        var email = Email.from("unknown@email.com");
         var password = PasswordMother.raw();
         var command = new LoginCommand(email.value(), password.value());
 
@@ -177,7 +177,10 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(loginAttemptRepository).should(never()).recordFailedAttempt(any());
+        // Non-existent email accumulates and locks like a real one, so the boundary
+        // response is uniform and the account-enumeration oracle is closed.
+        then(passwordHasher).should().guardTiming(password);
+        then(loginAttemptRepository).should().recordFailedAttempt(email);
     }
 
     @Test
