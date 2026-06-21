@@ -17,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,6 +112,25 @@ class LoginAttemptRepositoryRedisAdapterIT {
         assertThat(adapter.findActiveLockout(email))
             .isPresent()
             .hasValueSatisfying(ttl -> assertThat(ttl.toSeconds()).isGreaterThan(120).isLessThanOrEqualTo(600));
+    }
+
+    @Test
+    void recordFailedAttempt_subsequentIncrement_doesNotRefreshWindow() {
+
+        String attemptsKey = RedisKeySpace.forLoginAttempts(email.value());
+        Duration elapsedWindow = Duration.ofSeconds(10);
+
+        // Simulate a window already in progress: counter present with a short remaining TTL.
+        redisTemplate.opsForValue().set(attemptsKey, "1", elapsedWindow);
+
+        adapter.recordFailedAttempt(email);
+
+        Long ttl = redisTemplate.getExpire(attemptsKey, TimeUnit.SECONDS);
+        assertThat(ttl)
+            .isPositive()
+            .isLessThanOrEqualTo(elapsedWindow.toSeconds());
+
+        assertThat(redisTemplate.opsForValue().get(attemptsKey)).isEqualTo("2");
     }
 
     @Test
