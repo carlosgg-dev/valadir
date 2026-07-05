@@ -116,9 +116,12 @@ class HexagonalArchitectureTest {
 
     // An adapter package holds only adapters: driven ones named *Adapter (the [PortName][Technology]Adapter convention)
     // and driving ones named *Controller. Nothing else — services, mappers, helpers — leaks into an adapter package.
+    // Scoped to top-level classes: nested types are encapsulated implementation details of their adapter,
+    // not residents of the package.
     @ArchTest
     static final ArchRule adapter_packages_contain_only_adapters =
         classes().that().resideInAPackage("..adapter..")
+            .and().areTopLevelClasses()
             .should().haveSimpleNameEndingWith("Adapter")
             .orShould().haveSimpleNameEndingWith("Controller");
 
