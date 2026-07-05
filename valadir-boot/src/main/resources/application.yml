@@ -60,6 +60,12 @@ auth:
         lockout: 5m
       - min-failures: 15
         lockout: 30m
+  captcha:
+    enabled: true
+    verify-url: https://challenges.cloudflare.com/turnstile/v0/siteverify
+    secret: ${TURNSTILE_SECRET}
+    connect-timeout: 2s
+    read-timeout: 3s
   jwt:
     private-key: ${JWT_PRIVATE_KEY}
     access-token-ttl: 15m

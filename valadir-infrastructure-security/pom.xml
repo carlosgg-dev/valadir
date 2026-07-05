@@ -64,6 +64,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Jackson annotations: @JsonIgnoreProperties on the Turnstile response keeps the adapter's
+             unknown-field tolerance explicit and independent of the global ObjectMapper config.
+             Compile-time only; the annotations are provided transitively by the web starter at runtime. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Jackson databind: JSON binding for the RestClient under test. Provided by the web
+             starter at runtime in valadir-boot; needed here only to exercise CaptchaVerifierTurnstileAdapter. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- JUnit 5: Standard testing framework -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

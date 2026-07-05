@@ -15,8 +15,10 @@ import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccessTokenBlacklist;
 import com.valadir.application.port.out.AccountActivationNotifier;
+import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.CaptchaVerifier;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
@@ -43,24 +45,28 @@ import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
+import com.valadir.security.adapter.CaptchaVerifierTurnstileAdapter;
 import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
 import com.valadir.security.jwt.BlacklistAwareJwtDecoder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
 @Configuration
-@EnableConfigurationProperties(LoginLockoutProperties.class)
+@EnableConfigurationProperties({LoginLockoutProperties.class, CaptchaProperties.class})
 class ApplicationWiring {
 
     @Bean
@@ -175,15 +181,43 @@ class ApplicationWiring {
     }
 
     @Bean
+    RestClient captchaRestClient(RestClient.Builder builder, CaptchaProperties properties) {
+
+        var settings = ClientHttpRequestFactorySettings.defaults()
+            .withConnectTimeout(properties.connectTimeout())
+            .withReadTimeout(properties.readTimeout());
+
+        return builder
+            .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings))
+            .build();
+    }
+
+    @Bean
+    CaptchaVerifier captchaVerifier(RestClient captchaRestClient, CaptchaProperties properties) {
+
+        return new CaptchaVerifierTurnstileAdapter(captchaRestClient, properties.verifyUrl(), properties.secret(), properties.enabled());
+    }
+
+    @Bean
     LoginUseCase loginUseCase(
         AccountRepository accountRepository,
         PasswordHasher passwordHasher,
         AuthTokenIssuer authTokenIssuer,
         RefreshTokenRepository refreshTokenRepository,
-        LoginAttemptRepository loginAttemptRepository
+        LoginAttemptRepository loginAttemptRepository,
+        CaptchaVerifier captchaVerifier,
+        AccountLockedNotifier accountLockedNotifier
     ) {
 
-        return new LoginService(accountRepository, passwordHasher, authTokenIssuer, refreshTokenRepository, loginAttemptRepository);
+        return new LoginService(
+            accountRepository,
+            passwordHasher,
+            authTokenIssuer,
+            refreshTokenRepository,
+            loginAttemptRepository,
+            captchaVerifier,
+            accountLockedNotifier
+        );
     }
 
     @Bean

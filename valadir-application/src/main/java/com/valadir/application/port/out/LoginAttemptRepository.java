@@ -1,15 +1,16 @@
 package com.valadir.application.port.out;
 
 import com.valadir.domain.model.Email;
+import com.valadir.domain.policy.LoginAttemptDecision;
 
 import java.time.Duration;
 import java.util.Optional;
 
 public interface LoginAttemptRepository {
 
-    Optional<Duration> findActiveLockout(Email email);
+    LoginAttemptDecision evaluate(Email email);
 
-    void recordFailedAttempt(Email email);
+    Optional<Duration> recordFailedAttempt(Email email);
 
     void clearAttempts(Email email);
 }

@@ -48,7 +48,7 @@ class SessionController {
     @PostMapping(ApiRoutes.Auth.Session.LOGIN)
     AuthResponse login(@Valid @RequestBody LoginRequest request) {
 
-        var command = new LoginCommand(request.email(), request.password());
+        var command = new LoginCommand(request.email(), request.password(), request.captchaToken());
         AuthTokenResult result = loginUseCase.login(command);
 
         return new AuthResponse(result.accessToken(), result.refreshToken());

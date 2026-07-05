@@ -79,13 +79,13 @@ class SessionControllerTest {
         var password = RawPassword.from("S3cur3P@ss!");
         var accessToken = "access.token.value";
         var refreshToken = "refresh-token-uuid";
-        var command = new LoginCommand(email.value(), password.value());
+        var command = new LoginCommand(email.value(), password.value(), null);
 
         given(loginUseCase.login(command)).willReturn(new AuthTokenResult(accessToken, refreshToken));
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest(email.value(), password.value()))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest(email.value(), password.value(), null))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accessToken").value(accessToken))
             .andExpect(jsonPath("$.refreshToken").value(refreshToken));
@@ -99,7 +99,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", "S3cur3P@ss!"))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", "S3cur3P@ss!", null))))
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
     }
@@ -109,7 +109,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("", "S3cur3P@ss!"))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("", "S3cur3P@ss!", null))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -120,7 +120,7 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("invalid-email", "S3cur3P@ss!"))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("invalid-email", "S3cur3P@ss!", null))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
@@ -131,10 +131,41 @@ class SessionControllerTest {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", ""))))
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", "", null))))
             .andExpect(status().isBadRequest());
 
         then(loginUseCase).should(never()).login(any(LoginCommand.class));
+    }
+
+    @Test
+    void login_withCaptchaToken_passesTokenToUseCase() throws Exception {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("S3cur3P@ss!");
+        var captchaToken = "turnstile-token";
+        var command = new LoginCommand(email.value(), password.value(), captchaToken);
+
+        given(loginUseCase.login(command)).willReturn(new AuthTokenResult("access.token.value", "refresh-token-uuid"));
+
+        mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new LoginRequest(email.value(), password.value(), captchaToken))))
+            .andExpect(status().isOk());
+
+        then(loginUseCase).should().login(command);
+    }
+
+    @Test
+    void login_captchaRequired_returns403WithSec008() throws Exception {
+
+        willThrow(new ApplicationException("Captcha verification required", ErrorCode.CAPTCHA_REQUIRED))
+            .given(loginUseCase).login(any());
+
+        mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new LoginRequest("bruce.wayne@email.com", "S3cur3P@ss!", null))))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value(ErrorCode.CAPTCHA_REQUIRED.getCode()));
     }
 
     @Test

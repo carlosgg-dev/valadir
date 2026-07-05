@@ -2,6 +2,7 @@ package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.security.redis.RedisKeySpace;
 import org.slf4j.Logger;
@@ -33,25 +34,26 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     }
 
     @Override
-    public Optional<Duration> findActiveLockout(Email email) {
+    public LoginAttemptDecision evaluate(Email email) {
 
         try {
             Long ttl = redisOperations.getExpire(lockoutKey(email), TimeUnit.SECONDS);
-            if (ttl == null) {
-                log.warn("Redis returned null TTL for lockout key — skipping lockout check for {}", email.value());
-                return Optional.empty();
+            if (ttl != null && ttl > 0) {
+                return new LoginAttemptDecision.LockedOut(Duration.ofSeconds(ttl));
             }
 
-            return ttl > 0 ? Optional.of(Duration.ofSeconds(ttl)) : Optional.empty();
+            String countValue = redisOperations.opsForValue().get(attemptsKey(email));
+            long count = countValue == null ? 0 : Long.parseLong(countValue);
+            return policy.decideByCount(count);
 
         } catch (DataAccessException e) {
-            log.warn("Redis unavailable — skipping lockout check for {}", email.value(), e);
-            return Optional.empty();
+            log.warn("Redis unavailable — allowing login attempt for {}", email.value(), e);
+            return new LoginAttemptDecision.Allowed();
         }
     }
 
     @Override
-    public void recordFailedAttempt(Email email) {
+    public Optional<Duration> recordFailedAttempt(Email email) {
 
         try {
             String attemptsKey = attemptsKey(email);
@@ -63,16 +65,20 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
 
             if (count == null) {
                 log.warn("Redis script returned null for attempt count — failed attempt not recorded for {}", email.value());
-                return;
+                return Optional.empty();
             }
 
             Duration lockout = policy.lockoutFor(count);
             if (lockout.isPositive()) {
                 redisOperations.opsForValue().set(lockoutKey(email), RedisKeySpace.LOGIN_LOCKOUT_VALUE, lockout);
+                return Optional.of(lockout);
             }
+
+            return Optional.empty();
 
         } catch (DataAccessException e) {
             log.warn("Redis unavailable — failed attempt not recorded for {}", email.value(), e);
+            return Optional.empty();
         }
     }
 
@@ -86,13 +92,13 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
         }
     }
 
-    private String attemptsKey(Email email) {
-
-        return RedisKeySpace.forLoginAttempts(email.value());
-    }
-
     private String lockoutKey(Email email) {
 
         return RedisKeySpace.forLoginLockout(email.value());
+    }
+
+    private String attemptsKey(Email email) {
+
+        return RedisKeySpace.forLoginAttempts(email.value());
     }
 }

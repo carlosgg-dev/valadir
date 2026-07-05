@@ -3,8 +3,10 @@ package com.valadir.application.service;
 import com.valadir.application.command.LoginCommand;
 import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
+import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.CaptchaVerifier;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
@@ -12,6 +14,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.PasswordMother;
@@ -30,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class LoginServiceTest {
@@ -53,79 +57,38 @@ class LoginServiceTest {
     @Mock
     private LoginAttemptRepository loginAttemptRepository;
 
+    @Mock
+    private CaptchaVerifier captchaVerifier;
+
+    @Mock
+    private AccountLockedNotifier accountLockedNotifier;
+
     @InjectMocks
     private LoginService service;
 
     @Test
-    void login_validCredentials_returnsTokens() {
+    void login_validCredentials_returnsTokensAndResetsAttemptState() {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
         var accessToken = "access-token";
         var refreshToken = "refresh-token";
+        var command = new LoginCommand(email.value(), password.value(), null);
 
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
-        given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole())).willReturn(new AuthTokenResult(accessToken, refreshToken));
+        given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
+            .willReturn(new AuthTokenResult(accessToken, refreshToken));
 
-        AuthTokenResult result = service.login(new LoginCommand(email.value(), password.value()));
+        AuthTokenResult result = service.login(command);
 
         assertThat(result.accessToken()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
+
+        then(loginAttemptRepository).should(never()).recordFailedAttempt(any());
+        then(loginAttemptRepository).should().clearAttempts(email);
         then(refreshTokenRepository).should().save(refreshToken, EXISTING_ACCOUNT.getId());
-    }
-
-    @Test
-    void login_emailNotFoundGuardsTiming_throwsApplicationException() {
-
-        var email = Email.from("unknown@email.com");
-        var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
-
-        given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
-
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
-
-        then(passwordHasher).should().guardTiming(password);
-        then(authTokenIssuer).should(never()).issue(any(), any());
-    }
-
-    @Test
-    void login_wrongPassword_throwsApplicationException() {
-
-        var email = Email.from("bruce.wayne@email.com");
-        var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
-
-        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
-
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
-
-        then(authTokenIssuer).should(never()).issue(any(), any());
-    }
-
-    @Test
-    void login_accountPendingActivation_throwsApplicationException() {
-
-        var email = Email.from("bruce.wayne@email.com");
-        var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
-        var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
-
-        given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
-        given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
-
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
-
-        then(authTokenIssuer).should(never()).issue(any(), any());
-        then(loginAttemptRepository).should(never()).clearAttempts(any());
     }
 
     @Test
@@ -134,63 +97,130 @@ class LoginServiceTest {
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
         var remainingLockout = Duration.ofSeconds(30);
-        var command = new LoginCommand(email.value(), password.value());
+        var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.of(remainingLockout));
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.LockedOut(remainingLockout));
 
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> service.login(command))
-            .satisfies(e -> assertThat(e.lockout()).isEqualTo(Duration.ofSeconds(30)));
+            .satisfies(exception -> assertThat(exception.lockout()).isEqualTo(remainingLockout));
 
-        then(accountRepository).should(never()).findByEmail(any());
+        verifyNoInteractions(accountRepository, passwordHasher, authTokenIssuer);
     }
 
     @Test
-    void login_wrongPassword_recordsFailedAttempt() {
+    void login_challengeRequiredWithInvalidCaptcha_throwsCaptchaRequiredAndSkipsPassword() {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
+        var captchaToken = "invalid-token";
+        var command = new LoginCommand(email.value(), password.value(), captchaToken);
 
-        given(loginAttemptRepository.findActiveLockout(email)).willReturn(Optional.empty());
-        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
+        given(captchaVerifier.isValid(captchaToken)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CAPTCHA_REQUIRED);
 
-        then(loginAttemptRepository).should().recordFailedAttempt(email);
-        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        verifyNoInteractions(accountRepository, passwordHasher, authTokenIssuer);
     }
 
     @Test
-    void login_unknownEmail_recordsFailedAttempt() {
+    void login_challengeRequiredWithValidCaptcha_proceedsToPasswordCheck() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = PasswordMother.raw();
+        var captchaToken = "valid-token";
+        var command = new LoginCommand(email.value(), password.value(), captchaToken);
+
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
+        given(captchaVerifier.isValid(captchaToken)).willReturn(true);
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
+        given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
+            .willReturn(new AuthTokenResult("access-token", "refresh-token"));
+
+        service.login(command);
+
+        // The behavior under test is the delegation itself: a satisfied challenge lets the
+        // flow reach the credential check. The login outcome is covered by other tests.
+        then(passwordHasher).should().matches(password, EXISTING_ACCOUNT.getPassword());
+    }
+
+    @Test
+    void login_unknownEmail_recordsAttemptAndThrowsWithoutNotifyingOwner() {
 
         var email = Email.from("unknown@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
+        var command = new LoginCommand(email.value(), password.value(), null);
 
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        // Non-existent email accumulates and locks like a real one, so the boundary
-        // response is uniform and the account-enumeration oracle is closed.
         then(passwordHasher).should().guardTiming(password);
         then(loginAttemptRepository).should().recordFailedAttempt(email);
+        then(accountLockedNotifier).shouldHaveNoInteractions();
+        then(authTokenIssuer).should(never()).issue(any(), any());
     }
 
     @Test
-    void login_accountPendingActivation_doesNotRecordFailedAttempt() {
+    void login_wrongPasswordWithoutLockout_recordsAttemptAndThrowsWithoutNotifyingOwner() {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();
-        var command = new LoginCommand(email.value(), password.value());
+        var command = new LoginCommand(email.value(), password.value(), null);
+
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.empty());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
+        then(loginAttemptRepository).should().recordFailedAttempt(email);
+        then(accountLockedNotifier).shouldHaveNoInteractions();
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(authTokenIssuer).should(never()).issue(any(), any());
+    }
+
+    @Test
+    void login_wrongPasswordEstablishingLockout_notifiesOwnerOnce() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = PasswordMother.raw();
+        var command = new LoginCommand(email.value(), password.value(), null);
+        var lockout = Duration.ofMinutes(5);
+
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
+        then(accountLockedNotifier).should().notifyAccountLocked(email, lockout);
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(authTokenIssuer).should(never()).issue(any(), any());
+    }
+
+    @Test
+    void login_accountPendingActivation_throwsWithoutRecordingAttempt() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = PasswordMother.raw();
+        var command = new LoginCommand(email.value(), password.value(), null);
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
 
@@ -199,28 +229,14 @@ class LoginServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_PENDING_ACTIVATION);
 
         then(loginAttemptRepository).should(never()).recordFailedAttempt(any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(authTokenIssuer).should(never()).issue(any(), any());
     }
 
     @Test
-    void login_validCredentials_clearsAttempts() {
+    void login_domainException_translatesToApplicationException() {
 
-        var email = Email.from("bruce.wayne@email.com");
-        var password = PasswordMother.raw();
-
-        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
-        given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
-            .willReturn(new AuthTokenResult("access-token", "refresh-token"));
-
-        service.login(new LoginCommand(email.value(), password.value()));
-
-        then(loginAttemptRepository).should().clearAttempts(email);
-    }
-
-    @Test
-    void login_invalidEmail_translatesDomainExceptionPreservingErrorCode() {
-
-        var command = new LoginCommand("not-an-email", PasswordMother.raw().value());
+        var command = new LoginCommand("not-an-email", PasswordMother.raw().value(), null);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))
