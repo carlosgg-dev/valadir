@@ -29,6 +29,12 @@ public class CaptchaVerifierTestConfig {
         @Override
         public boolean isValid(String token) {
 
+            // Mirrors the real adapter's contract: an absent token is never valid.
+            // Without this guard the step-up 403 would be untestable.
+            if (token == null || token.isBlank()) {
+                return false;
+            }
+
             return valid.get();
         }
 

@@ -21,7 +21,7 @@ public final class RedisKeySpace {
 
     public static String forRefreshToken(String token) {
 
-        return REFRESH_TOKEN_PREFIX + token;
+        return AUTH_SPACE_PREFIX + "refresh_token:" + token;
     }
 
     public static String forUserTokens(String accountId) {

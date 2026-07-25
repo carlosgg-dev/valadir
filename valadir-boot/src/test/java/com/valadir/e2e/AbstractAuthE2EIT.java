@@ -23,12 +23,11 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import static io.restassured.RestAssured.given;
 
 /**
  * Base for functional E2E tests over the full HTTP → UseCase → Adapter → Postgres/Redis stack.
@@ -37,6 +36,7 @@ import static io.restassured.RestAssured.given;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@TestPropertySource(properties = "rate-limit.enabled=false")
 @Import({
     PostgresContainerConfig.class,
     RedisContainerConfig.class,
@@ -95,7 +95,7 @@ public abstract class AbstractAuthE2EIT {
 
     protected void register(String email, String password) {
 
-        given()
+        RestAssured.given()
             .contentType(ContentType.JSON)
             .body(Map.of(
                 "email", email,
@@ -116,7 +116,7 @@ public abstract class AbstractAuthE2EIT {
         var otp = accountActivationNotifier.lastOtpFor(email)
             .orElseThrow(() -> new IllegalStateException("No activation OTP captured for " + email));
 
-        given()
+        RestAssured.given()
             .contentType(ContentType.JSON)
             .body(Map.of(
                 "email", email,
@@ -143,7 +143,7 @@ public abstract class AbstractAuthE2EIT {
             body.put("captchaToken", captchaToken);
         }
 
-        return given()
+        return RestAssured.given()
             .contentType(ContentType.JSON)
             .body(body)
             .when()
