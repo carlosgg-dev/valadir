@@ -229,15 +229,6 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         return refresh(refreshToken);
     }
 
-    private List<String> userTokensOf(String accountId) {
-
-        var tokens = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
-
-        return tokens == null
-            ? List.of()
-            : List.copyOf(tokens);
-    }
-
     private static String[] blankRefreshTokens() {
 
         return new String[]{null, "", " "};

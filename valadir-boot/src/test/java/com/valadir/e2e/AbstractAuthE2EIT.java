@@ -8,6 +8,7 @@ import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountLocke
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordResetNotifier;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
+import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.containers.PostgresContainerConfig;
 import com.valadir.test.containers.RedisContainerConfig;
 import com.valadir.web.config.ApiRoutes;
@@ -21,11 +22,13 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -158,6 +161,30 @@ public abstract class AbstractAuthE2EIT {
             .post(ApiRoutes.Auth.Session.REFRESH_PATH);
     }
 
+    // Anonymous call against a protected route: no Authorization header.
+    protected Response logout(String refreshToken) {
+
+        return logout(null, refreshToken);
+    }
+
+    protected Response logout(String accessToken, String refreshToken) {
+
+        Map<String, String> body = new HashMap<>();
+        body.put("refreshToken", refreshToken);
+
+        var request = RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(body);
+
+        if (accessToken != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        }
+
+        return request
+            .when()
+            .post(ApiRoutes.Auth.Session.LOGOUT_PATH);
+    }
+
     // --- Readers: pull one value out of a response or the test doubles.
 
     protected String accessTokenOf(Response response) {
@@ -182,6 +209,15 @@ public abstract class AbstractAuthE2EIT {
         return accountJpaRepository.findByEmail(email)
             .orElseThrow()
             .getId().toString();
+    }
+
+    protected List<String> userTokensOf(String accountId) {
+
+        var tokens = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
+
+        return tokens == null
+            ? List.of()
+            : List.copyOf(tokens);
     }
 
     // --- Preconditions: composed on the steps above, and they do assert, because a broken
