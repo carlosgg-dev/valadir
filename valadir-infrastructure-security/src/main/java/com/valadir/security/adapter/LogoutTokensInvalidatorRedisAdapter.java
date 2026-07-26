@@ -23,9 +23,12 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
         this.logoutInvalidateTokensScript = RedisScript.of(new ClassPathResource("scripts/logout_invalidate_tokens.lua"), Long.class);
     }
 
-    // Atomic: blacklists the access token and removes the refresh token from the user token set
+    // Atomic: blacklists the access token and removes the refresh token from the user token set,
+    // only when that token belongs to the account logging out
     @Override
     public void invalidate(String jti, Duration remainingTtl, String refreshToken, AccountId accountId) {
+
+        String accountIdValue = accountId.value().toString();
 
         try {
             redisOperations.execute(
@@ -33,11 +36,12 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
                 List.of(
                     RedisKeySpace.forBlacklist(jti),
                     RedisKeySpace.forRefreshToken(refreshToken),
-                    RedisKeySpace.forUserTokens(accountId.value().toString())
+                    RedisKeySpace.forUserTokens(accountIdValue)
                 ),
                 RedisKeySpace.BLACKLIST_REVOKED_VALUE,
                 String.valueOf(remainingTtl.getSeconds()),
-                refreshToken
+                refreshToken,
+                accountIdValue
             );
         } catch (DataAccessException e) {
             throw new InfrastructureException("Redis unavailable — logout token invalidation failed for jti: " + jti, e);

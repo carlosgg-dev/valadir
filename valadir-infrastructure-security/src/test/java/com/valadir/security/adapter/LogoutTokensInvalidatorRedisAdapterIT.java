@@ -73,6 +73,33 @@ class LogoutTokensInvalidatorRedisAdapterIT {
     }
 
     @Test
+    void invalidate_refreshTokenOfAnotherAccount_keepsItAndStillBlacklists() {
+
+        var loggingOutAccountId = AccountId.generate();
+        var loggingOutJti = UUID.randomUUID().toString();
+        var bystanderAccountId = AccountId.generate();
+        var bystanderRefreshToken = UUID.randomUUID().toString();
+        var remainingTtl = Duration.ofMinutes(10);
+
+        // Only the bystander needs a live session: it is the state under protection, and without it
+        // there would be nothing to survive the call, so the test could never fail.
+        refreshTokenAdapter.save(bystanderRefreshToken, bystanderAccountId);
+
+        tokenInvalidatorAdapter.invalidate(loggingOutJti, remainingTtl, bystanderRefreshToken, loggingOutAccountId);
+
+        // Own logout still succeeds: a foreign token in the body must not keep the caller signed in.
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(loggingOutJti)))
+            .isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
+
+        // The other account's session survives untouched — logging out must not reach across accounts.
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderRefreshToken)))
+            .isEqualTo(bystanderAccountId.value().toString());
+
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(bystanderAccountId.value().toString()), bystanderRefreshToken))
+            .isTrue();
+    }
+
+    @Test
     void invalidate_expiredAccessToken_skipsBlacklistButDeletesRefreshToken() {
 
         var accountId = AccountId.generate();
