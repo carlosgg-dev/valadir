@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.nullValue;
 class RefreshTokenIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
-    private static final String OTHER_EMAIL = "clark.kent@email.com";
+    private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
     private static final String PASSWORD = "SecureP@ss123";
 
     private static final String INVALID_TOKEN_CODE = "SEC-003";
@@ -122,21 +122,22 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
 
         registerAndActivate(EMAIL, PASSWORD);
 
-        Response firstDeviceLogin = login(EMAIL, PASSWORD);
-        String firstDeviceToken = refreshTokenOf(firstDeviceLogin);
+        Response refreshingDeviceLogin = login(EMAIL, PASSWORD);
+        String refreshingDeviceToken = refreshTokenOf(refreshingDeviceLogin);
 
-        Response secondDeviceLogin = login(EMAIL, PASSWORD);
-        String secondDeviceToken = refreshTokenOf(secondDeviceLogin);
+        // The bystander device never acts: it is only here to prove the rotation leaves it alone.
+        Response bystanderDeviceLogin = login(EMAIL, PASSWORD);
+        String bystanderDeviceToken = refreshTokenOf(bystanderDeviceLogin);
 
-        Response refreshed = refresh(firstDeviceToken);
-        String rotatedFirstDeviceToken = refreshTokenOf(refreshed);
+        Response refreshed = refresh(refreshingDeviceToken);
+        String rotatedToken = refreshTokenOf(refreshed);
 
         String accountId = accountIdOf(EMAIL);
 
         assertThat(userTokensOf(accountId))
-            .containsExactlyInAnyOrder(rotatedFirstDeviceToken, secondDeviceToken);
+            .containsExactlyInAnyOrder(rotatedToken, bystanderDeviceToken);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(secondDeviceToken)))
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderDeviceToken)))
             .isNotNull();
     }
 
@@ -144,27 +145,28 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
     void refresh_twoAccountsWithLiveSessions_rotatesOnlyTheOwningAccount() {
 
         registerAndActivate(EMAIL, PASSWORD);
-        registerAndActivate(OTHER_EMAIL, PASSWORD);
+        registerAndActivate(BYSTANDER_EMAIL, PASSWORD);
 
-        Response firstAccountLogin = login(EMAIL, PASSWORD);
-        String firstAccountToken = refreshTokenOf(firstAccountLogin);
+        Response rotatingAccountLogin = login(EMAIL, PASSWORD);
+        String rotatingAccountToken = refreshTokenOf(rotatingAccountLogin);
 
-        Response secondAccountLogin = login(OTHER_EMAIL, PASSWORD);
-        String secondAccountToken = refreshTokenOf(secondAccountLogin);
+        // The bystander account never refreshes: its session is the state the rotation must not reach.
+        Response bystanderAccountLogin = login(BYSTANDER_EMAIL, PASSWORD);
+        String bystanderAccountToken = refreshTokenOf(bystanderAccountLogin);
 
-        Response firstAccountRefreshed = refresh(firstAccountToken);
-        String firstAccountRotatedToken = refreshTokenOf(firstAccountRefreshed);
+        Response refreshed = refresh(rotatingAccountToken);
+        String rotatedToken = refreshTokenOf(refreshed);
 
-        String firstAccountId = accountIdOf(EMAIL);
-        String secondAccountId = accountIdOf(OTHER_EMAIL);
+        String rotatingAccountId = accountIdOf(EMAIL);
+        String bystanderAccountId = accountIdOf(BYSTANDER_EMAIL);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(firstAccountRotatedToken)))
-            .isEqualTo(firstAccountId);
-        assertThat(userTokensOf(firstAccountId)).containsExactly(firstAccountRotatedToken);
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(rotatedToken)))
+            .isEqualTo(rotatingAccountId);
+        assertThat(userTokensOf(rotatingAccountId)).containsExactly(rotatedToken);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(secondAccountToken)))
-            .isEqualTo(secondAccountId);
-        assertThat(userTokensOf(secondAccountId)).containsExactly(secondAccountToken);
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderAccountToken)))
+            .isEqualTo(bystanderAccountId);
+        assertThat(userTokensOf(bystanderAccountId)).containsExactly(bystanderAccountToken);
     }
 
     @Test
