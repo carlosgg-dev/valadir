@@ -93,9 +93,12 @@ public abstract class AbstractAuthE2EIT {
         }
     }
 
-    protected void register(String email, String password) {
+    // --- Steps: one HTTP call each, no assertions. Asserting the outcome is the test's job, which
+    // is what lets the same step drive both the success and the failure cases of a flow.
 
-        RestAssured.given()
+    protected Response register(String email, String password) {
+
+        return RestAssured.given()
             .contentType(ContentType.JSON)
             .body(Map.of(
                 "email", email,
@@ -104,28 +107,19 @@ public abstract class AbstractAuthE2EIT {
                 "givenName", "Batman"
             ))
             .when()
-            .post(ApiRoutes.Auth.Registration.REGISTER_PATH)
-            .then()
-            .statusCode(HttpStatus.CREATED.value());
+            .post(ApiRoutes.Auth.Registration.REGISTER_PATH);
     }
 
-    protected void registerAndActivate(String email, String password) {
+    protected Response activate(String email, String code) {
 
-        register(email, password);
-
-        var otp = accountActivationNotifier.lastOtpFor(email)
-            .orElseThrow(() -> new IllegalStateException("No activation OTP captured for " + email));
-
-        RestAssured.given()
+        return RestAssured.given()
             .contentType(ContentType.JSON)
             .body(Map.of(
                 "email", email,
-                "code", otp.value()
+                "code", code
             ))
             .when()
-            .post(ApiRoutes.Auth.Registration.ACTIVATE_PATH)
-            .then()
-            .statusCode(HttpStatus.NO_CONTENT.value());
+            .post(ApiRoutes.Auth.Registration.ACTIVATE_PATH);
     }
 
     protected Response login(String email, String password) {
@@ -148,5 +142,72 @@ public abstract class AbstractAuthE2EIT {
             .body(body)
             .when()
             .post(ApiRoutes.Auth.Session.LOGIN_PATH);
+    }
+
+    // No Authorization header on purpose: refresh is a public POST route,
+    // the refresh token in the body is the only credential.
+    protected Response refresh(String refreshToken) {
+
+        Map<String, String> body = new HashMap<>();
+        body.put("refreshToken", refreshToken);
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .when()
+            .post(ApiRoutes.Auth.Session.REFRESH_PATH);
+    }
+
+    // --- Readers: pull one value out of a response or the test doubles.
+
+    protected String accessTokenOf(Response response) {
+
+        return requireToken(response, "accessToken");
+    }
+
+    protected String refreshTokenOf(Response response) {
+
+        return requireToken(response, "refreshToken");
+    }
+
+    protected String activationOtpFor(String email) {
+
+        return accountActivationNotifier.lastOtpFor(email)
+            .orElseThrow(() -> new IllegalStateException("No activation OTP captured for " + email))
+            .value();
+    }
+
+    protected String accountIdOf(String email) {
+
+        return accountJpaRepository.findByEmail(email)
+            .orElseThrow()
+            .getId().toString();
+    }
+
+    // --- Preconditions: composed on the steps above, and they do assert, because a broken
+    // precondition must fail on the spot instead of surfacing as a null token further down.
+
+    protected void registerAndActivate(String email, String password) {
+
+        register(email, password)
+            .then()
+            .statusCode(HttpStatus.CREATED.value());
+
+        String activationOtp = activationOtpFor(email);
+
+        activate(email, activationOtp)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    private String requireToken(Response response, String field) {
+
+        String token = response.path(field);
+
+        if (token == null) {
+            throw new IllegalStateException("No %s in response (status %s)".formatted(field, response.statusCode()));
+        }
+
+        return token;
     }
 }

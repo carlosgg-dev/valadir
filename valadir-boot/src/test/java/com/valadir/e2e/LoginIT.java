@@ -14,13 +14,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-/**
- * E2E login: token issuance, error opacity, CAPTCHA step-up, lockout tiers and owner
- * notification, all over real HTTP against real Postgres/Redis.
- *
- * <p>Error codes are asserted as literals on purpose: these tests pin the <em>public</em> HTTP
- * contract, so a change to {@code ErrorCode} values must break them.
- */
 class LoginIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
@@ -257,7 +250,9 @@ class LoginIT extends AbstractAuthE2EIT {
     @Test
     void login_pendingActivationAccount_returns403AndIssuesNoSession() {
 
-        register(EMAIL, PASSWORD);
+        register(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.CREATED.value());
 
         login(EMAIL, PASSWORD)
             .then()
@@ -293,13 +288,6 @@ class LoginIT extends AbstractAuthE2EIT {
     private String failedAttemptsFor(String email) {
 
         return redisTemplate.opsForValue().get(RedisKeySpace.forLoginAttempts(email));
-    }
-
-    private String accountIdOf(String email) {
-
-        return accountJpaRepository.findByEmail(email)
-            .orElseThrow()
-            .getId().toString();
     }
 
     // KEYS is O(n) and forbidden in production code, but the test Redis holds a handful of
