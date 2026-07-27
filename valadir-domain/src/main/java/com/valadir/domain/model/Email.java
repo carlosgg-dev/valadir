@@ -3,6 +3,8 @@ package com.valadir.domain.model;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
+import java.util.Locale;
+
 public record Email(String value) {
 
     public Email {
@@ -10,6 +12,8 @@ public record Email(String value) {
         if (value == null || value.isBlank()) {
             throw new DomainException("Email is required", ErrorCode.REQUIRED_FIELD_MISSING);
         }
+
+        value = value.trim().toLowerCase(Locale.ROOT);
 
         if (value.length() > 255) {
             throw new DomainException("Email must not exceed 255 characters", ErrorCode.INVALID_FIELD);

@@ -43,6 +43,18 @@ class EmailTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "Bruce.Wayne@Email.com",
+        "BRUCE.WAYNE@EMAIL.COM",
+        "  bruce.wayne@email.com  ",
+        " Bruce.Wayne@Email.com "
+    })
+    void constructor_caseOrSurroundingSpaces_normalizesToASingleValue(String value) {
+
+        assertThat(new Email(value).value()).isEqualTo("bruce.wayne@email.com");
+    }
+
     @Test
     void constructor_valueAtMaxLength_createsEmail() {
 

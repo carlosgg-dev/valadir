@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -52,11 +53,17 @@ public class RateLimitKeyResolver {
             : request.getRemoteAddr();
     }
 
+    // Normalized the same way Email does: keying on the raw value would let
+    // a case change reset the counter and slip past every per-email limit.
     private Optional<String> extractEmail(HttpServletRequest request) {
 
         try {
+
             String email = objectMapper.readTree(request.getInputStream()).path("email").asText(null);
-            return Optional.ofNullable(email).filter(not(String::isBlank));
+            return Optional.ofNullable(email)
+                .filter(not(String::isBlank))
+                .map(value -> value.trim().toLowerCase(Locale.ROOT));
+
         } catch (IOException e) {
             log.warn("Could not extract email from request body for rate limiting", e);
             return Optional.empty();

@@ -29,7 +29,7 @@ class RateLimitKeyResolverTest {
 
     private static final String CLIENT_IP = "10.0.0.1";
     private static final String ACCOUNT_ID = "account-uuid-123";
-    private static final String EMAIL = "user@example.com";
+    private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PATH = "/api/auth/login/";
     private static final String NORMALIZED_PATH = "api_auth_login";
     private static final int MAX_REQUESTS = 10;
@@ -92,6 +92,27 @@ class RateLimitKeyResolverTest {
         var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
         request.setContent(objectMapper.writeValueAsBytes(Map.of("email", EMAIL, "password", "secret")));
+        request.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        Optional<String> key = resolver.resolve(request, rule);
+
+        assertThat(key).hasValue("rate_limit:email:" + NORMALIZED_PATH + ":" + EMAIL);
+    }
+
+    // Same key for the same address however it is typed: otherwise changing the case would hand
+    // out a fresh counter and every per-email limit could be walked around.
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "Bruce.Wayne@Email.com",
+        "BRUCE.WAYNE@EMAIL.COM",
+        "  bruce.wayne@email.com  ",
+        " Bruce.Wayne@Email.com "
+    })
+    void resolve_emailStrategy_normalizesTheEmailIntoASingleKey(String email) throws Exception {
+
+        var rule = new RateLimitProperties.Rule(PATH, Strategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
+        request.setContent(objectMapper.writeValueAsBytes(Map.of("email", email, "password", "secret")));
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
         Optional<String> key = resolver.resolve(request, rule);
