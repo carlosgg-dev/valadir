@@ -4,6 +4,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.GivenName;
 import com.valadir.persistence.config.PersistenceWiring;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
@@ -59,6 +60,26 @@ class RegisterPersistenceJpaAdapterIT {
 
         assertThat(accountJpaRepository.findById(accountId.value())).isPresent();
         assertThat(userJpaRepository.findById(user.getId().value())).isPresent();
+    }
+
+    // given_name is the one nullable column of the profile: registering without it must reach the
+    // database, and only a real one tells us whether the column still allows it.
+    @Test
+    void save_userWithoutGivenName_persistsIt() {
+
+        var accountId = AccountId.generate();
+        var account = AccountMother.pendingActivation().withId(accountId).build();
+        var user = UserMother.builder()
+            .withAccountId(accountId)
+            .withGivenName(GivenName.from(null))
+            .build();
+
+        adapter.save(account, user);
+
+        var persisted = userJpaRepository.findById(user.getId().value()).orElseThrow();
+
+        assertThat(persisted.getGivenName()).isNull();
+        assertThat(persisted.getFullName()).isEqualTo(user.getFullName().value());
     }
 
     // Two concurrent registrations of the same email both find it free and both insert; the unique
