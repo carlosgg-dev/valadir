@@ -1,6 +1,8 @@
 package com.valadir.persistence.adapter;
 
+import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.AccountId;
 import com.valadir.persistence.config.PersistenceWiring;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -15,10 +17,12 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 // Runs without a test-managed transaction so the adapter executes with the same
 // transactional semantics as production — a missing @Transactional fails here.
@@ -57,6 +61,30 @@ class RegisterPersistenceJpaAdapterIT {
         assertThat(userJpaRepository.findById(user.getId().value())).isPresent();
     }
 
+    // Two concurrent registrations of the same email both find it free and both insert; the unique
+    // index rejects the second one. Untranslated it surfaces as an opaque 500 instead of a 409.
+    @Test
+    void save_emailTakenByAnotherAccount_throwsEmailAlreadyExists() {
+
+        var emailOwnerAccountId = AccountId.generate();
+        var emailOwnerAccount = AccountMother.pendingActivation().withId(emailOwnerAccountId).build();
+        var emailOwnerUser = UserMother.builder().withAccountId(emailOwnerAccountId).build();
+
+        adapter.save(emailOwnerAccount, emailOwnerUser);
+
+        var collidingAccountId = AccountId.generate();
+        var collidingAccount = AccountMother.pendingActivation().withId(collidingAccountId).build();
+        var collidingUser = UserMother.builder().withAccountId(collidingAccountId).build();
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> adapter.save(collidingAccount, collidingUser))
+            .withCauseInstanceOf(DataIntegrityViolationException.class)
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
+
+        assertThat(accountJpaRepository.findById(collidingAccountId.value())).isEmpty();
+    }
+
     @Test
     void replace_deletesExistingAndPersistsNew() {
 
@@ -77,5 +105,40 @@ class RegisterPersistenceJpaAdapterIT {
 
         assertThat(accountJpaRepository.findById(newAccountId.value())).isPresent();
         assertThat(userJpaRepository.findById(newUser.getId().value())).isPresent();
+    }
+
+    // Two concurrent re-registrations resolve the same pending account and both replace it. Every
+    // account here carries the same email, so the second INSERT lands on the one the first took.
+    @Test
+    void replace_accountAlreadyReplacedByAConcurrentRegistration_throwsEmailAlreadyExists() {
+
+        // P (id = P, email = X) — the account both registrations resolved
+        var pendingAccountId = AccountId.generate();
+        var pendingAccount = AccountMother.pendingActivation().withId(pendingAccountId).build();
+        var pendingUser = UserMother.builder().withAccountId(pendingAccountId).build();
+
+        adapter.save(pendingAccount, pendingUser);
+
+        // A (id = A, email = X) — replaces P.id: P is deleted, X is now A's
+        var replacingAccountId = AccountId.generate();
+        var replacingAccount = AccountMother.pendingActivation().withId(replacingAccountId).build();
+        var replacingUser = UserMother.builder().withAccountId(replacingAccountId).build();
+
+        adapter.replace(pendingAccountId, replacingAccount, replacingUser);
+
+        // B (id = B, email = X) — replaces P.id too: P is already gone and X belongs to A
+        var collidingAccountId = AccountId.generate();
+        var collidingAccount = AccountMother.pendingActivation().withId(collidingAccountId).build();
+        var collidingUser = UserMother.builder().withAccountId(collidingAccountId).build();
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> adapter.replace(pendingAccountId, collidingAccount, collidingUser))
+            .withCauseInstanceOf(DataIntegrityViolationException.class)
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
+
+        // The rejected registration leaves no trace: the account that won the race is the only one.
+        assertThat(accountJpaRepository.findById(replacingAccountId.value())).isPresent();
+        assertThat(accountJpaRepository.count()).isEqualTo(1);
     }
 }
