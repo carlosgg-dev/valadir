@@ -48,6 +48,9 @@ import java.util.Objects;
 })
 public abstract class AbstractAuthE2EIT {
 
+    protected static final String FULL_NAME = "Bruce Wayne";
+    protected static final String GIVEN_NAME = "Batman";
+
     @LocalServerPort
     private int port;
 
@@ -106,8 +109,8 @@ public abstract class AbstractAuthE2EIT {
             .body(Map.of(
                 "email", email,
                 "password", password,
-                "fullName", "Bruce Wayne",
-                "givenName", "Batman"
+                "fullName", FULL_NAME,
+                "givenName", GIVEN_NAME
             ))
             .when()
             .post(ApiRoutes.Auth.Registration.REGISTER_PATH);
@@ -123,6 +126,15 @@ public abstract class AbstractAuthE2EIT {
             ))
             .when()
             .post(ApiRoutes.Auth.Registration.ACTIVATE_PATH);
+    }
+
+    protected Response resendActivationCode(String email) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("email", email))
+            .when()
+            .post(ApiRoutes.Auth.Registration.RESEND_PATH);
     }
 
     protected Response login(String email, String password) {
