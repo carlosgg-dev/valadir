@@ -12,7 +12,6 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
-import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.PlainOtp;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.web.config.ApiRoutes;
@@ -22,6 +21,9 @@ import com.valadir.web.dto.request.RegisterRequest;
 import com.valadir.web.dto.request.ResendAccountActivationCodeRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -65,16 +67,18 @@ class AccountRegistrationControllerTest {
     @MockitoBean
     private RateLimiter rateLimiter;
 
-    @Test
-    void register_validRequest_returns201() throws Exception {
+    // givenName is optional
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = "Batman")
+    void register_validRequest_returns201(String givenName) throws Exception {
 
         var email = Email.from("bruce.wayne@emailValue.com");
         var rawPassword = RawPassword.from("S3cur3P@ss!");
         var fullName = FullName.from("Bruce Wayne");
-        var givenName = GivenName.from("Batman");
 
-        var request = new RegisterRequest(email.value(), rawPassword.value(), fullName.value(), givenName.value());
-        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
+        var request = new RegisterRequest(email.value(), rawPassword.value(), fullName.value(), givenName);
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName);
 
         mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
