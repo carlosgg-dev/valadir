@@ -419,16 +419,6 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .getStatus();
     }
 
-    // Derived from the real code instead of drawn at random: it stays a well-formed 6-digit OTP
-    // (a malformed one would trip Bean Validation first) and its first digit always differs,
-    // so it can never collide with it.
-    private String otherOtpThan(String otp) {
-
-        return otp.startsWith("1")
-            ? "2" + otp.substring(1)
-            : "1" + otp.substring(1);
-    }
-
     private static Stream<Arguments> rejectedPasswords() {
 
         return Stream.of(

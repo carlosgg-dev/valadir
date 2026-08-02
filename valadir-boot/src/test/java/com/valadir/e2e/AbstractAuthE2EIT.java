@@ -197,6 +197,39 @@ public abstract class AbstractAuthE2EIT {
             .post(ApiRoutes.Auth.Session.LOGOUT_PATH);
     }
 
+    protected Response initiatePasswordReset(String email) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("email", email))
+            .when()
+            .post(ApiRoutes.Auth.PasswordReset.INITIATE_PATH);
+    }
+
+    protected Response verifyPasswordResetOtp(String email, String code) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of(
+                "email", email,
+                "code", code
+            ))
+            .when()
+            .post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH);
+    }
+
+    protected Response completePasswordReset(String verificationToken, String newPassword) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of(
+                "verificationToken", verificationToken,
+                "newPassword", newPassword
+            ))
+            .when()
+            .post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH);
+    }
+
     // --- Readers: pull one value out of a response or the test doubles.
 
     protected String accessTokenOf(Response response) {
@@ -209,11 +242,13 @@ public abstract class AbstractAuthE2EIT {
         return requireToken(response, "refreshToken");
     }
 
-    protected String activationOtpFor(String email) {
+    protected List<String> userTokensOf(String accountId) {
 
-        return accountActivationNotifier.lastOtpFor(email)
-            .orElseThrow(() -> new IllegalStateException("No activation OTP captured for " + email))
-            .value();
+        var tokens = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
+
+        return tokens == null
+            ? List.of()
+            : List.copyOf(tokens);
     }
 
     protected String accountIdOf(String email) {
@@ -223,13 +258,33 @@ public abstract class AbstractAuthE2EIT {
             .getId().toString();
     }
 
-    protected List<String> userTokensOf(String accountId) {
+    protected String activationOtpFor(String email) {
 
-        var tokens = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
+        return accountActivationNotifier.lastOtpFor(email)
+            .orElseThrow(() -> new IllegalStateException("No activation OTP captured for " + email))
+            .value();
+    }
 
-        return tokens == null
-            ? List.of()
-            : List.copyOf(tokens);
+    protected String passwordResetOtpFor(String email) {
+
+        return passwordResetNotifier.lastOtpFor(email)
+            .orElseThrow(() -> new IllegalStateException("No password reset OTP captured for " + email))
+            .value();
+    }
+
+    protected String verificationTokenOf(Response response) {
+
+        return requireToken(response, "verificationToken");
+    }
+
+    // Derived from the real code instead of drawn at random: it stays a well-formed 6-digit OTP
+    // (a malformed one would trip Bean Validation first) and its first digit always differs,
+    // so it can never collide with it.
+    protected String otherOtpThan(String otp) {
+
+        return otp.startsWith("1")
+            ? "2" + otp.substring(1)
+            : "1" + otp.substring(1);
     }
 
     // --- Preconditions: composed on the steps above, and they do assert, because a broken
