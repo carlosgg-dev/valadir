@@ -454,11 +454,4 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         startLine.await();
         return register(email, password);
     }
-
-    private static List<Response> responsesWithStatus(List<Response> responses, HttpStatus status) {
-
-        return responses.stream()
-            .filter(response -> response.statusCode() == status.value())
-            .toList();
-    }
 }

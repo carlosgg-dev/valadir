@@ -33,9 +33,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Base for functional E2E tests over the full HTTP → UseCase → Adapter → Postgres/Redis stack.
- * Boots one shared context (real containers via {@code @ServiceConnection}); each test starts
- * from a clean slate — Redis flushed, tables emptied, capturing doubles reset.
+ * Base for functional E2E tests. Boots one shared context (real containers via {@code @ServiceConnection});
+ * each test starts from a clean slate — Redis flushed, tables emptied, capturing doubles reset.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -108,6 +107,19 @@ public abstract class AbstractAuthE2EIT {
             .contentType(ContentType.JSON)
             .body(Map.of(
                 "email", email,
+                "password", password,
+                "fullName", FULL_NAME,
+                "givenName", GIVEN_NAME
+            ))
+            .when()
+            .post(ApiRoutes.Auth.Registration.REGISTER_PATH);
+    }
+
+    protected Response registerWithoutEmail(String password) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of(
                 "password", password,
                 "fullName", FULL_NAME,
                 "givenName", GIVEN_NAME
@@ -285,6 +297,13 @@ public abstract class AbstractAuthE2EIT {
         return otp.startsWith("1")
             ? "2" + otp.substring(1)
             : "1" + otp.substring(1);
+    }
+
+    protected static List<Response> responsesWithStatus(List<Response> responses, HttpStatus status) {
+
+        return responses.stream()
+            .filter(response -> response.statusCode() == status.value())
+            .toList();
     }
 
     // --- Preconditions: composed on the steps above, and they do assert, because a broken
