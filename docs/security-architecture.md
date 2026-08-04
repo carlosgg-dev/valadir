@@ -107,19 +107,20 @@ An interpretable rejection from Turnstile (4xx, malformed body) is *not* an outa
 Nothing but an `ErrorCode` crosses the boundary — no stack traces, no infrastructure detail, no PII, no cryptographic
 material. An infrastructure outage is externally indistinguishable from any other 503.
 
-Exceptions thrown inside a servlet filter never reach `GlobalExceptionHandler`: Spring Security's
-`ExceptionTranslationFilter` only handles `AuthenticationException`/`AccessDeniedException`, so anything else escapes to
-the container and comes back through Spring Boot's default `/error`, which leaks the request path and carries no error
-code. `InfrastructureFailureFilter`, registered first in the chain, is therefore the single place where an outage
-response is materialised for everything below it.
+Exceptions thrown inside a servlet filter never reach `GlobalExceptionHandler`, which only sees what the
+DispatcherServlet dispatches; Spring Security's `ExceptionTranslationFilter` only handles
+`AuthenticationException`/`AccessDeniedException`, so anything else escapes to the container. `GlobalErrorController`
+catches those on `/error` and keeps them opaque, but as a generic 500 `SYS-001` — the right answer for a failure nobody
+recognises, and the wrong one for an outage, which is a 503 the caller should retry. `InfrastructureFailureFilter` sits
+between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
+with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
 ### Implementation status
 
 The policy above is decided; the code is being aligned with it. Still outstanding at the time of writing:
 
-- `InfrastructureFailureFilter` does not exist yet — until it does, an `InfrastructureException` escaping a filter falls
-  through to the default `/error`.
-- `BlacklistAwareJwtDecoder`, `RateLimitFilter` and `LoginAttemptRepositoryRedisAdapter` still fail open.
+- `BlacklistAwareJwtDecoder`, `RateLimitFilter` and `LoginAttemptRepositoryRedisAdapter` still fail open, so nothing
+  reaches `InfrastructureFailureFilter` from those paths yet.
 - Generic `DataAccessException` from the JPA adapters still surfaces as 500 `SYS-001` instead of 503 `INFRA-001`.
 
 Remove this section once the last one lands.

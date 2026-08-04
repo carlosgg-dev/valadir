@@ -6,6 +6,7 @@ import com.valadir.web.exception.HttpStatusResolver;
 import com.valadir.web.exception.JwtAccessDeniedHandler;
 import com.valadir.web.exception.JwtAuthenticationEntryPoint;
 import com.valadir.web.exception.SecurityErrorResponseWriter;
+import com.valadir.web.filter.InfrastructureFailureFilter;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
 import com.valadir.web.filter.RateLimitFilter;
@@ -101,13 +102,16 @@ public class SecurityConfig {
         JwtDecoder jwtDecoder,
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAccessDeniedHandler jwtAccessDeniedHandler,
-        RateLimitKeyResolver rateLimitKeyResolver
+        RateLimitKeyResolver rateLimitKeyResolver,
+        SecurityErrorResponseWriter securityErrorResponseWriter
     ) throws Exception {
 
         return http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
+            // After the MDC filter so an outage is logged with its request id, and before everything else so it wraps the JWT decoder and the rate limiter.
+            .addFilterAfter(new InfrastructureFailureFilter(securityErrorResponseWriter), MdcRequestFilter.class)
             .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper), rateLimitKeyResolver),
                             BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
