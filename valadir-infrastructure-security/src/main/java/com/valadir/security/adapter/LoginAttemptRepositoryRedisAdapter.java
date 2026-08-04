@@ -1,6 +1,7 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.LoginAttemptRepository;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.policy.LoginLockoutPolicy;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-// Fail-open on Redis outage: availability over brute-force enforcement
 public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepository {
 
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptRepositoryRedisAdapter.class);
@@ -47,8 +47,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             return policy.decideByCount(count);
 
         } catch (DataAccessException e) {
-            log.warn("Redis unavailable — allowing login attempt for {}", email.value(), e);
-            return new LoginAttemptDecision.Allowed();
+            throw new InfrastructureException("Redis unavailable — login attempt evaluation failed", e);
         }
     }
 
@@ -64,8 +63,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             );
 
             if (count == null) {
-                log.warn("Redis script returned null for attempt count — failed attempt not recorded for {}", email.value());
-                return Optional.empty();
+                throw new InfrastructureException("Redis unavailable — attempt counter script returned no value");
             }
 
             Duration lockout = policy.lockoutFor(count);
@@ -77,8 +75,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             return Optional.empty();
 
         } catch (DataAccessException e) {
-            log.warn("Redis unavailable — failed attempt not recorded for {}", email.value(), e);
-            return Optional.empty();
+            throw new InfrastructureException("Redis unavailable — failed login attempt was not recorded", e);
         }
     }
 
@@ -88,6 +85,9 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
         try {
             redisOperations.delete(List.of(attemptsKey(email), lockoutKey(email)));
         } catch (DataAccessException e) {
+            // The only failure of the three that is safe to swallow: a counter left uncleared makes the
+            // next attempt more restrictive, never less. Denying a login that already proved its
+            // credentials would add nothing.
             log.warn("Redis unavailable — attempt counter not cleared for {}", email.value(), e);
         }
     }

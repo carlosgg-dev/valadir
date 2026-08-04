@@ -1,5 +1,6 @@
 package com.valadir.security.adapter;
 
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.policy.LoginLockoutPolicy;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -105,21 +107,24 @@ class LoginAttemptRepositoryRedisAdapterTest {
     }
 
     @Test
-    void evaluate_redisError_returnsAllowed() {
+    void evaluate_redisError_failsClosedInsteadOfAllowing() {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), POLICY);
 
-        assertThat(adapter.evaluate(EMAIL)).isInstanceOf(LoginAttemptDecision.Allowed.class);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.evaluate(EMAIL))
+            .withCauseInstanceOf(DataAccessException.class);
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    void recordFailedAttempt_nullCount_returnsEmpty() {
+    void recordFailedAttempt_nullCount_failsClosedInsteadOfLosingTheAttempt() {
 
         given(redisOperations.execute(any(RedisScript.class), anyList(), anyString())).willReturn(null);
         var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
 
-        assertThat(adapter.recordFailedAttempt(EMAIL)).isEmpty();
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
     }
 
     @Test
@@ -155,11 +160,13 @@ class LoginAttemptRepositoryRedisAdapterTest {
     }
 
     @Test
-    void recordFailedAttempt_redisError_returnsEmpty() {
+    void recordFailedAttempt_redisError_failsClosedInsteadOfLosingTheAttempt() {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), POLICY);
 
-        assertThat(adapter.recordFailedAttempt(EMAIL)).isEmpty();
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> adapter.recordFailedAttempt(EMAIL))
+            .withCauseInstanceOf(DataAccessException.class);
     }
 
     @Test

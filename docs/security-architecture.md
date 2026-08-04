@@ -119,10 +119,10 @@ with the request id, it is the single place where an outage raised below the con
 
 The policy above is decided; the code is being aligned with it. Still outstanding at the time of writing:
 
-- `LoginAttemptRepositoryRedisAdapter` still fails open.
-- Generic `DataAccessException` from the JPA adapters still surfaces as 500 `SYS-001` instead of 503 `INFRA-001`.
+- Generic `DataAccessException` from the JPA adapters still surfaces as 500 `SYS-001` instead of 503 `INFRA-001`, so a
+  Postgres outage does not yet answer as the table above says.
 
-Remove this section once the last one lands.
+Remove this section once it lands.
 
 ## Known Behaviours
 
