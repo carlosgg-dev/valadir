@@ -1,17 +1,12 @@
 package com.valadir.security.jwt;
 
 import com.valadir.application.port.out.AccessTokenBlacklist;
-import com.valadir.common.exception.InfrastructureException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 
 public class BlacklistAwareJwtDecoder implements JwtDecoder {
-
-    private static final Logger log = LoggerFactory.getLogger(BlacklistAwareJwtDecoder.class);
 
     private final JwtDecoder delegate;
     private final AccessTokenBlacklist accessTokenBlacklist;
@@ -28,14 +23,11 @@ public class BlacklistAwareJwtDecoder implements JwtDecoder {
         Jwt jwt = delegate.decode(token);
         String jti = jwt.getId();
 
-        if (jti != null) {
-            try {
-                if (accessTokenBlacklist.isRevoked(jti)) {
-                    throw new BadJwtException("Token has been revoked");
-                }
-            } catch (InfrastructureException e) {
-                log.warn("Blacklist check unavailable, failing open: {}", e.getMessage());
-            }
+        // A lookup that cannot run must not let a revoked token through. The InfrastructureException is
+        // left to propagate untouched: translating it into a JwtException would answer 401 and hide the
+        // outage behind an ordinary authentication failure.
+        if (jti != null && accessTokenBlacklist.isRevoked(jti)) {
+            throw new BadJwtException("Token has been revoked");
         }
 
         return jwt;

@@ -58,16 +58,16 @@ class BlacklistAwareJwtDecoderTest {
     }
 
     @Test
-    void decode_blacklistUnavailable_failsOpenAndReturnsJwt() {
+    void decode_blacklistUnavailable_failsClosedAndPropagatesTheOutage() {
 
         String jti = UUID.randomUUID().toString();
-        Jwt jwt = buildJwt(jti);
-        given(delegate.decode("token")).willReturn(jwt);
-        given(accessTokenBlacklist.isRevoked(jti)).willThrow(new InfrastructureException("Redis unavailable"));
+        var outage = new InfrastructureException("Redis unavailable — token blacklist read failed for jti: " + jti);
+        given(delegate.decode("token")).willReturn(buildJwt(jti));
+        given(accessTokenBlacklist.isRevoked(jti)).willThrow(outage);
 
-        Jwt result = decoder.decode("token");
-
-        assertThat(result).isEqualTo(jwt);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> decoder.decode("token"))
+            .isSameAs(outage);
     }
 
     @Test

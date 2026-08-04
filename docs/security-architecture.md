@@ -119,8 +119,7 @@ with the request id, it is the single place where an outage raised below the con
 
 The policy above is decided; the code is being aligned with it. Still outstanding at the time of writing:
 
-- `BlacklistAwareJwtDecoder`, `RateLimitFilter` and `LoginAttemptRepositoryRedisAdapter` still fail open, so nothing
-  reaches `InfrastructureFailureFilter` from those paths yet.
+- `RateLimitFilter` and `LoginAttemptRepositoryRedisAdapter` still fail open.
 - Generic `DataAccessException` from the JPA adapters still surfaces as 500 `SYS-001` instead of 503 `INFRA-001`.
 
 Remove this section once the last one lands.
