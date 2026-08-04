@@ -115,15 +115,6 @@ recognises, and the wrong one for an outage, which is a 503 the caller should re
 between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
-### Implementation status
-
-The policy above is decided; the code is being aligned with it. Still outstanding at the time of writing:
-
-- Generic `DataAccessException` from the JPA adapters still surfaces as 500 `SYS-001` instead of 503 `INFRA-001`, so a
-  Postgres outage does not yet answer as the table above says.
-
-Remove this section once it lands.
-
 ## Known Behaviours
 
 Not defects, but things that are expensive to rediscover.
