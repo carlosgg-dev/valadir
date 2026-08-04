@@ -39,6 +39,7 @@
         <pitest.version>1.19.1</pitest.version>
         <pitest.junit5.version>1.2.2</pitest.junit5.version>
         <archunit.version>1.3.0</archunit.version>
+        <resilience4j.version>2.3.0</resilience4j.version>
 
         <!-- JaCoCo agent argLines, populated at runtime by the prepare-agent goals.
              Declared empty so the build still works when JaCoCo is skipped (e.g. the
@@ -160,6 +161,15 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Resilience4j: fault tolerance library providing circuit breakers -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bom</artifactId>
+                <version>${resilience4j.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

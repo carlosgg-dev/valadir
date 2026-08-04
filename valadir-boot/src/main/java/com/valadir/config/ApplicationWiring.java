@@ -49,6 +49,8 @@ import com.valadir.security.adapter.CaptchaVerifierTurnstileAdapter;
 import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
 import com.valadir.security.jwt.BlacklistAwareJwtDecoder;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -190,6 +192,12 @@ class ApplicationWiring {
         return builder
             .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings))
             .build();
+    }
+
+    @Bean
+    CircuitBreaker captchaCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
+
+        return circuitBreakerRegistry.circuitBreaker("captcha");
     }
 
     @Bean

@@ -17,6 +17,8 @@ import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedi
 import com.valadir.security.adapter.RateLimiterRedisAdapter;
 import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
 import com.valadir.security.redis.RedisKeySpace;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -25,6 +27,12 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 
 @Configuration
 class SecurityWiring {
+
+    @Bean
+    CircuitBreaker redisCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
+
+        return circuitBreakerRegistry.circuitBreaker("redis");
+    }
 
     @Bean
     AuthTokenIssuer authTokenIssuer(JwtEncoder jwtEncoder, JwtProperties jwtProperties) {

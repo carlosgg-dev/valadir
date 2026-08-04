@@ -81,6 +81,31 @@ auth:
     access-token-ttl: 15m
     refresh-token-ttl: 7d
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      # Same fail-closed answer once Redis is clearly down, without the 2s Lettuce timeout on every request
+      redis:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - org.springframework.dao.DataAccessException
+      # Same fail-open verdict during a Turnstile outage, without the 2s connect + 3s read on every login
+      captcha:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        record-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+
 scheduler:
   pending-activation-account:
     grace-period: 72h

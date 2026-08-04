@@ -57,6 +57,14 @@
             <version>1.78</version>
         </dependency>
 
+        <!-- Resilience4j: circuit breakers for the Redis and Turnstile adapters. The Spring Boot starter
+             rather than the bare circuitbreaker module, because SecurityWiring resolves the breakers from
+             the autoconfigured CircuitBreakerRegistry and the module's own ITs boot that wiring. -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+        </dependency>
+
         <!-- Spring Boot testing features -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
