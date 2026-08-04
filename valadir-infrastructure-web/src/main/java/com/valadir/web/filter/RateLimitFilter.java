@@ -1,6 +1,5 @@
 package com.valadir.web.filter;
 
-import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
@@ -90,13 +89,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         for (RateLimitProperties.Rule rule : rules) {
             Optional<String> redisKey = keyResolver.resolve(request, rule);
             if (redisKey.isPresent()) {
-                RateLimitResult result;
-                try {
-                    result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.window());
-                } catch (InfrastructureException e) {
-                    log.warn("Rate limiter unavailable, failing open: {}", e.getMessage());
-                    continue;
-                }
+                // A limit that cannot be evaluated is not a limit. The InfrastructureException is left to
+                // propagate so the request is refused: letting it through would hand an unlimited
+                // brute-force budget to whoever can degrade Redis.
+                RateLimitResult result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.window());
 
                 if (!result.allowed()) {
                     log.warn("Rate limit exceeded: strategy={} key={}", rule.strategy(), redisKey.get());

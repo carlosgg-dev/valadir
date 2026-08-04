@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -237,41 +238,45 @@ class RateLimitFilterTest {
     }
 
     @Test
-    void doFilter_rateLimiterUnavailable_failsOpen() throws Exception {
+    void doFilter_rateLimiterUnavailable_failsClosedAndPropagatesTheOutage() {
 
+        var outage = new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException());
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
-        given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
+        given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willThrow(outage);
 
         RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
         MockHttpServletRequest request = buildRequest(PATH_LOGIN);
         var response = new MockHttpServletResponse();
         var chain = new MockFilterChain();
 
-        filter.doFilter(request, response, chain);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> filter.doFilter(request, response, chain))
+            .isSameAs(outage);
 
+        assertThat(chain.getRequest()).isNull();
         then(responseWriter).shouldHaveNoInteractions();
-        assertThat(chain.getRequest()).isNotNull();
     }
 
     @Test
-    void doFilter_rateLimiterUnavailableOnFirstRule_evaluatesRemainingRules() throws Exception {
+    void doFilter_rateLimiterUnavailableOnASecondRule_refusesEvenThoughTheFirstOneAllowed() {
 
-        var emailResult = new RateLimitResult(true, 1L, 5, EMAIL_WINDOW);
+        var outage = new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException());
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(IP_RULE))).willReturn(Optional.of(IP_REDIS_KEY));
         given(keyResolver.resolve(any(HttpServletRequest.class), eq(EMAIL_RULE))).willReturn(Optional.of(EMAIL_REDIS_KEY));
-        given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willThrow(new InfrastructureException("Redis unavailable — rate limit check failed", new RuntimeException()));
-        given(rateLimiter.consume(EMAIL_REDIS_KEY, 5, EMAIL_WINDOW)).willReturn(emailResult);
+        given(rateLimiter.consume(IP_REDIS_KEY, 10, WINDOW)).willReturn(new RateLimitResult(true, 1L, 10, WINDOW));
+        given(rateLimiter.consume(EMAIL_REDIS_KEY, 5, EMAIL_WINDOW)).willThrow(outage);
 
         RateLimitFilter filter = buildFilter(true, List.of(IP_RULE, EMAIL_RULE));
         MockHttpServletRequest request = buildRequest(PATH_LOGIN);
         var response = new MockHttpServletResponse();
         var chain = new MockFilterChain();
 
-        filter.doFilter(request, response, chain);
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> filter.doFilter(request, response, chain))
+            .isSameAs(outage);
 
-        then(responseWriter).should().writeAllowedRequestHeaders(response, emailResult);
-        then(responseWriter).shouldHaveNoMoreInteractions();
-        assertThat(chain.getRequest()).isNotNull();
+        assertThat(chain.getRequest()).isNull();
+        then(responseWriter).shouldHaveNoInteractions();
     }
 
     private RateLimitFilter buildFilter(boolean enabled, List<RateLimitProperties.Rule> rules) {
