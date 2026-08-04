@@ -13,6 +13,12 @@ spring:
     username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 2000  # milliseconds: HikariConfig takes a raw long, not a Duration
+      data-source-properties:
+        # Seconds. A safety net against an unresponsive server, not a query SLA: it applies to every
+        # statement on the connection, including the pending-account purge.
+        socketTimeout: 5
   jpa:
     hibernate:
       ddl-auto: update
@@ -26,6 +32,10 @@ spring:
       host: localhost
       port: 6379
       password: ${REDIS_PASSWORD}
+      # Every Redis operation here is a single key read/write or a short Lua script. Without these,
+      # Lettuce waits 60s by default, so the fail-closed policy would take a minute to apply.
+      timeout: 2s
+      connect-timeout: 1s
   mail:
     host: localhost
     port: 1025
