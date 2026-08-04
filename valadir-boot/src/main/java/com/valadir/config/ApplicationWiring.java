@@ -49,6 +49,7 @@ import com.valadir.security.adapter.CaptchaVerifierTurnstileAdapter;
 import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
 import com.valadir.security.jwt.BlacklistAwareJwtDecoder;
+import com.valadir.security.redis.RedisCircuitGuard;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -177,9 +178,13 @@ class ApplicationWiring {
     }
 
     @Bean
-    LoginAttemptRepository loginAttemptRepository(RedisTemplate<String, String> redisTemplate, LoginLockoutPolicy loginLockoutPolicy) {
+    LoginAttemptRepository loginAttemptRepository(
+        RedisTemplate<String, String> redisTemplate,
+        RedisCircuitGuard redisCircuitGuard,
+        LoginLockoutPolicy loginLockoutPolicy
+    ) {
 
-        return new LoginAttemptRepositoryRedisAdapter(redisTemplate, loginLockoutPolicy);
+        return new LoginAttemptRepositoryRedisAdapter(redisTemplate, redisCircuitGuard, loginLockoutPolicy);
     }
 
     @Bean

@@ -5,6 +5,7 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.policy.LoginLockoutPolicy;
+import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +24,18 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     private static final Logger log = LoggerFactory.getLogger(LoginAttemptRepositoryRedisAdapter.class);
 
     private final RedisOperations<String, String> redisOperations;
+    private final RedisCircuitGuard circuitGuard;
     private final LoginLockoutPolicy policy;
     private final RedisScript<Long> recordLoginAttemptScript;
 
-    public LoginAttemptRepositoryRedisAdapter(RedisOperations<String, String> redisOperations, LoginLockoutPolicy policy) {
+    public LoginAttemptRepositoryRedisAdapter(
+        RedisOperations<String, String> redisOperations,
+        RedisCircuitGuard circuitGuard,
+        LoginLockoutPolicy policy
+    ) {
 
         this.redisOperations = redisOperations;
+        this.circuitGuard = circuitGuard;
         this.policy = policy;
         this.recordLoginAttemptScript = RedisScript.of(new ClassPathResource("scripts/login_attempt_increase_expire.lua"), Long.class);
     }
@@ -36,7 +43,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     @Override
     public LoginAttemptDecision evaluate(Email email) {
 
-        try {
+        return circuitGuard.call("login attempt evaluation failed", () -> {
             Long ttl = redisOperations.getExpire(lockoutKey(email), TimeUnit.SECONDS);
             if (ttl != null && ttl > 0) {
                 return new LoginAttemptDecision.LockedOut(Duration.ofSeconds(ttl));
@@ -45,20 +52,16 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             String countValue = redisOperations.opsForValue().get(attemptsKey(email));
             long count = countValue == null ? 0 : Long.parseLong(countValue);
             return policy.decideByCount(count);
-
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — login attempt evaluation failed", e);
-        }
+        });
     }
 
     @Override
     public Optional<Duration> recordFailedAttempt(Email email) {
 
-        try {
-            String attemptsKey = attemptsKey(email);
+        return circuitGuard.call("failed login attempt was not recorded", () -> {
             Long count = redisOperations.execute(
                 recordLoginAttemptScript,
-                List.of(attemptsKey),
+                List.of(attemptsKey(email)),
                 String.valueOf(policy.attemptsWindow().getSeconds())
             );
 
@@ -73,10 +76,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             }
 
             return Optional.empty();
-
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — failed login attempt was not recorded", e);
-        }
+        });
     }
 
     @Override

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -33,7 +34,7 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterIT {
     @BeforeEach
     void setUp() {
 
-        adapter = new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate);
+        adapter = new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate, buildClosedCircuitGuard());
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -34,7 +35,7 @@ class OtpRepositoryRedisAdapterIT {
     @BeforeEach
     void setUp() {
 
-        adapter = new OtpRepositoryRedisAdapter(redisTemplate, REDIS_KEY_FN);
+        adapter = new OtpRepositoryRedisAdapter(redisTemplate, buildClosedCircuitGuard(), REDIS_KEY_FN);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();

@@ -1,11 +1,10 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.LogoutTokensInvalidator;
-import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
+import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -15,11 +14,13 @@ import java.util.List;
 public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalidator {
 
     private final RedisOperations<String, String> redisOperations;
+    private final RedisCircuitGuard circuitGuard;
     private final RedisScript<Long> logoutInvalidateTokensScript;
 
-    public LogoutTokensInvalidatorRedisAdapter(RedisOperations<String, String> redisOperations) {
+    public LogoutTokensInvalidatorRedisAdapter(RedisOperations<String, String> redisOperations, RedisCircuitGuard circuitGuard) {
 
         this.redisOperations = redisOperations;
+        this.circuitGuard = circuitGuard;
         this.logoutInvalidateTokensScript = RedisScript.of(new ClassPathResource("scripts/logout_invalidate_tokens.lua"), Long.class);
     }
 
@@ -30,7 +31,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
 
         String accountIdValue = accountId.value().toString();
 
-        try {
+        circuitGuard.run("logout token invalidation failed for jti: " + jti, () ->
             redisOperations.execute(
                 logoutInvalidateTokensScript,
                 List.of(
@@ -42,9 +43,7 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
                 String.valueOf(remainingTtl.getSeconds()),
                 refreshToken,
                 accountIdValue
-            );
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — logout token invalidation failed for jti: " + jti, e);
-        }
+            )
+        );
     }
 }

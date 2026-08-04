@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -49,7 +50,7 @@ class LoginAttemptRepositoryRedisAdapterIT {
     @BeforeEach
     void setUp() {
 
-        adapter = new LoginAttemptRepositoryRedisAdapter(redisTemplate, POLICY);
+        adapter = new LoginAttemptRepositoryRedisAdapter(redisTemplate, buildClosedCircuitGuard(), POLICY);
         RedisConnectionFactory factory = Objects.requireNonNull(redisTemplate.getConnectionFactory());
         try (var connection = factory.getConnection()) {
             connection.serverCommands().flushAll();

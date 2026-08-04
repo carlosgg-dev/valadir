@@ -12,6 +12,7 @@ import org.springframework.dao.DataAccessException;
 import java.time.Duration;
 import java.util.function.UnaryOperator;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,7 +26,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     void save_redisError_throwsInfrastructureException() {
 
         var hashedOtp = OtpMother.hashed();
-        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), REDIS_KEY_FN);
+        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(ACCOUNT_ID, hashedOtp, OTP_TTL))
@@ -35,7 +36,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     @Test
     void find_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), REDIS_KEY_FN);
+        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.find(ACCOUNT_ID))
@@ -45,7 +46,7 @@ class OtpRepositoryRedisAdapterExceptionTest {
     @Test
     void delete_redisError_throwsInfrastructureException() {
 
-        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), REDIS_KEY_FN);
+        var adapter = new OtpRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), REDIS_KEY_FN);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.delete(ACCOUNT_ID))

@@ -11,6 +11,7 @@ import org.springframework.dao.DataAccessException;
 import java.time.Duration;
 import java.util.UUID;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,7 +25,7 @@ class LogoutTokensInvalidatorRedisAdapterExceptionTest {
         var refreshToken = UUID.randomUUID().toString();
         var accountId = AccountId.generate();
 
-        var adapter = new LogoutTokensInvalidatorRedisAdapter(RedisTestUtils.errorTemplate());
+        var adapter = new LogoutTokensInvalidatorRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard());
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.invalidate(jti, remainingTtl, refreshToken, accountId))

@@ -16,8 +16,8 @@ import com.valadir.security.adapter.PasswordHasherArgon2Adapter;
 import com.valadir.security.adapter.PasswordResetVerificationTokenRepositoryRedisAdapter;
 import com.valadir.security.adapter.RateLimiterRedisAdapter;
 import com.valadir.security.adapter.RefreshTokenRepositoryRedisAdapter;
+import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,9 +29,9 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 class SecurityWiring {
 
     @Bean
-    CircuitBreaker redisCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
+    RedisCircuitGuard redisCircuitGuard(CircuitBreakerRegistry circuitBreakerRegistry) {
 
-        return circuitBreakerRegistry.circuitBreaker("redis");
+        return new RedisCircuitGuard(circuitBreakerRegistry.circuitBreaker("redis"));
     }
 
     @Bean
@@ -41,21 +41,25 @@ class SecurityWiring {
     }
 
     @Bean
-    RefreshTokenRepository refreshTokenRepository(RedisTemplate<String, String> redisTemplate, JwtProperties jwtProperties) {
+    RefreshTokenRepository refreshTokenRepository(
+        RedisTemplate<String, String> redisTemplate,
+        RedisCircuitGuard redisCircuitGuard,
+        JwtProperties jwtProperties
+    ) {
 
-        return new RefreshTokenRepositoryRedisAdapter(redisTemplate, jwtProperties);
+        return new RefreshTokenRepositoryRedisAdapter(redisTemplate, redisCircuitGuard, jwtProperties);
     }
 
     @Bean
-    AccessTokenBlacklist accessTokenBlacklist(RedisTemplate<String, String> redisTemplate) {
+    AccessTokenBlacklist accessTokenBlacklist(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new AccessTokenBlacklistRedisAdapter(redisTemplate);
+        return new AccessTokenBlacklistRedisAdapter(redisTemplate, redisCircuitGuard);
     }
 
     @Bean
-    LogoutTokensInvalidator logoutTokensInvalidator(RedisTemplate<String, String> redisTemplate) {
+    LogoutTokensInvalidator logoutTokensInvalidator(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new LogoutTokensInvalidatorRedisAdapter(redisTemplate);
+        return new LogoutTokensInvalidatorRedisAdapter(redisTemplate, redisCircuitGuard);
     }
 
     @Bean
@@ -65,26 +69,29 @@ class SecurityWiring {
     }
 
     @Bean
-    RateLimiter rateLimiter(RedisTemplate<String, String> redisTemplate) {
+    RateLimiter rateLimiter(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new RateLimiterRedisAdapter(redisTemplate);
+        return new RateLimiterRedisAdapter(redisTemplate, redisCircuitGuard);
     }
 
     @Bean
-    OtpRepository accountActivationOtpRepository(RedisTemplate<String, String> redisTemplate) {
+    OtpRepository accountActivationOtpRepository(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new OtpRepositoryRedisAdapter(redisTemplate, RedisKeySpace::forAccountActivationOtp);
+        return new OtpRepositoryRedisAdapter(redisTemplate, redisCircuitGuard, RedisKeySpace::forAccountActivationOtp);
     }
 
     @Bean
-    OtpRepository passwordResetOtpRepository(RedisTemplate<String, String> redisTemplate) {
+    OtpRepository passwordResetOtpRepository(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new OtpRepositoryRedisAdapter(redisTemplate, RedisKeySpace::forPasswordResetOtp);
+        return new OtpRepositoryRedisAdapter(redisTemplate, redisCircuitGuard, RedisKeySpace::forPasswordResetOtp);
     }
 
     @Bean
-    PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository(RedisTemplate<String, String> redisTemplate) {
+    PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository(
+        RedisTemplate<String, String> redisTemplate,
+        RedisCircuitGuard redisCircuitGuard
+    ) {
 
-        return new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate);
+        return new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate, redisCircuitGuard);
     }
 }

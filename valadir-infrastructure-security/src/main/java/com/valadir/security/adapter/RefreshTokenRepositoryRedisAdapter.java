@@ -1,12 +1,11 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.RefreshTokenRepository;
-import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
+import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -17,14 +16,20 @@ import java.util.UUID;
 public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepository {
 
     private final RedisOperations<String, String> redisOperations;
+    private final RedisCircuitGuard circuitGuard;
     private final JwtProperties jwtProperties;
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
     private final RedisScript<Long> revokeAllRefreshTokensScript;
 
-    public RefreshTokenRepositoryRedisAdapter(RedisOperations<String, String> redisOperations, JwtProperties jwtProperties) {
+    public RefreshTokenRepositoryRedisAdapter(
+        RedisOperations<String, String> redisOperations,
+        RedisCircuitGuard circuitGuard,
+        JwtProperties jwtProperties
+    ) {
 
         this.redisOperations = redisOperations;
+        this.circuitGuard = circuitGuard;
         this.jwtProperties = jwtProperties;
         this.saveRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/save_refresh_token.lua"), Long.class);
         this.rotateRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/rotate_refresh_token.lua"), Long.class);
@@ -34,40 +39,37 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     @Override
     public Optional<AccountId> validate(String token) {
 
-        try {
-            String accountIdValue = redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(token));
-            return Optional.ofNullable(accountIdValue)
-                .map(value -> AccountId.from(UUID.fromString(value)));
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — refresh token validation failed", e);
-        }
+        return circuitGuard.call("refresh token validation failed", () ->
+            Optional.ofNullable(redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(token)))
+                .map(value -> AccountId.from(UUID.fromString(value)))
+        );
     }
 
     // Atomic: stores the refresh token and registers it in the user's token set
     @Override
     public void save(String token, AccountId accountId) {
 
-        try {
-            String accountIdStr = accountId.value().toString();
+        String accountIdStr = accountId.value().toString();
+
+        circuitGuard.run("refresh token save failed", () ->
             redisOperations.execute(
                 saveRefreshTokenScript,
                 List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
                 accountIdStr,
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds()),
                 token
-            );
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — refresh token save failed", e);
-        }
+            )
+        );
     }
 
     // Atomic: removes old token and stores new one with TTL. Returns false if old token no longer exists
     @Override
     public boolean rotate(String oldToken, String newToken, AccountId accountId) {
 
-        try {
-            String accountIdStr = accountId.value().toString();
-            Long result = redisOperations.execute(
+        String accountIdStr = accountId.value().toString();
+
+        Long result = circuitGuard.call("refresh token rotation failed", () ->
+            redisOperations.execute(
                 rotateRefreshTokenScript,
                 List.of(
                     RedisKeySpace.forRefreshToken(oldToken),
@@ -78,11 +80,10 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
                 newToken,
                 accountIdStr,
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds())
-            );
-            return Long.valueOf(1L).equals(result);
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — refresh token rotation failed", e);
-        }
+            )
+        );
+
+        return Long.valueOf(1L).equals(result);
     }
 
     // Atomic: revokes all refresh tokens for the account.
@@ -90,14 +91,12 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     @Override
     public void revokeAllForAccount(AccountId accountId) {
 
-        try {
+        circuitGuard.run("refresh token revocation failed", () ->
             redisOperations.execute(
                 revokeAllRefreshTokensScript,
                 List.of(RedisKeySpace.forUserTokens(accountId.value().toString())),
                 RedisKeySpace.REFRESH_TOKEN_PREFIX
-            );
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — refresh token revocation failed", e);
-        }
+            )
+        );
     }
 }

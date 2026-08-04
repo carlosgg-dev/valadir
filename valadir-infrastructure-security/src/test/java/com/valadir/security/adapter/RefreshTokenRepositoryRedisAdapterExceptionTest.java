@@ -13,6 +13,7 @@ import org.springframework.dao.DataAccessException;
 import java.time.Duration;
 import java.util.UUID;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 
@@ -30,7 +31,7 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
     @Test
     void validate_redisError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.validate(NEW_TOKEN))
@@ -41,7 +42,7 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
     void save_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.save(NEW_TOKEN, ACCOUNT_ID))
@@ -52,7 +53,7 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
     void rotate_redisError_throwsInfrastructureException() {
 
         given(jwtProperties.refreshTokenTtl()).willReturn(ONE_WEEK);
-        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.rotate(OLD_TOKEN, NEW_TOKEN, ACCOUNT_ID))
@@ -62,7 +63,7 @@ class RefreshTokenRepositoryRedisAdapterExceptionTest {
     @Test
     void revokeAllForAccount_redisError_throwsInfrastructureException() {
 
-        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), jwtProperties);
+        var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.revokeAllForAccount(ACCOUNT_ID))

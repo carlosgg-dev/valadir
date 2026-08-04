@@ -1,14 +1,15 @@
 package com.valadir.security.adapter;
 
 import com.valadir.common.exception.InfrastructureException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -22,8 +23,13 @@ class AccessTokenBlacklistRedisAdapterExceptionTest {
     @Mock
     private RedisOperations<String, String> redisOperations;
 
-    @InjectMocks
     private AccessTokenBlacklistRedisAdapter adapter;
+
+    @BeforeEach
+    void setUp() {
+
+        adapter = new AccessTokenBlacklistRedisAdapter(redisOperations, buildClosedCircuitGuard());
+    }
 
     @Test
     void isRevoked_redisError_throwsInfrastructureException() {

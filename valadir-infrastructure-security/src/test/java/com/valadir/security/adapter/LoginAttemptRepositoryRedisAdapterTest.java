@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -56,7 +57,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         given(redisOperations.getExpire(anyString(), any(TimeUnit.class))).willReturn(remaining.toSeconds());
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThat(adapter.evaluate(EMAIL))
             .isInstanceOfSatisfying(LoginAttemptDecision.LockedOut.class,
@@ -73,7 +74,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
         given(redisOperations.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get(anyString())).willReturn(String.valueOf(storedCount));
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThat(adapter.evaluate(EMAIL)).isEqualTo(POLICY.decideByCount(storedCount));
     }
@@ -85,7 +86,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
         given(redisOperations.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get(anyString())).willReturn(null);
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThat(adapter.evaluate(EMAIL)).isEqualTo(POLICY.decideByCount(0));
     }
@@ -99,7 +100,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
         given(redisOperations.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get(anyString())).willReturn("corrupt_count");
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         // Pins the fail-open boundary: corrupted state must surface, not be masked as Allowed
         assertThatExceptionOfType(NumberFormatException.class)
@@ -109,7 +110,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
     @Test
     void evaluate_redisError_failsClosedInsteadOfAllowing() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), POLICY);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.evaluate(EMAIL))
@@ -121,7 +122,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
     void recordFailedAttempt_nullCount_failsClosedInsteadOfLosingTheAttempt() {
 
         given(redisOperations.execute(any(RedisScript.class), anyList(), anyString())).willReturn(null);
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.recordFailedAttempt(EMAIL));
@@ -137,7 +138,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
         given(redisOperations.execute(any(RedisScript.class), anyList(), anyString())).willReturn(lockoutTriggeringCount);
         given(redisOperations.opsForValue()).willReturn(valueOperations);
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThat(adapter.recordFailedAttempt(EMAIL)).hasValue(expectedLockout);
 
@@ -153,7 +154,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         given(redisOperations.execute(any(RedisScript.class), anyList(), anyString())).willReturn(belowThresholdCount);
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
         assertThat(adapter.recordFailedAttempt(EMAIL)).isEmpty();
         then(redisOperations).should(never()).opsForValue();
@@ -162,7 +163,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
     @Test
     void recordFailedAttempt_redisError_failsClosedInsteadOfLosingTheAttempt() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), POLICY);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.recordFailedAttempt(EMAIL))
@@ -172,7 +173,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
     @Test
     void clearAttempts_redisError_doesNotThrow() {
 
-        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), POLICY);
+        var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), POLICY);
 
         assertThatNoException().isThrownBy(() -> adapter.clearAttempts(EMAIL));
     }

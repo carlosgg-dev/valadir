@@ -1,10 +1,9 @@
 package com.valadir.security.adapter;
 
 import com.valadir.application.port.out.OtpRepository;
-import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.HashedOtp;
-import org.springframework.dao.DataAccessException;
+import com.valadir.security.redis.RedisCircuitGuard;
 import org.springframework.data.redis.core.RedisOperations;
 
 import java.time.Duration;
@@ -14,43 +13,41 @@ import java.util.function.UnaryOperator;
 public class OtpRepositoryRedisAdapter implements OtpRepository {
 
     private final RedisOperations<String, String> redisOperations;
+    private final RedisCircuitGuard circuitGuard;
     private final UnaryOperator<String> redisKeyFunction;
 
-    public OtpRepositoryRedisAdapter(RedisOperations<String, String> redisOperations, UnaryOperator<String> redisKeyFunction) {
+    public OtpRepositoryRedisAdapter(
+        RedisOperations<String, String> redisOperations,
+        RedisCircuitGuard circuitGuard,
+        UnaryOperator<String> redisKeyFunction
+    ) {
 
         this.redisOperations = redisOperations;
+        this.circuitGuard = circuitGuard;
         this.redisKeyFunction = redisKeyFunction;
     }
 
     @Override
     public void save(AccountId accountId, HashedOtp hashedOtp, Duration ttl) {
 
-        try {
-            redisOperations.opsForValue().set(redisKey(accountId), hashedOtp.value(), ttl);
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — otp save failed", e);
-        }
+        circuitGuard.run("otp save failed", () ->
+            redisOperations.opsForValue().set(redisKey(accountId), hashedOtp.value(), ttl)
+        );
     }
 
     @Override
     public Optional<HashedOtp> find(AccountId accountId) {
 
-        try {
-            return Optional.ofNullable(redisOperations.opsForValue().get(redisKey(accountId)))
-                .map(HashedOtp::new);
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — otp lookup failed", e);
-        }
+        return circuitGuard.call("otp lookup failed", () ->
+            Optional.ofNullable(redisOperations.opsForValue().get(redisKey(accountId)))
+                .map(HashedOtp::new)
+        );
     }
 
     @Override
     public void delete(AccountId accountId) {
 
-        try {
-            redisOperations.delete(redisKey(accountId));
-        } catch (DataAccessException e) {
-            throw new InfrastructureException("Redis unavailable — otp delete failed", e);
-        }
+        circuitGuard.run("otp delete failed", () -> redisOperations.delete(redisKey(accountId)));
     }
 
     private String redisKey(AccountId accountId) {
