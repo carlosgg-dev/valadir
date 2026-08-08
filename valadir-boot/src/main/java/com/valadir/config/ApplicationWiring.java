@@ -206,9 +206,15 @@ class ApplicationWiring {
     }
 
     @Bean
-    CaptchaVerifier captchaVerifier(RestClient captchaRestClient, CaptchaProperties properties) {
+    CaptchaVerifier captchaVerifier(RestClient captchaRestClient, CaptchaProperties properties, CircuitBreaker captchaCircuitBreaker) {
 
-        return new CaptchaVerifierTurnstileAdapter(captchaRestClient, properties.verifyUrl(), properties.secret(), properties.enabled());
+        return new CaptchaVerifierTurnstileAdapter(
+            captchaRestClient,
+            properties.verifyUrl(),
+            properties.secret(),
+            properties.enabled(),
+            captchaCircuitBreaker
+        );
     }
 
     @Bean

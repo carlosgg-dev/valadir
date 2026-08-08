@@ -1,6 +1,8 @@
 package com.valadir.security.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +41,7 @@ class CaptchaVerifierTurnstileAdapterTest {
     @Test
     void isValid_disabled_returnsTrueWithoutCallingProvider() {
 
-        var adapter = new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, false);
+        var adapter = new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, false, closedCircuitBreaker());
 
         assertThat(adapter.isValid(null)).isTrue();
         server.verify();
@@ -97,6 +99,15 @@ class CaptchaVerifierTurnstileAdapterTest {
     }
 
     @Test
+    void isValid_openCircuit_failsOpenWithoutCallingProvider() {
+
+        // No expectation is registered, so the request never leaving is what keeps this green:
+        // the outage is answered without paying the connect + read timeout again.
+        assertThat(enabledAdapter(openCircuitBreaker()).isValid(TOKEN)).isTrue();
+        server.verify();
+    }
+
+    @Test
     void isValid_unparseableResponse_failsClosedReturnsFalse() {
 
         server.expect(requestTo(VERIFY_URL))
@@ -128,7 +139,7 @@ class CaptchaVerifierTurnstileAdapterTest {
         strictServer.expect(requestTo(VERIFY_URL))
             .andRespond(withSuccess(responseWithExtraFields, MediaType.APPLICATION_JSON));
 
-        var adapter = new CaptchaVerifierTurnstileAdapter(strictBuilder.build(), VERIFY_URL, SECRET, true);
+        var adapter = new CaptchaVerifierTurnstileAdapter(strictBuilder.build(), VERIFY_URL, SECRET, true, closedCircuitBreaker());
 
         assertThat(adapter.isValid(TOKEN)).isTrue();
         strictServer.verify();
@@ -136,7 +147,30 @@ class CaptchaVerifierTurnstileAdapterTest {
 
     private CaptchaVerifierTurnstileAdapter enabledAdapter() {
 
-        return new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, true);
+        return enabledAdapter(closedCircuitBreaker());
+    }
+
+    private CaptchaVerifierTurnstileAdapter enabledAdapter(CircuitBreaker circuitBreaker) {
+
+        return new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, true, circuitBreaker);
+    }
+
+    /**
+     * A fresh, closed circuit per call, so no state leaks between tests. The new registry is what
+     * makes it fresh: a shared one caches by name and would hand back the same instance, carrying
+     * its call count and state over. The default config needs 100 calls before it can open, well
+     * beyond what any test makes.
+     */
+    private static CircuitBreaker closedCircuitBreaker() {
+
+        return CircuitBreakerRegistry.ofDefaults().circuitBreaker("test");
+    }
+
+    private static CircuitBreaker openCircuitBreaker() {
+
+        var circuitBreaker = closedCircuitBreaker();
+        circuitBreaker.transitionToOpenState();
+        return circuitBreaker;
     }
 
     private static String[] blankTokens() {

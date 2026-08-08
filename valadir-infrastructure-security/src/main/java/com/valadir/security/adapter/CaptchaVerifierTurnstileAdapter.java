@@ -2,6 +2,8 @@ package com.valadir.security.adapter;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.valadir.application.port.out.CaptchaVerifier;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -20,13 +22,21 @@ public class CaptchaVerifierTurnstileAdapter implements CaptchaVerifier {
     private final String verifyUrl;
     private final String secret;
     private final boolean enabled;
+    private final CircuitBreaker circuitBreaker;
 
-    public CaptchaVerifierTurnstileAdapter(RestClient restClient, String verifyUrl, String secret, boolean enabled) {
+    public CaptchaVerifierTurnstileAdapter(
+        RestClient restClient,
+        String verifyUrl,
+        String secret,
+        boolean enabled,
+        CircuitBreaker circuitBreaker
+    ) {
 
         this.restClient = restClient;
         this.verifyUrl = verifyUrl;
         this.secret = secret;
         this.enabled = enabled;
+        this.circuitBreaker = circuitBreaker;
     }
 
     @Override
@@ -41,10 +51,13 @@ public class CaptchaVerifierTurnstileAdapter implements CaptchaVerifier {
         }
 
         try {
-            return verifyToken(token);
+            // Functional API, not @CircuitBreaker: the annotation wraps the method from outside, so
+            // CallNotPermittedException could not be caught below and an open circuit would deny the login.
+            return circuitBreaker.executeSupplier(() -> verifyToken(token));
 
-        } catch (ResourceAccessException | HttpServerErrorException e) {
-            // Provider down (I/O, timeout, 5xx): fail-open to avoid blocking all logins on an outage.
+        } catch (ResourceAccessException | HttpServerErrorException | CallNotPermittedException e) {
+            // Provider down (I/O, timeout, 5xx) or circuit already open: fail-open to avoid
+            // blocking all logins on an outage.
             log.warn("Turnstile unavailable — allowing challenged login attempt", e);
             return true;
 
