@@ -43,6 +43,6 @@ class HttpStatusResolverTest {
     @Test
     void resolve_serverErrorCategory_returns500() {
 
-        assertThat(resolver.resolve(ErrorCode.TOKEN_REVOCATION_FAILED)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(resolver.resolve(ErrorCode.DATA_INTEGRITY_ERROR)).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

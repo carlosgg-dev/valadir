@@ -32,11 +32,9 @@ class ErrorCodeTest {
         "AUTHENTICATION_FAILED,                    BIZ-003,   UNAUTHORIZED",
         "ACCOUNT_PENDING_ACTIVATION,               BIZ-004,   FORBIDDEN",
         "INVALID_ACCOUNT_ACTIVATION_OTP,           BIZ-005,   UNAUTHORIZED",
-        "ACCOUNT_NOT_ELIGIBLE_FOR_REREGISTRATION,  BIZ-006,   FORBIDDEN",
         "INVALID_PASSWORD_RESET_OTP,               BIZ-007,   UNAUTHORIZED",
         "INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,BIZ-008,   UNAUTHORIZED",
         "CREDENTIAL_INTEGRITY_ERROR,               SEC-001,   UNAUTHORIZED",
-        "TOKEN_REVOCATION_FAILED,                  SEC-002,   SERVER_ERROR",
         "INVALID_TOKEN,                            SEC-003,   UNAUTHORIZED",
         "AUTHENTICATION_REQUIRED,                  SEC-004,   UNAUTHORIZED",
         "ACCESS_DENIED,                            SEC-005,   FORBIDDEN",
@@ -56,6 +54,6 @@ class ErrorCodeTest {
     @Test
     void values_everyConstant_isCoveredByMappingTest() {
 
-        assertThat(ErrorCode.values()).hasSize(23);
+        assertThat(ErrorCode.values()).hasSize(21);
     }
 }

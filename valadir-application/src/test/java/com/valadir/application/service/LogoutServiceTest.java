@@ -1,9 +1,7 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.LogoutCommand;
-import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.AccountId;
 import org.junit.jupiter.api.Test;
@@ -43,8 +41,10 @@ class LogoutServiceTest {
         then(logoutTokensInvalidator).should().invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId);
     }
 
+    // Fail-closed and consistent with every other flow: an outage must reach the handler as an
+    // InfrastructureException (503), never wrapped into a business code that reads as a 500.
     @Test
-    void logout_invalidationFails_throwsApplicationException() {
+    void logout_invalidationFails_propagatesInfrastructureException() {
 
         var accountId = AccountId.generate();
 
@@ -53,9 +53,8 @@ class LogoutServiceTest {
         willThrow(INFRA_ERROR)
             .given(logoutTokensInvalidator).invalidate(ACCESS_TOKEN_JTI, REMAINING_TTL, REFRESH_TOKEN, accountId);
 
-        assertThatExceptionOfType(ApplicationException.class)
+        assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> service.logout(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOKEN_REVOCATION_FAILED)
-            .withCause(INFRA_ERROR);
+            .isSameAs(INFRA_ERROR);
     }
 }

@@ -79,7 +79,11 @@ In an authentication system, the failure mode is a security property, not an ope
 | Redis down in the **rate limiter**                       | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
 | Redis down while reading the **failed-attempt counter**  | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
 
-All of these surface as **503 `INFRA-001`**.
+All of these surface as **503 `INFRA-001`**, logout included: no flow translates an outage into a business error code.
+A 500 would tell the client not to retry a failure that is precisely worth retrying — the revocation did not happen and
+the token is still live. In practice a total Redis outage never reaches the logout use case anyway: the blacklist lookup
+in `BlacklistAwareJwtDecoder` is the first Redis touch of an authenticated request, so the denial comes from the filter
+chain. The use case's own path is reachable only on a partial failure, where reads work and writes do not.
 
 The rate-limiter row is a genuine trade-off: failing closed accepts a self-DoS risk, in that an outage of the limiter
 takes down the endpoints it protects. It is accepted because the cost is small — with Redis down there is no refresh, no
@@ -158,5 +162,3 @@ Not defects, but things that are expensive to rediscover.
   of `PENDING_ACTIVATION` accounts, which can never hold a refresh token. If a real account-deletion flow ever lands,
   the fix is for that use case to call `refreshTokenRepository.revokeAllForAccount(...)` — as `CompletePasswordReset`
   already does — **not** to soften the status code. The 500 is the alarm for a genuine integrity breach.
-- **Logout answers 500 `SEC-002` on an infrastructure failure**, where every other flow answers 503 `INFRA-001`. It is
-  fail-closed (it never reports a revocation that did not happen), but the status is inconsistent with the policy.

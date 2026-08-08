@@ -107,7 +107,7 @@ class GlobalExceptionHandlerTest {
 
         mockMvc.perform(get("/application/server-error"))
             .andExpect(status().isInternalServerError())
-            .andExpect(jsonPath("$.code").value(ErrorCode.TOKEN_REVOCATION_FAILED.getCode()));
+            .andExpect(jsonPath("$.code").value(ErrorCode.DATA_INTEGRITY_ERROR.getCode()));
     }
 
     @Test
@@ -180,7 +180,7 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/application/server-error")
         void applicationServerError() {
 
-            throw new ApplicationException("revocation failed", ErrorCode.TOKEN_REVOCATION_FAILED);
+            throw new ApplicationException("data integrity error", ErrorCode.DATA_INTEGRITY_ERROR);
         }
 
         @GetMapping("/account-locked")
