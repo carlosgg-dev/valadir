@@ -18,7 +18,7 @@ class LogoutIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PASSWORD = "SecureP@ss123";
-    private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-004";
+    private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
 
     // Mirrors auth.jwt.access-token-ttl. application-test.yml redeclares it with the production
     // value, so this pins the test binding — an override there would silently retarget the assertion.

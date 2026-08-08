@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 public record LoginRequest(
     @NotBlank @Email @Size(max = 255) String email,
     @NotBlank String password,
-    // Optional: only supplied on the retry once a CAPTCHA step-up (SEC-008) is in effect
+    // Optional: only supplied on the retry once a CAPTCHA step-up (SEC-007) is in effect
     String captchaToken) {
 
 }

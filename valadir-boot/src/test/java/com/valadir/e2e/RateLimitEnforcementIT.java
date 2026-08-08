@@ -31,7 +31,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PASSWORD = "SecureP@ss123";
 
-    private static final String RATE_LIMIT_EXCEEDED_CODE = "SEC-006";
+    private static final String RATE_LIMIT_EXCEEDED_CODE = "SEC-005";
     private static final String INVALID_FIELD_CODE = "VAL-001";
 
     private static final String LIMIT_HEADER = "X-RateLimit-Limit";

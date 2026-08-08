@@ -120,7 +120,7 @@ rate-limit:
     # --- login: brute-force + credential stuffing ---
     # IP only: per-account brute-force is handled by the domain login lockout.
     # An EMAIL rule here would run in the filter before the controller and mask
-    # the lockout (SEC-006 instead of SEC-007), freezing the attempt counter
+    # the lockout (SEC-005 instead of SEC-006), freezing the attempt counter
     # and making the 10/15 thresholds unreachable.
     - path: /api/auth/login
       strategy: IP

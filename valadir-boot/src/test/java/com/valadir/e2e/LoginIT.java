@@ -22,8 +22,8 @@ class LoginIT extends AbstractAuthE2EIT {
     private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
 
     private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
-    private static final String ACCOUNT_LOCKED_CODE = "SEC-007";
-    private static final String CAPTCHA_REQUIRED_CODE = "SEC-008";
+    private static final String ACCOUNT_LOCKED_CODE = "SEC-006";
+    private static final String CAPTCHA_REQUIRED_CODE = "SEC-007";
     private static final String PENDING_ACTIVATION_CODE = "BIZ-004";
 
     // The exact flip points double as a binding check that the application.yml thresholds

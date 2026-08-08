@@ -26,7 +26,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
     private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
     private static final String PASSWORD = "SecureP@ss123";
 
-    private static final String INVALID_TOKEN_CODE = "SEC-003";
+    private static final String INVALID_TOKEN_CODE = "SEC-002";
     private static final String INVALID_FIELD_CODE = "VAL-001";
 
     // Mirrors auth.jwt.refresh-token-ttl. application-test.yml redeclares it with the production

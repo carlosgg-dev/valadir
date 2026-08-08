@@ -144,7 +144,7 @@ with the request id, it is the single place where an outage raised below the con
 
 For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the decoder
 — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate it into
-an `AuthenticationServiceException` and answer **401 `SEC-004`**, hiding a Redis outage behind an ordinary
+an `AuthenticationServiceException` and answer **401 `SEC-003`**, hiding a Redis outage behind an ordinary
 authentication failure.
 
 ## Known Behaviours
