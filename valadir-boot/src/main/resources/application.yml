@@ -17,7 +17,9 @@ spring:
       connection-timeout: 2000  # milliseconds: HikariConfig takes a raw long, not a Duration
       data-source-properties:
         # Seconds. A safety net against an unresponsive server, not a query SLA: it applies to every
-        # statement on the connection, including the pending-account purge.
+        # statement on the connection, including the pending-account purge. It lives here and not in
+        # the JDBC URL above because the ITs get their URL from the container via @ServiceConnection,
+        # so a parameter on the production URL would never reach them.
         socketTimeout: 5
   jpa:
     hibernate:

@@ -90,6 +90,10 @@ The same reasoning applies to the blacklist. Failing open there was the previous
 availability grounds: an outage denies every authenticated request. It was inverted because it makes `logout` a
 suggestion — a revoked token keeps authenticating for the rest of its 15-minute lifetime, and the client cannot tell.
 
+**Clearing the attempt counter is the one exception**, and it is not a hole. If Redis fails while erasing the counter
+after a successful login, the login stands and the failure is logged. A counter left uncleared makes the *next* attempt
+more restrictive, never less, and denying a login that has already proved its credentials would protect nothing.
+
 ### Degradation — secondary services
 
 | Situation                                           | Behaviour                                                                                                                      |
@@ -101,6 +105,25 @@ suggestion — a revoked token keeps authenticating for the rest of its 15-minut
 The Turnstile exception is deliberate. A Cloudflare outage must not block every login, and the blast radius is small:
 the step-up only applies after three failed attempts, and the counter that produces those three is itself fail-closed.
 An interpretable rejection from Turnstile (4xx, malformed body) is *not* an outage and fails closed.
+
+### Bounded failure detection
+
+A fail-closed policy is only worth what its detection time. Every outbound call therefore has a deadline: Redis at 2s
+with a 1s connect (Lettuce would otherwise wait 60s, so applying the policy would take a minute), Postgres at 2s to
+acquire a connection and 5s per statement, Turnstile at 2s connect plus 3s read.
+
+On top of the deadlines, Redis and Turnstile calls run through a **circuit breaker** (Resilience4j). Once a dependency
+is clearly down, the breaker answers without attempting the call, so a request stops paying the timeout to reach a
+conclusion already reached. This changes **how fast a failure is answered, never what the answer is**: an open Redis
+circuit denies exactly as a Redis failure denies, and an open Turnstile circuit lets the challenged login through
+exactly as a Cloudflare outage does. A breaker that altered the verdict would be a policy change wearing a
+latency-optimisation costume.
+
+The breakers are applied with Resilience4j's functional API from **inside** the adapter, never with `@CircuitBreaker`.
+The annotation wraps the method from the outside, which would leave `CallNotPermittedException` uncatchable at the call
+site and let it escape as its own type — surfacing as a 500 on the Redis side, and silently flipping the CAPTCHA to
+fail-closed on the Turnstile side. `RedisCircuitGuard` is the single place where the seven Redis adapters translate a
+failure, an open circuit included, into an `InfrastructureException`.
 
 ### Error opacity
 
@@ -114,6 +137,11 @@ catches those on `/error` and keeps them opaque, but as a generic 500 `SYS-001` 
 recognises, and the wrong one for an outage, which is a 503 the caller should retry. `InfrastructureFailureFilter` sits
 between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
+
+For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the decoder
+— the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate it into
+an `AuthenticationServiceException` and answer **401 `SEC-004`**, hiding a Redis outage behind an ordinary
+authentication failure.
 
 ## Known Behaviours
 
