@@ -12,10 +12,6 @@ import org.springframework.http.HttpStatus;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -171,7 +167,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void register_concurrentSameEmail_createsExactlyOneAccount() throws Exception {
+    void register_concurrentSameEmail_createsExactlyOneAccount() {
 
         List<Response> responses = registerConcurrently(EMAIL, PASSWORD);
 
@@ -427,31 +423,9 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         );
     }
 
-    // Both threads wait on the latch and are released together, so the two registrations look up
-    // the email before either of them has inserted it.
-    private List<Response> registerConcurrently(String email, String password) throws Exception {
+    // Released together, so both registrations look up the email before either of them has inserted it.
+    private List<Response> registerConcurrently(String email, String password) {
 
-        var startLine = new CountDownLatch(1);
-
-        try (var executor = Executors.newFixedThreadPool(2)) {
-
-            List<Future<Response>> pending = List.of(
-                executor.submit(() -> awaitAndRegister(startLine, email, password)),
-                executor.submit(() -> awaitAndRegister(startLine, email, password))
-            );
-
-            startLine.countDown();
-
-            return List.of(
-                pending.get(0).get(30, TimeUnit.SECONDS),
-                pending.get(1).get(30, TimeUnit.SECONDS)
-            );
-        }
-    }
-
-    private Response awaitAndRegister(CountDownLatch startLine, String email, String password) throws InterruptedException {
-
-        startLine.await();
-        return register(email, password);
+        return concurrently(2, () -> register(email, password));
     }
 }

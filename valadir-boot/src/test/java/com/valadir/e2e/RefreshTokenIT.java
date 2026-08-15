@@ -9,10 +9,6 @@ import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -170,7 +166,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void refresh_concurrentUseOfSameToken_grantsExactlyOneRotation() throws Exception {
+    void refresh_concurrentUseOfSameToken_grantsExactlyOneRotation() {
 
         registerAndActivate(EMAIL, PASSWORD);
 
@@ -200,33 +196,12 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         assertThat(userTokensOf(accountId)).containsExactly(winningToken);
     }
 
-    // Both threads wait on the latch and are released together, so the two requests reach Redis in
-    // the same window. Just submitting them would let the first finish before the second starts —
-    // no race at all, only the spent-token path another case already covers.
-    private List<Response> refreshConcurrently(String refreshToken) throws Exception {
+    // Released together, so both requests reach Redis in the same window. Just submitting them would
+    // let the first finish before the second starts — no race at all, only the spent-token path
+    // another case already covers.
+    private List<Response> refreshConcurrently(String refreshToken) {
 
-        var startLine = new CountDownLatch(1);
-
-        try (var executor = Executors.newFixedThreadPool(2)) {
-
-            List<Future<Response>> pending = List.of(
-                executor.submit(() -> awaitAndRefresh(startLine, refreshToken)),
-                executor.submit(() -> awaitAndRefresh(startLine, refreshToken))
-            );
-
-            startLine.countDown();
-
-            return List.of(
-                pending.get(0).get(30, TimeUnit.SECONDS),
-                pending.get(1).get(30, TimeUnit.SECONDS)
-            );
-        }
-    }
-
-    private Response awaitAndRefresh(CountDownLatch startLine, String refreshToken) throws InterruptedException {
-
-        startLine.await();
-        return refresh(refreshToken);
+        return concurrently(2, () -> refresh(refreshToken));
     }
 
     private static String[] blankRefreshTokens() {

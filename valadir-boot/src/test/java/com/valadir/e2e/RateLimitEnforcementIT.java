@@ -13,12 +13,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -198,46 +192,9 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         assertThat(redisTemplate.keys("*")).isEmpty();
     }
 
-    // The latch releases every thread at once. Submitted one by one they would never overlap.
     private List<Response> loginConcurrently(int attempts) {
 
-        var startLine = new CountDownLatch(1);
-
-        try (var executor = Executors.newFixedThreadPool(attempts)) {
-
-            // Collected before awaiting any: draining in the same pipeline would serialize the burst
-            List<Future<Response>> pending = IntStream.range(0, attempts)
-                .mapToObj(attempt -> executor.<Response>submit(() -> awaitAndLogin(startLine)))
-                .toList();
-
-            startLine.countDown();
-
-            return pending.stream()
-                .map(this::completed)
-                .toList();
-        }
-    }
-
-    private Response awaitAndLogin(CountDownLatch startLine) throws InterruptedException {
-
-        startLine.await();
-        return login(EMAIL, PASSWORD);
-    }
-
-    // A stream cannot carry checked exceptions, and a login that never returns is a broken burst
-    // rather than a failed assertion.
-    private Response completed(Future<Response> pending) {
-
-        try {
-            return pending.get(30, TimeUnit.SECONDS);
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted while awaiting a concurrent login", e);
-
-        } catch (ExecutionException | TimeoutException e) {
-            throw new IllegalStateException("A concurrent login did not complete", e);
-        }
+        return concurrently(attempts, () -> login(EMAIL, PASSWORD));
     }
 
     // Read as the number a client would parse
