@@ -7,6 +7,7 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.web.dto.response.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -97,6 +98,25 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.SERVICE_UNAVAILABLE)
             .body(new ErrorResponse(e.getErrorCode().getCode()));
+    }
+
+    /**
+     * The persistence counterpart of {@code InfrastructureFailureFilter}: an outage the adapter could
+     * not translate is still an outage, and a 503 the caller should retry rather than a 500.
+     *
+     * <p>An adapter only sees what is thrown inside its own {@code try}. When a write times out, the
+     * pool closes the broken connection, so the transaction proxy's rollback fails too and that
+     * {@code JpaSystemException} replaces the {@code InfrastructureException} on its way out — outside
+     * every {@code catch} in the adapter. Measured with {@code PostgresOutageIT}, not reasoned.
+     */
+    @ExceptionHandler(DataAccessException.class)
+    ResponseEntity<ErrorResponse> handlePersistence(DataAccessException e) {
+
+        log.error("Persistence dependency unavailable, reported without adapter translation: {}", e.getMessage(), e);
+
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(new ErrorResponse(ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
     }
 
     @ExceptionHandler(Exception.class)

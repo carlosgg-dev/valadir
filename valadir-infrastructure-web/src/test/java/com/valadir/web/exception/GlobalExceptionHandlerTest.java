@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -127,6 +128,16 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.code").value(ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
     }
 
+    // A rollback that fails on a dead connection replaces the adapter's InfrastructureException on its
+    // way out, outside every catch in the adapter. It is still an outage, so it must not read as 500.
+    @Test
+    void handlePersistence_dataAccessExceptionEscapedTranslation_returns503WithInfraCode() throws Exception {
+
+        mockMvc.perform(get("/persistence"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
+    }
+
     @Test
     void handleUnexpected_runtimeException_returns500WithSysCode() throws Exception {
 
@@ -193,6 +204,13 @@ class GlobalExceptionHandlerTest {
         void infrastructure() {
 
             throw new InfrastructureException("redis down", new RuntimeException("connection refused"));
+        }
+
+        @GetMapping("/persistence")
+        void persistence() {
+
+            throw new DataAccessException("Unable to rollback against JDBC Connection") {
+            };
         }
 
         @GetMapping("/unexpected")

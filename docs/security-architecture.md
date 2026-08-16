@@ -142,6 +142,16 @@ recognises, and the wrong one for an outage, which is a 503 the caller should re
 between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
+A persistence failure needs the same treatment for a different reason. The adapter translates whatever its
+`try` can see, but not its own **rollback**: a write that fails with Postgres unreachable throws inside the
+body, and the transaction proxy then rolls back on a connection the pool already closed, replacing the
+`InfrastructureException` with a `JpaSystemException` on the way out — outside every `catch` in the adapter,
+and so a 500 telling the caller not to retry a failure that is exactly worth retrying.
+`GlobalExceptionHandler.handlePersistence` is where that lands: any `DataAccessException` that escaped
+adapter translation is an outage and answers **503 `INFRA-001`**. It covers the five `@Transactional` adapter
+methods and the deferred INSERT that flushes at commit, without putting transaction plumbing in each of them.
+Measured with `PostgresOutageIT`, not reasoned.
+
 When the failure happens *during* authentication, the answer without that filter is worse than the generic 500:
 removing it and pausing Redis on an authenticated request returns **401 `SEC-003`**, because the `/error` dispatch
 re-enters the chain with no principal and the entry point answers before `GlobalErrorController` is reached. Measured
