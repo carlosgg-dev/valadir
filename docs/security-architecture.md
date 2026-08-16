@@ -142,9 +142,14 @@ recognises, and the wrong one for an outage, which is a 503 the caller should re
 between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
+When the failure happens *during* authentication, the answer without that filter is worse than the generic 500:
+removing it and pausing Redis on an authenticated request returns **401 `SEC-003`**, because the `/error` dispatch
+re-enters the chain with no principal and the entry point answers before `GlobalErrorController` is reached. Measured
+with `RedisOutageIT`, not reasoned.
+
 For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the decoder
 — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate it into
-an `AuthenticationServiceException` and answer **401 `SEC-003`**, hiding a Redis outage behind an ordinary
+an `AuthenticationServiceException` and answer the same **401 `SEC-003`**, hiding a Redis outage behind an ordinary
 authentication failure.
 
 ## Known Behaviours
