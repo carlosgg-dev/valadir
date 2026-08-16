@@ -1,6 +1,7 @@
 package com.valadir.e2e;
 
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.test.mother.PasswordMother;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ import static org.hamcrest.Matchers.nullValue;
 class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
-    private static final String PASSWORD = "SecureP@ss123";
+    private static final String PASSWORD = PasswordMother.raw().value();
 
     private static final String RATE_LIMIT_EXCEEDED_CODE = "SEC-005";
     private static final String INVALID_FIELD_CODE = "VAL-001";

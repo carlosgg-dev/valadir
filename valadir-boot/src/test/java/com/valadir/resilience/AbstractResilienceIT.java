@@ -4,6 +4,8 @@ import com.valadir.e2e.AuthE2ESupport;
 import com.valadir.e2e.support.CaptchaVerifierTestConfig;
 import com.valadir.e2e.support.NotifierCapturingTestConfig;
 import com.valadir.resilience.support.ContainerFailure;
+import com.valadir.resilience.support.DatabasePausingOtpHasherConfig;
+import com.valadir.resilience.support.DatabasePausingOtpHasherConfig.DatabasePausingOtpHasher;
 import com.valadir.resilience.support.IsolatedPostgresContainerConfig;
 import com.valadir.resilience.support.IsolatedRedisContainerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -37,7 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
     IsolatedPostgresContainerConfig.class,
     IsolatedRedisContainerConfig.class,
     NotifierCapturingTestConfig.class,
-    CaptchaVerifierTestConfig.class
+    CaptchaVerifierTestConfig.class,
+    DatabasePausingOtpHasherConfig.class
 })
 public abstract class AbstractResilienceIT extends AuthE2ESupport {
 
@@ -46,11 +49,18 @@ public abstract class AbstractResilienceIT extends AuthE2ESupport {
     @Autowired
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
+    @Autowired
+    protected DatabasePausingOtpHasher otpHasher;
+
     @AfterEach
     void restoreInfrastructure() {
 
         resumeRedis();
         resumePostgres();
+
+        // Disarmed here and not in resetSharedState: that class is shared with the flow E2E and must
+        // not know about a double only this suite installs.
+        otpHasher.reset();
 
         // The verdict of an open circuit is the same as a real failure, but its latency is not, and a
         // recovery case would measure the breaker's half-open window instead of the dependency's.

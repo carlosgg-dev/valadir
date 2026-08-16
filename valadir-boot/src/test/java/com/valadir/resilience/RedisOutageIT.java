@@ -1,5 +1,6 @@
 package com.valadir.resilience;
 
+import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RedisOutageIT extends AbstractResilienceIT {
 
     private static final String EMAIL = "bruce@wayne.com";
-    private static final String PASSWORD = "Gotham#Kn1ght!2024";
+    private static final String PASSWORD = PasswordMother.raw().value();
 
     @Test
     void login_redisDown_deniesWithOpaqueInfrastructureError() {

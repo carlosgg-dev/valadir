@@ -1,6 +1,7 @@
 package com.valadir.e2e;
 
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,7 +21,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
-    private static final String PASSWORD = "SecureP@ss123";
+    private static final String PASSWORD = PasswordMother.raw().value();
 
     private static final String INVALID_TOKEN_CODE = "SEC-002";
     private static final String INVALID_FIELD_CODE = "VAL-001";

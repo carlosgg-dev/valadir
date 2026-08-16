@@ -2,6 +2,7 @@ package com.valadir.e2e;
 
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,7 +24,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String SECOND_EMAIL = "clark.kent@email.com";
     private static final String UNKNOWN_EMAIL = "unknown@email.test";
-    private static final String PASSWORD = "SecureP@ss123";
+    private static final String PASSWORD = PasswordMother.raw().value();
 
     // The same address as EMAIL, told apart only by case
     private static final String MIXED_CASE_EMAIL = "Bruce.Wayne@Email.com";

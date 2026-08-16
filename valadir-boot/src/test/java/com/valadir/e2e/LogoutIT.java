@@ -1,6 +1,7 @@
 package com.valadir.e2e;
 
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,7 @@ import static org.hamcrest.Matchers.nullValue;
 class LogoutIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
-    private static final String PASSWORD = "SecureP@ss123";
+    private static final String PASSWORD = PasswordMother.raw().value();
     private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
 
     // Mirrors auth.jwt.access-token-ttl. application-test.yml redeclares it with the production
