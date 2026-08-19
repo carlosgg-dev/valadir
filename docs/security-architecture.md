@@ -152,10 +152,13 @@ adapter translation is an outage and answers **503 `INFRA-001`**. It covers the 
 methods and the deferred INSERT that flushes at commit, without putting transaction plumbing in each of them.
 Measured with `PostgresOutageIT`, not reasoned.
 
-When the failure happens *during* authentication, the answer without that filter is worse than the generic 500:
-removing it and pausing Redis on an authenticated request returns **401 `SEC-003`**, because the `/error` dispatch
-re-enters the chain with no principal and the entry point answers before `GlobalErrorController` is reached. Measured
-with `RedisOutageIT`, not reasoned.
+The answer without that filter is worse than the generic 500: removing it and pausing Redis on an authenticated
+request returns **401 `SEC-003`**, because the `/error` dispatch re-enters the chain with no principal and the entry
+point answers before `GlobalErrorController` is reached. Measured with `RedisOutageIT`, not reasoned — and it is not a
+peculiarity of failing mid-authentication. The same removal on a **public** endpoint, where no authentication happens
+at all and the failing filter is the rate limiter, answers the same **401 `SEC-003`**; measured with
+`RateLimiterOutageIT`. `GlobalErrorController` is therefore effectively unreachable for a filter-level failure, and
+`InfrastructureFailureFilter` is the only thing standing between an outage and an ordinary-looking bad credential.
 
 For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the decoder
 — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate it into
