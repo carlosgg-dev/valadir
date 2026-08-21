@@ -9,7 +9,7 @@ public interface PasswordHasher {
 
     boolean matches(RawPassword rawPassword, HashedPassword hashedPassword);
 
-    // Runs the same hashing work as matches() but discards the result.
+    // Runs the same hashing work as matches() against a decoy and discards the result.
     // Call when the target hash does not exist to prevent timing-based account enumeration.
-    void guardTiming(RawPassword rawPassword);
+    void decoyMatch(RawPassword rawPassword);
 }

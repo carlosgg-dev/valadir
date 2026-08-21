@@ -86,7 +86,7 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
 
         if (account.isEmpty()) {
             // Prevent timing-based account enumeration: simulate the OTP hashing cost.
-            otpHasher.guardTiming();
+            otpHasher.decoyMatch();
             throw applicationException();
         }
 

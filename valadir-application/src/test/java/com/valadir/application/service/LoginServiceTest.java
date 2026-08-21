@@ -162,7 +162,7 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(passwordHasher).should().guardTiming(password);
+        then(passwordHasher).should().decoyMatch(password);
         then(loginAttemptRepository).should().recordFailedAttempt(email);
         then(accountLockedNotifier).shouldHaveNoInteractions();
         then(authTokenIssuer).should(never()).issue(any(), any());

@@ -59,9 +59,9 @@ public class DatabasePausingOtpHasherConfig {
         }
 
         @Override
-        public void guardTiming() {
+        public void decoyMatch() {
 
-            delegate.guardTiming();
+            delegate.decoyMatch();
         }
 
         public void pauseDatabaseBeforeNextMatch() {

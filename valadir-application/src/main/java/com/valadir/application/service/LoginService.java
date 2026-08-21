@@ -68,7 +68,7 @@ public class LoginService implements LoginUseCase {
 
             Optional<Account> found = accountRepository.findByEmail(email);
             if (found.isEmpty()) {
-                passwordHasher.guardTiming(rawPassword);
+                passwordHasher.decoyMatch(rawPassword);
                 // Accumulate and lock just like a real account so the boundary response is
                 // uniform; no owner notification here, there is no real user to warn.
                 loginAttemptRepository.recordFailedAttempt(email);

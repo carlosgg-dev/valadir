@@ -9,7 +9,7 @@ public interface OtpHasher {
 
     boolean matches(PlainOtp plainOtp, HashedOtp hashedOtp);
 
-    // Runs the same hashing work as matches() but discards the result.
+    // Runs the same hashing work as matches() against a decoy and discards the result.
     // Call when no OTP exists for a given account to prevent timing-based account enumeration.
-    void guardTiming();
+    void decoyMatch();
 }

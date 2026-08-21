@@ -5,18 +5,20 @@ import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
+import java.util.UUID;
+
 public class OtpHasherArgon2Adapter implements OtpHasher {
 
     private final Argon2PasswordEncoder encoder;
-    // Computed once at startup with a random value to equalize response time in guardTiming()
-    private final PlainOtp dummyPlainOtp;
-    private final HashedOtp dummyHashedOtp;
+    // Computed once at startup with a random value to equalize response time in decoyMatch()
+    private final String decoyOtp;
+    private final String decoyHashedOtp;
 
     public OtpHasherArgon2Adapter(Argon2PasswordEncoder encoder) {
 
         this.encoder = encoder;
-        this.dummyPlainOtp = PlainOtp.generate();
-        this.dummyHashedOtp = new HashedOtp(encoder.encode(dummyPlainOtp.value()));
+        this.decoyOtp = UUID.randomUUID().toString();
+        this.decoyHashedOtp = encoder.encode(decoyOtp);
     }
 
     @Override
@@ -32,8 +34,8 @@ public class OtpHasherArgon2Adapter implements OtpHasher {
     }
 
     @Override
-    public void guardTiming() {
+    public void decoyMatch() {
 
-        encoder.matches(dummyPlainOtp.value(), dummyHashedOtp.value());
+        encoder.matches(decoyOtp, decoyHashedOtp);
     }
 }

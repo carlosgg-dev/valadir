@@ -40,8 +40,8 @@ class OtpHasherArgon2AdapterTest {
     }
 
     @Test
-    void guardTiming_doesNotThrow() {
+    void decoyMatch_doesNotThrow() {
 
-        assertThatCode(hasher::guardTiming).doesNotThrowAnyException();
+        assertThatCode(hasher::decoyMatch).doesNotThrowAnyException();
     }
 }

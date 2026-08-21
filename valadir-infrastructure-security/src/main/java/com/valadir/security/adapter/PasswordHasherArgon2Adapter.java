@@ -10,13 +10,13 @@ import java.util.UUID;
 public class PasswordHasherArgon2Adapter implements PasswordHasher {
 
     private final Argon2PasswordEncoder encoder;
-    // Computed once at startup with a random value to equalize response time in guardTiming()
-    private final String dummyHash;
+    // Computed once at startup with a random value to equalize response time in decoyMatch()
+    private final String decoyHash;
 
     public PasswordHasherArgon2Adapter(Argon2PasswordEncoder encoder) {
 
         this.encoder = encoder;
-        this.dummyHash = encoder.encode(UUID.randomUUID().toString());
+        this.decoyHash = encoder.encode(UUID.randomUUID().toString());
     }
 
     @Override
@@ -32,8 +32,8 @@ public class PasswordHasherArgon2Adapter implements PasswordHasher {
     }
 
     @Override
-    public void guardTiming(RawPassword rawPassword) {
+    public void decoyMatch(RawPassword rawPassword) {
 
-        encoder.matches(rawPassword.value(), dummyHash);
+        encoder.matches(rawPassword.value(), decoyHash);
     }
 }

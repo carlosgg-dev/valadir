@@ -42,8 +42,8 @@ class PasswordHasherArgon2AdapterTest {
     }
 
     @Test
-    void guardTiming_anyPassword_doesNotThrow() {
+    void decoyMatch_anyPassword_doesNotThrow() {
 
-        assertThatCode(() -> hasher.guardTiming(RAW_PASSWORD)).doesNotThrowAnyException();
+        assertThatCode(() -> hasher.decoyMatch(RAW_PASSWORD)).doesNotThrowAnyException();
     }
 }

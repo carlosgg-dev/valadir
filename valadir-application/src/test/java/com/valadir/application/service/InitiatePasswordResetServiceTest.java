@@ -77,7 +77,7 @@ class InitiatePasswordResetServiceTest {
     }
 
     @Test
-    void initiate_accountNotFound_guardTimingAndReturnsSilently() {
+    void initiate_accountNotFound_decoyMatchAndReturnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
         var command = new InitiatePasswordResetCommand(email.value());
@@ -85,14 +85,14 @@ class InitiatePasswordResetServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         service.initiate(command);
 
-        then(otpHasher).should().guardTiming();
+        then(otpHasher).should().decoyMatch();
         then(otpHasher).should(never()).hash(any());
         then(otpRepository).should(never()).save(any(), any(), any());
         then(passwordResetNotifier).should(never()).sendResetCode(any(), any());
     }
 
     @Test
-    void initiate_pendingActivationAccount_guardTimingAndReturnsSilently() {
+    void initiate_pendingActivationAccount_decoyMatchAndReturnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
@@ -101,7 +101,7 @@ class InitiatePasswordResetServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         service.initiate(command);
 
-        then(otpHasher).should().guardTiming();
+        then(otpHasher).should().decoyMatch();
         then(otpHasher).should(never()).hash(any());
         then(otpRepository).should(never()).save(any(), any(), any());
         then(passwordResetNotifier).should(never()).sendResetCode(any(), any());

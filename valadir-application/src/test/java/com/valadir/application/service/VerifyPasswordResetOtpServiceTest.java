@@ -80,7 +80,7 @@ class VerifyPasswordResetOtpServiceTest {
     }
 
     @Test
-    void verify_emailNotFound_guardTimingAndThrowsApplicationException() {
+    void verify_emailNotFound_decoyMatchAndThrowsApplicationException() {
 
         var email = Email.from("bruce.wayne@email.com");
         var command = new VerifyPasswordResetOtpCommand(email.value(), PLAIN_OTP.value());
@@ -91,7 +91,7 @@ class VerifyPasswordResetOtpServiceTest {
             .isThrownBy(() -> service.verify(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_OTP);
 
-        then(otpHasher).should().guardTiming();
+        then(otpHasher).should().decoyMatch();
         then(otpRepository).should(never()).find(any());
         then(passwordResetVerificationTokenRepository).should(never()).save(any(), any(), any());
         then(otpRepository).should(never()).delete(any());

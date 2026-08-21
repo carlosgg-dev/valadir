@@ -50,7 +50,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
 
             if (account.isEmpty()) {
                 // Prevent timing-based account enumeration: simulate the OTP hashing cost.
-                otpHasher.guardTiming();
+                otpHasher.decoyMatch();
                 log.warn("Password reset requested for non-existent email");
                 return;
             }
@@ -60,7 +60,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
             MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
 
             if (foundAccount.isPendingActivation()) {
-                otpHasher.guardTiming();
+                otpHasher.decoyMatch();
                 log.warn("Password reset requested for pending activation account");
                 return;
             }
