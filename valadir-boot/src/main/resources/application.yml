@@ -172,6 +172,12 @@ rate-limit:
       strategy: IP
       max-requests: 10
       window: 15m  # matches OTP TTL
+    # The IP rule alone caps nothing per target: rotating addresses buys unlimited guesses
+    # against one email, and six digits do not survive that. Mirrors the account-activation pair.
+    - path: /api/auth/password-reset/verify
+      strategy: EMAIL
+      max-requests: 5
+      window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- password-reset/complete: reset token abuse ---
     - path: /api/auth/password-reset/complete
