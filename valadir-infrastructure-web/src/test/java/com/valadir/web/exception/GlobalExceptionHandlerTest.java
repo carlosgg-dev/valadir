@@ -4,23 +4,36 @@ import com.valadir.application.exception.AccountLockedException;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
+import com.valadir.web.dto.response.ErrorResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
 
 import java.time.Duration;
 
+import static java.util.Objects.requireNonNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,13 +46,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GlobalExceptionHandlerTest {
 
     private MockMvc mockMvc;
+    private GlobalExceptionHandler handler;
 
     @BeforeEach
     void setUp() {
 
+        handler = new GlobalExceptionHandler(new HttpStatusResolver(), new ErrorCodeResolver());
+
         mockMvc = MockMvcBuilders
             .standaloneSetup(new StubController())
-            .setControllerAdvice(new GlobalExceptionHandler(new HttpStatusResolver(), new ErrorCodeResolver()))
+            .setControllerAdvice(handler)
             .build();
     }
 
@@ -54,6 +70,30 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.errors").isArray())
             .andExpect(jsonPath("$.errors[0].field").value("name"))
             .andExpect(jsonPath("$.errors[0].message").exists());
+    }
+
+    // Below MockMvc on purpose: reaching this branch through a real class-level constraint would also
+    // assert how Spring sorts constraints, which is its behaviour. Ours is that an error with no field
+    // to blame still reaches the caller, instead of a 400 with an empty list.
+    @Test
+    void handleMethodArgumentNotValid_objectError_reportsItWithNoField() throws Exception {
+
+        var bindingResult = new BeanPropertyBindingResult(new Object(), "body");
+        bindingResult.addError(new ObjectError("body", "values do not match"));
+
+        var exception = new MethodArgumentNotValidException(anyHandlerParameter(), bindingResult);
+
+        // Handed a status we never answer, so the 400 below can only come from the handler pinning it
+        // and not from propagating what Spring proposed. The inherited signature allows a null
+        // response; ours never returns one.
+        ResponseEntity<Object> response =
+            requireNonNull(handler.handleMethodArgumentNotValid(exception, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, anyWebRequest()));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat((ErrorResponse) response.getBody()).isNotNull().satisfies(body -> {
+            assertThat(body.code()).isEqualTo(ErrorCode.INVALID_FIELD.getCode());
+            assertThat(body.errors()).containsExactly(new ErrorResponse.FieldError(null, "values do not match"));
+        });
     }
 
     @Test
@@ -246,5 +286,15 @@ class GlobalExceptionHandlerTest {
         record ValidatedBody(@NotBlank String name) {
 
         }
+    }
+
+    private static MethodParameter anyHandlerParameter() throws NoSuchMethodException {
+
+        return new MethodParameter(StubController.class.getDeclaredMethod("validated", StubController.ValidatedBody.class), 0);
+    }
+
+    private static WebRequest anyWebRequest() {
+
+        return new ServletWebRequest(new MockHttpServletRequest());
     }
 }

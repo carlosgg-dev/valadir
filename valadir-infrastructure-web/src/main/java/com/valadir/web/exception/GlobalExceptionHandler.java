@@ -20,6 +20,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 @RestControllerAdvice
 class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -43,9 +44,15 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         @NonNull WebRequest request
     ) {
 
-        List<ErrorResponse.FieldError> errors = e.getBindingResult().getFieldErrors().stream()
-            .map(fieldError -> new ErrorResponse.FieldError(fieldError.getField(), fieldError.getDefaultMessage()))
-            .toList();
+        // Class-level constraints land in getGlobalErrors, not getFieldErrors. Reading only the latter
+        // still answers 400 but with an empty list — a rejection with no stated reason.
+        Stream<ErrorResponse.FieldError> fieldErrorsStream = e.getBindingResult().getFieldErrors().stream()
+            .map(field -> new ErrorResponse.FieldError(field.getField(), field.getDefaultMessage()));
+
+        Stream<ErrorResponse.FieldError> globalErrorsStream = e.getBindingResult().getGlobalErrors().stream()
+            .map(global -> new ErrorResponse.FieldError(null, global.getDefaultMessage()));
+
+        List<ErrorResponse.FieldError> errors = Stream.concat(fieldErrorsStream, globalErrorsStream).toList();
 
         log.warn("Validation failed: {}", errors);
 
