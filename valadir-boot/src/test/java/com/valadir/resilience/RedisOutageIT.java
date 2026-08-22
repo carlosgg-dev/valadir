@@ -94,4 +94,21 @@ class RedisOutageIT extends AbstractResilienceIT {
         // JwtException — what decode() declares — it would come back as an ordinary 401 instead.
         assertOpaqueInfrastructureFailure(logout(accessToken, refreshToken));
     }
+
+    @Test
+    void resendActivationCode_redisDown_failsRetryable() {
+
+        register(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.CREATED.value());
+
+        pauseRedis();
+
+        Response resendResponse = resendActivationCode(EMAIL);
+        
+        // The only case here where Redis fails on a write: Postgres is alive, so the account lookup
+        // passes and the OTP save is what breaks. The endpoint answers 204 on its other two branches,
+        // so the 503 marks the account as existing — kept deliberately, see SmtpDegradationIT.
+        assertOpaqueInfrastructureFailure(resendResponse);
+    }
 }

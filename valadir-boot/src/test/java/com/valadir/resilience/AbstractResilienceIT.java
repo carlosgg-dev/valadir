@@ -9,19 +9,14 @@ import com.valadir.resilience.support.DatabasePausingOtpHasherConfig.DatabasePau
 import com.valadir.resilience.support.IsolatedPostgresContainerConfig;
 import com.valadir.resilience.support.IsolatedRedisContainerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import java.util.Map;
 import java.util.Objects;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Base for the resilience suite: the same vocabulary as the flow E2E, over containers this suite
@@ -43,8 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
     DatabasePausingOtpHasherConfig.class
 })
 public abstract class AbstractResilienceIT extends AuthE2ESupport {
-
-    protected static final String INFRASTRUCTURE_UNAVAILABLE_CODE = "INFRA-001";
 
     @Autowired
     private CircuitBreakerRegistry circuitBreakerRegistry;
@@ -85,18 +78,6 @@ public abstract class AbstractResilienceIT extends AuthE2ESupport {
     protected void resumePostgres() {
 
         ContainerFailure.resume(IsolatedPostgresContainerConfig.container(), accountJpaRepository::count);
-    }
-
-    /**
-     * Nothing but the error code crosses the boundary. An outage must be externally
-     * indistinguishable from any other 503 — no stack trace, no host, no driver wording.
-     */
-    protected void assertOpaqueInfrastructureFailure(Response response) {
-
-        response.then().statusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
-
-        assertThat(response.jsonPath().getMap("$"))
-            .containsExactly(Map.entry("code", INFRASTRUCTURE_UNAVAILABLE_CODE));
     }
 
     private void pingRedis() {

@@ -12,6 +12,7 @@ import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
@@ -79,7 +80,7 @@ public class LoginService implements LoginUseCase {
             MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
             if (!passwordHasher.matches(rawPassword, account.getPassword())) {
                 loginAttemptRepository.recordFailedAttempt(email)
-                    .ifPresent(lockout -> accountLockedNotifier.notifyAccountLocked(email, lockout));
+                    .ifPresent(lockout -> notifyAccountLockedQuietly(email, lockout));
 
                 throw new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
             }
@@ -112,6 +113,17 @@ public class LoginService implements LoginUseCase {
             case LoginAttemptDecision.Allowed() -> {
                 // Within normal thresholds: proceed without a step-up.
             }
+        }
+    }
+
+    private void notifyAccountLockedQuietly(Email email, Duration lockout) {
+
+        // The lockout is already applied: turning the 401 into a 503 would only tell an attacker
+        // exactly when the threshold was crossed.
+        try {
+            accountLockedNotifier.notifyAccountLocked(email, lockout);
+        } catch (InfrastructureException e) {
+            log.warn("Account locked but the owner notification failed", e);
         }
     }
 }

@@ -9,7 +9,6 @@ import java.time.Duration;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -86,9 +85,7 @@ class LoginIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ACCOUNT_LOCKED_CODE));
 
         // No owner to warn: locking out a phantom address must never send mail.
-        // Held for a second because the real notifier path is async.
-        await().during(Duration.ofSeconds(1))
-            .untilAsserted(() -> assertThat(accountLockedNotifier.capturedNothing()).isTrue());
+        assertThat(accountLockedNotifier.capturedNothing()).isTrue();
     }
 
     @Test
@@ -206,9 +203,7 @@ class LoginIT extends AbstractAuthE2EIT {
         // A locked account must not mint a session even when the credentials are right.
         assertNoRefreshTokenIssued();
 
-        // Also proves the @Async proxy fires in the real context — invisible to unit tests.
-        await().atMost(Duration.ofSeconds(5))
-            .untilAsserted(() -> assertThat(accountLockedNotifier.lastLockoutFor(EMAIL)).contains(FIRST_TIER_LOCKOUT));
+        assertThat(accountLockedNotifier.lastLockoutFor(EMAIL)).contains(FIRST_TIER_LOCKOUT);
     }
 
     @Test
@@ -243,8 +238,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // The owner notification must carry the escalated duration, not just the Retry-After
         // header: it is what the "your account is locked for N minutes" email tells the user.
-        await().atMost(Duration.ofSeconds(5))
-            .untilAsserted(() -> assertThat(accountLockedNotifier.lastLockoutFor(EMAIL)).contains(SECOND_TIER_LOCKOUT));
+        assertThat(accountLockedNotifier.lastLockoutFor(EMAIL)).contains(SECOND_TIER_LOCKOUT);
     }
 
     @Test

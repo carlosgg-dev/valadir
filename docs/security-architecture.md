@@ -79,8 +79,8 @@ In an authentication system, the failure mode is a security property, not an ope
 | Redis down in the **rate limiter**                       | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
 | Redis down while reading the **failed-attempt counter**  | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
 
-All of these surface as **503 `INFRA-001`**, logout included: no flow translates an outage into a business error code.
-A 500 would tell the client not to retry a failure that is precisely worth retrying — the revocation did not happen and
+All of these surface as **503 `INFRA-001`**, logout included: no flow translates an outage into a business error code. A
+500 would tell the client not to retry a failure that is precisely worth retrying — the revocation did not happen and
 the token is still live. In practice a total Redis outage never reaches the logout use case anyway: the blacklist lookup
 in `BlacklistAwareJwtDecoder` is the first Redis touch of an authenticated request, so the denial comes from the filter
 chain. The use case's own path is reachable only on a partial failure, where reads work and writes do not.
@@ -103,18 +103,31 @@ more restrictive, never less, and denying a login that has already proved its cr
 | Situation                                           | Behaviour                                                                                                                      |
 |-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | SMTP down while sending an activation/reset **OTP** | The account is **not** activated without an OTP. The pending account is persisted, the error is retryable, and *resend* works. |
-| A non-essential email notification fails            | Logged with context; the main flow continues. Lockout notifications are `@Async` and best-effort.                              |
+| A non-essential email notification fails            | Logged with context; the main flow continues. The lockout notification is `@Async`, and the login guards it besides.           |
 | **Turnstile (CAPTCHA) unreachable**                 | **Fail-open**: the challenged login proceeds.                                                                                  |
 
 The Turnstile exception is deliberate. A Cloudflare outage must not block every login, and the blast radius is small:
 the step-up only applies after three failed attempts, and the counter that produces those three is itself fail-closed.
 An interpretable rejection from Turnstile (4xx, malformed body) is *not* an outage and fails closed.
 
+The SMTP row asks the caller to retry precisely because the account **is** there: answering 204 would hide a code that
+never left. Where that same 503 also marks the address as registered — *resend* and password-reset *initiate*, whose
+other branches answer 204 — the channel is knowingly left open: `register` already answers 409 for an active email, so
+concealing it here would cost a real caller their only signal in exchange for hiding what the front door hands over on
+request, bounded by rate limit.
+
+Which use case decides that a notification is secondary is not the adapter's call. `LoginService` guards the lockout
+notification itself, as the three Redis cleanups do, so the login's outcome does not depend on the `@Async` proxy
+holding: without it, an SMTP failure would answer 503 on the one attempt that crosses the threshold, and only on that
+one — announcing the threshold to whoever is probing it.
+
 ### Bounded failure detection
 
 A fail-closed policy is only worth what its detection time. Every outbound call therefore has a deadline: Redis at 2s
 with a 1s connect (Lettuce would otherwise wait 60s, so applying the policy would take a minute), Postgres at 2s to
-acquire a connection and 5s per statement, Turnstile at 2s connect plus 3s read.
+acquire a connection and 5s per statement, Turnstile at 2s connect plus 3s read, SMTP at 2s connect plus 5s to read or
+write (JavaMail defaults to no limit, so a mail server that accepts the connection and then goes quiet would hold the
+request thread instead of failing into the retryable 503 the degradation table promises).
 
 On top of the deadlines, Redis and Turnstile calls run through a **circuit breaker** (Resilience4j). Once a dependency
 is clearly down, the breaker answers without attempting the call, so a request stops paying the timeout to reach a
@@ -143,27 +156,27 @@ between the two: registered directly inside the MDC filter, so it wraps the JWT 
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
 A persistence failure needs the same treatment for a different reason. The adapter translates whatever its
-`try` can see, but not its own **rollback**: a write that fails with Postgres unreachable throws inside the
-body, and the transaction proxy then rolls back on a connection the pool already closed, replacing the
-`InfrastructureException` with a `JpaSystemException` on the way out — outside every `catch` in the adapter,
-and so a 500 telling the caller not to retry a failure that is exactly worth retrying.
-`GlobalExceptionHandler.handlePersistence` is where that lands: any `DataAccessException` that escaped
-adapter translation is an outage and answers **503 `INFRA-001`**. It covers the five `@Transactional` adapter
-methods and the deferred INSERT that flushes at commit, without putting transaction plumbing in each of them.
-Measured with `PostgresOutageIT`, not reasoned.
+`try` can see, but not its own **rollback**: a write that fails with Postgres unreachable throws inside the body, and
+the transaction proxy then rolls back on a connection the pool already closed, replacing the
+`InfrastructureException` with a `JpaSystemException` on the way out — outside every `catch` in the adapter, and so a
+500 telling the caller not to retry a failure that is exactly worth retrying.
+`GlobalExceptionHandler.handlePersistence` is where that lands: any `DataAccessException` that escaped adapter
+translation is an outage and answers **503 `INFRA-001`**. It covers the five `@Transactional` adapter methods and the
+deferred INSERT that flushes at commit, without putting transaction plumbing in each of them. Measured with
+`PostgresOutageIT`, not reasoned.
 
-The answer without that filter is worse than the generic 500: removing it and pausing Redis on an authenticated
-request returns **401 `SEC-003`**, because the `/error` dispatch re-enters the chain with no principal and the entry
-point answers before `GlobalErrorController` is reached. Measured with `RedisOutageIT`, not reasoned — and it is not a
-peculiarity of failing mid-authentication. The same removal on a **public** endpoint, where no authentication happens
-at all and the failing filter is the rate limiter, answers the same **401 `SEC-003`**; measured with
+The answer without that filter is worse than the generic 500: removing it and pausing Redis on an authenticated request
+returns **401 `SEC-003`**, because the `/error` dispatch re-enters the chain with no principal and the entry point
+answers before `GlobalErrorController` is reached. Measured with `RedisOutageIT`, not reasoned — and it is not a
+peculiarity of failing mid-authentication. The same removal on a **public** endpoint, where no authentication happens at
+all and the failing filter is the rate limiter, answers the same **401 `SEC-003`**; measured with
 `RateLimiterOutageIT`. `GlobalErrorController` is therefore effectively unreachable for a filter-level failure, and
 `InfrastructureFailureFilter` is the only thing standing between an outage and an ordinary-looking bad credential.
 
-For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the decoder
-— the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate it into
-an `AuthenticationServiceException` and answer the same **401 `SEC-003`**, hiding a Redis outage behind an ordinary
-authentication failure.
+For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the
+decoder — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate
+it into an `AuthenticationServiceException` and answer the same **401 `SEC-003`**, hiding a Redis outage behind an
+ordinary authentication failure.
 
 ## Known Behaviours
 

@@ -44,6 +44,11 @@ spring:
     properties:
       mail.smtp.auth: false
       mail.smtp.starttls.enable: false
+      # JavaMail waits forever by default, so a server that accepts the connection and
+      # then goes quiet would hang the request thread instead of failing into the retryable 503.
+      mail.smtp.connectiontimeout: 2000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
 notifications:
   mail:

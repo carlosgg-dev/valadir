@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * The vocabulary every HTTP-level test speaks: steps, readers, preconditions and the per-test reset.
  *
@@ -43,6 +45,7 @@ public abstract class AuthE2ESupport {
 
     protected static final String FULL_NAME = "Bruce Wayne";
     protected static final String GIVEN_NAME = "Batman";
+    protected static final String INFRASTRUCTURE_UNAVAILABLE_CODE = "INFRA-001";
 
     private static final int CONCURRENT_CALL_TIMEOUT_SECONDS = 30;
 
@@ -318,6 +321,20 @@ public abstract class AuthE2ESupport {
         activate(email, activationOtp)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    // --- Assertions shared by every suite that drives a dependency into failure.
+
+    /**
+     * Nothing but the error code crosses the boundary. An outage must be externally
+     * indistinguishable from any other 503 — no stack trace, no host, no driver wording.
+     */
+    protected void assertOpaqueInfrastructureFailure(Response response) {
+
+        response.then().statusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
+
+        assertThat(response.jsonPath().getMap("$"))
+            .containsExactly(Map.entry("code", INFRASTRUCTURE_UNAVAILABLE_CODE));
     }
 
     // --- Concurrency: the only way to exercise an atomicity guarantee over HTTP.

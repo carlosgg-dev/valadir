@@ -11,6 +11,7 @@ import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.result.AuthTokenResult;
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -209,6 +211,30 @@ class LoginServiceTest {
 
         then(accountLockedNotifier).should().notifyAccountLocked(email, lockout);
         then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(authTokenIssuer).should(never()).issue(any(), any());
+    }
+
+    @Test
+    void login_lockoutNotificationFails_stillDeniesWithInvalidCredentials() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = PasswordMother.raw();
+        var command = new LoginCommand(email.value(), password.value(), null);
+        var lockout = Duration.ofMinutes(5);
+
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
+
+        willThrow(new InfrastructureException("Mail server unavailable"))
+            .given(accountLockedNotifier).notifyAccountLocked(email, lockout);
+
+        // The lockout is already recorded, so the outage cannot undo it
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
         then(authTokenIssuer).should(never()).issue(any(), any());
     }
 

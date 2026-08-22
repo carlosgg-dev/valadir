@@ -142,8 +142,8 @@ public class NotifierCapturingTestConfig {
     }
 
     /**
-     * The real adapter is {@code @Async}: captures land on a {@code notif-async-*} thread, so tests
-     * must await them with Awaitility rather than assert immediately.
+     * Synchronous: {@code @Async} sits on the adapter this bean replaces, not on the port. So a
+     * failure armed with {@link #failNextSend()} reaches the use case, where the login guards it.
      */
     public static class CapturingAccountLockedNotifier implements AccountLockedNotifier {
 
