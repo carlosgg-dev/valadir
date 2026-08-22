@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,7 +39,7 @@ class GlobalExceptionHandlerTest {
 
         mockMvc = MockMvcBuilders
             .standaloneSetup(new StubController())
-            .setControllerAdvice(new GlobalExceptionHandler(new HttpStatusResolver()))
+            .setControllerAdvice(new GlobalExceptionHandler(new HttpStatusResolver(), new ErrorCodeResolver()))
             .build();
     }
 
@@ -56,11 +57,34 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleExceptionInternal_unsupportedMethod_preservesStatusWithSysCode() throws Exception {
+    void handleExceptionInternal_unreadableBody_returns400WithMalformedRequestCode() throws Exception {
+
+        mockMvc.perform(post("/validated")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.MALFORMED_REQUEST.getCode()));
+    }
+
+    @Test
+    void handleExceptionInternal_unsupportedMethod_returns405WithMalformedRequestCodeAndAllowHeader() throws Exception {
 
         mockMvc.perform(delete("/application/validation"))
             .andExpect(status().isMethodNotAllowed())
-            .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+            .andExpect(header().string("Allow", containsString("GET")))
+            .andExpect(jsonPath("$.code").value(ErrorCode.MALFORMED_REQUEST.getCode()));
+    }
+
+    @Test
+    void handleExceptionInternal_unsupportedMediaType_returns415WithMalformedRequestCodeAndAcceptHeader()
+        throws Exception {
+
+        mockMvc.perform(post("/validated")
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .content("name"))
+            .andExpect(status().isUnsupportedMediaType())
+            .andExpect(header().string("Accept", containsString(MediaType.APPLICATION_JSON_VALUE)))
+            .andExpect(jsonPath("$.code").value(ErrorCode.MALFORMED_REQUEST.getCode()));
     }
 
     @Test

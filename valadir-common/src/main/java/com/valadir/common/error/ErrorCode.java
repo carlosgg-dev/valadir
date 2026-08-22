@@ -26,6 +26,10 @@ public enum ErrorCode {
     ACCOUNT_TEMPORARILY_LOCKED("SEC-006", Category.RATE_LIMITED),
     CAPTCHA_REQUIRED("SEC-007", Category.FORBIDDEN),
 
+    // Malformed request (REQ-xxx) — the request never reached a use case; VAL-xxx means a field was
+    // validated and failed. One code for all of them: the status already tells 400 from 404, 405 and 415.
+    MALFORMED_REQUEST("REQ-001", Category.VALIDATION),
+
     // Infrastructure (INFRA-xxx)
     INFRASTRUCTURE_UNAVAILABLE("INFRA-001", Category.SERVER_ERROR),
 

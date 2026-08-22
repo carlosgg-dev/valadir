@@ -2,6 +2,7 @@ package com.valadir.web.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.ratelimit.RateLimiter;
+import com.valadir.web.exception.ErrorCodeResolver;
 import com.valadir.web.exception.HttpStatusResolver;
 import com.valadir.web.exception.JwtAccessDeniedHandler;
 import com.valadir.web.exception.JwtAuthenticationEntryPoint;
@@ -58,6 +59,12 @@ public class SecurityConfig {
     HttpStatusResolver httpStatusResolver() {
 
         return new HttpStatusResolver();
+    }
+
+    @Bean
+    ErrorCodeResolver errorCodeResolver() {
+
+        return new ErrorCodeResolver();
     }
 
     @Bean

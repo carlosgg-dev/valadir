@@ -27,10 +27,12 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final HttpStatusResolver httpStatusResolver;
+    private final ErrorCodeResolver errorCodeResolver;
 
-    GlobalExceptionHandler(HttpStatusResolver httpStatusResolver) {
+    GlobalExceptionHandler(HttpStatusResolver httpStatusResolver, ErrorCodeResolver errorCodeResolver) {
 
         this.httpStatusResolver = httpStatusResolver;
+        this.errorCodeResolver = errorCodeResolver;
     }
 
     @Override
@@ -65,7 +67,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity
             .status(status)
-            .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+            .headers(headers)
+            .body(new ErrorResponse(errorCodeResolver.resolve(status).getCode()));
     }
 
     @ExceptionHandler(ApplicationException.class)

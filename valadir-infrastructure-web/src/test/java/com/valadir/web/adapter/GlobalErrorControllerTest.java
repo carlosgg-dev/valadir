@@ -34,14 +34,13 @@ class GlobalErrorControllerTest {
     private RateLimiter rateLimiter;
 
     @Test
-    void handleError_withStatusAttribute_propagatesHttpStatus() throws Exception {
+    void handleError_withStatusAttribute_propagatesHttpStatusAndItsCode() throws Exception {
 
         mockMvc.perform(get("/error")
                             .with(jwt())
                             .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 404))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()))
-
+            .andExpect(jsonPath("$.code").value(ErrorCode.MALFORMED_REQUEST.getCode()))
             .andExpect(jsonPath("$.errors").doesNotExist());
     }
 
@@ -53,7 +52,6 @@ class GlobalErrorControllerTest {
                             .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 999))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()))
-
             .andExpect(jsonPath("$.errors").doesNotExist());
     }
 
@@ -64,7 +62,6 @@ class GlobalErrorControllerTest {
                             .with(jwt()))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.getCode()))
-
             .andExpect(jsonPath("$.errors").doesNotExist());
     }
 }

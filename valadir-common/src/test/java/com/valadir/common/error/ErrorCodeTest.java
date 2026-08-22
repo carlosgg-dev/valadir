@@ -41,6 +41,7 @@ class ErrorCodeTest {
         "RATE_LIMIT_EXCEEDED,                      SEC-005,   RATE_LIMITED",
         "ACCOUNT_TEMPORARILY_LOCKED,               SEC-006,   RATE_LIMITED",
         "CAPTCHA_REQUIRED,                         SEC-007,   FORBIDDEN",
+        "MALFORMED_REQUEST,                        REQ-001,   VALIDATION",
         "INFRASTRUCTURE_UNAVAILABLE,               INFRA-001, SERVER_ERROR",
         "DATA_INTEGRITY_ERROR,                     PER-001,   SERVER_ERROR",
         "INTERNAL_SERVER_ERROR,                    SYS-001,   SERVER_ERROR"
@@ -54,6 +55,6 @@ class ErrorCodeTest {
     @Test
     void values_everyConstant_isCoveredByMappingTest() {
 
-        assertThat(ErrorCode.values()).hasSize(21);
+        assertThat(ErrorCode.values()).hasSize(22);
     }
 }

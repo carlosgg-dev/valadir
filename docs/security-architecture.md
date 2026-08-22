@@ -147,6 +147,28 @@ failure, an open circuit included, into an `InfrastructureException`.
 Nothing but an `ErrorCode` crosses the boundary — no stack traces, no infrastructure detail, no PII, no cryptographic
 material. An infrastructure outage is externally indistinguishable from any other 503.
 
+Opaque is not the same as uninformative: the code must still say which side got it wrong. A request the framework
+rejected before it reached a use case answers `REQ-001` — distinct from `VAL-xxx`, which reports a field that failed
+validation and carries the offending fields — and never `SYS-001`, which would report our failure as the caller's
+request. `ErrorCodeResolver` is the inverse of `HttpStatusResolver`: where the application throws, the code decides the
+status; where the framework rejects, the status decides the code. Both
+`GlobalExceptionHandler.handleExceptionInternal` and `GlobalErrorController` resolve through it, so a status means the
+same thing whether it was raised above or below the DispatcherServlet. The headers Spring resolved travel with the
+response, since for some statuses they are the answer: `Allow` on a 405, `Accept` on a 415.
+
+**A single code covers every rejection, not one per status.** The status already tells 400 from 404, 405 and 415, so a
+code per status would carry nothing the caller does not have. A code of its own is earned where several causes share a
+status **and the caller has to act differently on each** — the three that answer 403 are the case that earns it:
+`CAPTCHA_REQUIRED` means show the widget and retry, `ACCOUNT_PENDING_ACTIVATION` means send the user to the OTP screen,
+`ACCESS_DENIED` means do not retry. With the status alone none of those flows can be built. The same holds for the seven
+that answer 401 and the two that answer 429.
+
+**The catalogue is a public contract: codes are never renumbered or reused.** The client keeps its own table of what to
+do with each one, so a number that changes meaning does not break anything visibly — the client simply does the wrong
+thing. Deleting a code leaves its number retired for good. Adding one is backwards compatible; changing what an existing
+one means is a breaking change. (The `BIZ-*`/`SEC-*` renumbering recorded below predates this rule and is why it exists;
+when writing history, refer to a code by its constant, since an old number may name something else.)
+
 Exceptions thrown inside a servlet filter never reach `GlobalExceptionHandler`, which only sees what the
 DispatcherServlet dispatches; Spring Security's `ExceptionTranslationFilter` only handles
 `AuthenticationException`/`AccessDeniedException`, so anything else escapes to the container. `GlobalErrorController`
@@ -189,6 +211,9 @@ Not defects, but things that are expensive to rediscover.
   resolves to that id any more — do not read a stray key as a live code.
 - **A rate-limited request still enters the window.** The sliding-window log `ZADD`s before deciding, so a client
   hammering past its limit keeps pushing its own reset forward. Intended.
+- **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
+  the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
+  all, `REQ-001` included.
 - **A refresh token whose account no longer exists answers 500.** Unreachable today: the only deletion path is the purge
   of `PENDING_ACTIVATION` accounts, which can never hold a refresh token. If a real account-deletion flow ever lands,
   the fix is for that use case to call `refreshTokenRepository.revokeAllForAccount(...)` — as `CompletePasswordReset`

@@ -47,7 +47,7 @@ that gives meaningful coverage.
 
 - Use Testcontainers for real infrastructure (DB, queues, caches). Never rely on a shared external environment.
 - Keep full integration tests separated from unit tests in the build lifecycle.
-- Run full integration tests in CI, not on every local compile.
+- Run full integration tests in the `verify` phase, not on every local compile.
 
 ## Test data
 - Use builder methods or Object Mother factories for complex fixtures. Centralize them in dedicated classes under `src/test/` (e.g. `UserTestData`, `OrderBuilder`).

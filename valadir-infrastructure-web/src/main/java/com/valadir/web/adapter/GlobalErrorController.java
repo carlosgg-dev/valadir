@@ -1,7 +1,7 @@
 package com.valadir.web.adapter;
 
-import com.valadir.common.error.ErrorCode;
 import com.valadir.web.dto.response.ErrorResponse;
+import com.valadir.web.exception.ErrorCodeResolver;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -16,6 +16,13 @@ import org.springframework.web.bind.annotation.RestController;
 class GlobalErrorController implements ErrorController {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalErrorController.class);
+
+    private final ErrorCodeResolver errorCodeResolver;
+
+    GlobalErrorController(ErrorCodeResolver errorCodeResolver) {
+
+        this.errorCodeResolver = errorCodeResolver;
+    }
 
     @RequestMapping("/error")
     ResponseEntity<ErrorResponse> handleError(HttpServletRequest request) {
@@ -32,8 +39,10 @@ class GlobalErrorController implements ErrorController {
             log.warn("Unhandled filter-level error: status={}", statusCode, cause);
         }
 
+        String code = errorCodeResolver.resolve(status).getCode();
+
         return ResponseEntity
             .status(status)
-            .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+            .body(new ErrorResponse(code));
     }
 }
