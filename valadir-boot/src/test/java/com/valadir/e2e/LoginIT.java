@@ -25,10 +25,8 @@ class LoginIT extends AbstractAuthE2EIT {
     private static final String CAPTCHA_REQUIRED_CODE = "SEC-007";
     private static final String PENDING_ACTIVATION_CODE = "BIZ-004";
 
-    // The exact flip points double as a binding check that the application.yml thresholds
-    // (auth.lockout.challenge-threshold and tiers) reach the real beans. That only holds while
-    // application-test.yml does not override auth.lockout.* — an override there would silently
-    // retarget these tests at test config instead of the production one.
+    // The flip points these cases drive. What auth.lockout binds to is pinned by
+    // ProductionConfigurationTest; what those numbers do to a login is pinned here.
     private static final int CHALLENGE_THRESHOLD = 3;
     private static final int FIRST_TIER_FAILURES = 5;
     private static final int SECOND_TIER_FAILURES = 10;

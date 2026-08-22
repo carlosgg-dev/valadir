@@ -20,9 +20,6 @@ class LogoutIT extends AbstractAuthE2EIT {
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PASSWORD = PasswordMother.raw().value();
     private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
-
-    // Mirrors auth.jwt.access-token-ttl. application-test.yml redeclares it with the production
-    // value, so this pins the test binding — an override there would silently retarget the assertion.
     private static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(15);
 
     // The delegate without the blacklist check: reading a jti must not go through the component

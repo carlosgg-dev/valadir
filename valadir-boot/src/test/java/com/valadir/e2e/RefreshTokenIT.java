@@ -25,9 +25,6 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
 
     private static final String INVALID_TOKEN_CODE = "SEC-002";
     private static final String INVALID_FIELD_CODE = "VAL-001";
-
-    // Mirrors auth.jwt.refresh-token-ttl. application-test.yml redeclares it with the production
-    // value, so this pins the test binding — an override there would silently retarget the assertion.
     private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(7);
 
     @Test
