@@ -16,6 +16,7 @@ import static org.hamcrest.Matchers.nullValue;
 class LoginIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
+    private static final String UNKNOWN_EMAIL = "unknown@email.test";
     private static final String PASSWORD = "SecureP@ss123";
     private static final String WRONG_PASSWORD = "Wrong@password123";
     private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
@@ -63,27 +64,49 @@ class LoginIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void login_unknownEmail_attackerObservableProgressionMatchesRealAccount() {
+    void login_repeatedFailuresOnRegisteredAccount_challengesThenLocks() {
 
-        var email = "unknown@email.test";
+        registerAndActivate(EMAIL, PASSWORD);
 
-        failLoginTimes(email, CHALLENGE_THRESHOLD);
+        assertChallengeThenLockoutProgression(EMAIL);
+    }
 
-        login(email, WRONG_PASSWORD)
+    @Test
+    void login_repeatedFailuresOnUnknownEmail_challengesThenLocksIdentically() {
+
+        assertChallengeThenLockoutProgression(UNKNOWN_EMAIL);
+    }
+
+    @Test
+    void login_unknownEmailLockedOut_notifiesNobody() {
+
+        driveToFirstTierLockout(UNKNOWN_EMAIL);
+
+        login(UNKNOWN_EMAIL, WRONG_PASSWORD, CAPTCHA_TOKEN)
             .then()
-            .statusCode(HttpStatus.FORBIDDEN.value())
-            .body("code", equalTo(CAPTCHA_REQUIRED_CODE));
-
-        failLoginWithCaptcha(email);
-        failLoginWithCaptcha(email);
-
-        login(email, WRONG_PASSWORD, CAPTCHA_TOKEN)
-            .then()
-            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(ACCOUNT_LOCKED_CODE));
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
 
         // No owner to warn: locking out a phantom address must never send mail.
         assertThat(accountLockedNotifier.capturedNothing()).isTrue();
+    }
+
+    @Test
+    void login_secondLogin_addsSessionWithoutRevokingTheFirst() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response firstLogin = login(EMAIL, PASSWORD);
+        String firstRefreshToken = refreshTokenOf(firstLogin);
+
+        Response secondLogin = login(EMAIL, PASSWORD);
+        String secondRefreshToken = refreshTokenOf(secondLogin);
+
+        String accountId = accountIdOf(EMAIL);
+
+        // Login adds a session, it does not replace one. This flow is what mutates the set, so it is
+        // where the semantics belong — RefreshTokenIT logs in twice, but to rotate, not to assert this.
+        assertThat(userTokensOf(accountId))
+            .containsExactlyInAnyOrder(firstRefreshToken, secondRefreshToken);
     }
 
     @Test
@@ -173,9 +196,7 @@ class LoginIT extends AbstractAuthE2EIT {
     void login_fifthFailure_locksAccountAndNotifiesOwnerAsync() {
 
         registerAndActivate(EMAIL, PASSWORD);
-        failLoginTimes(EMAIL, CHALLENGE_THRESHOLD);
-        failLoginWithCaptcha(EMAIL);
-        failLoginWithCaptcha(EMAIL);
+        driveToFirstTierLockout(EMAIL);
 
         Response lockedOut = login(EMAIL, PASSWORD, CAPTCHA_TOKEN);
 
@@ -259,6 +280,33 @@ class LoginIT extends AbstractAuthE2EIT {
         // Neither a credential failure nor a successful login: the attempt state must stay
         // untouched, so mistyping the password later still starts counting from one.
         assertThat(failedAttemptsFor(EMAIL)).isNull();
+    }
+
+    private void assertChallengeThenLockoutProgression(String email) {
+
+        failLoginTimes(email, CHALLENGE_THRESHOLD);
+
+        login(email, WRONG_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.FORBIDDEN.value())
+            .body("code", equalTo(CAPTCHA_REQUIRED_CODE))
+            .body("errors", nullValue());
+
+        failLoginWithCaptcha(email);
+        failLoginWithCaptcha(email);
+
+        login(email, WRONG_PASSWORD, CAPTCHA_TOKEN)
+            .then()
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
+            .body("code", equalTo(ACCOUNT_LOCKED_CODE))
+            .body("errors", nullValue());
+    }
+
+    private void driveToFirstTierLockout(String email) {
+
+        failLoginTimes(email, CHALLENGE_THRESHOLD);
+        failLoginWithCaptcha(email);
+        failLoginWithCaptcha(email);
     }
 
     private void failLoginTimes(String email, int times) {
