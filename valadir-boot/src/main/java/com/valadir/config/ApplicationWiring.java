@@ -36,6 +36,8 @@ import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutService;
+import com.valadir.application.service.PasswordResetOtpSender;
+import com.valadir.application.service.PasswordResetOtpSenderService;
 import com.valadir.application.service.PurgeExpiredPendingActivationAccountsService;
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
@@ -265,21 +267,29 @@ class ApplicationWiring {
     }
 
     @Bean
-    InitiatePasswordResetUseCase initiatePasswordResetUseCase(
-        AccountRepository accountRepository,
+    PasswordResetOtpSender passwordResetOtpSender(
+        PasswordResetNotifier passwordResetNotifier,
         OtpRepository passwordResetOtpRepository,
         OtpHasher otpHasher,
-        PasswordResetNotifier passwordResetNotifier,
         PasswordResetConfig passwordResetConfig
     ) {
 
-        return new InitiatePasswordResetService(
-            accountRepository,
+        return new PasswordResetOtpSenderService(
+            passwordResetNotifier,
             passwordResetOtpRepository,
             otpHasher,
-            passwordResetNotifier,
             passwordResetConfig
         );
+    }
+
+    @Bean
+    InitiatePasswordResetUseCase initiatePasswordResetUseCase(
+        AccountRepository accountRepository,
+        OtpHasher otpHasher,
+        PasswordResetOtpSender passwordResetOtpSender
+    ) {
+
+        return new InitiatePasswordResetService(accountRepository, otpHasher, passwordResetOtpSender);
     }
 
     @Bean

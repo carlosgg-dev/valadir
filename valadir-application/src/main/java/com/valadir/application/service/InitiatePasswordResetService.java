@@ -1,17 +1,13 @@
 package com.valadir.application.service;
 
 import com.valadir.application.command.InitiatePasswordResetCommand;
-import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
-import com.valadir.application.port.out.OtpRepository;
-import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
-import com.valadir.domain.model.PlainOtp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -21,24 +17,18 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
     private static final Logger log = LoggerFactory.getLogger(InitiatePasswordResetService.class);
 
     private final AccountRepository accountRepository;
-    private final OtpRepository otpRepository;
     private final OtpHasher otpHasher;
-    private final PasswordResetNotifier passwordResetNotifier;
-    private final PasswordResetConfig passwordResetConfig;
+    private final PasswordResetOtpSender passwordResetOtpSender;
 
     public InitiatePasswordResetService(
         AccountRepository accountRepository,
-        OtpRepository otpRepository,
         OtpHasher otpHasher,
-        PasswordResetNotifier passwordResetNotifier,
-        PasswordResetConfig passwordResetConfig
+        PasswordResetOtpSender passwordResetOtpSender
     ) {
 
         this.accountRepository = accountRepository;
-        this.otpRepository = otpRepository;
         this.otpHasher = otpHasher;
-        this.passwordResetNotifier = passwordResetNotifier;
-        this.passwordResetConfig = passwordResetConfig;
+        this.passwordResetOtpSender = passwordResetOtpSender;
     }
 
     @Override
@@ -65,11 +55,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
                 return;
             }
 
-            var plainOtp = PlainOtp.generate();
-            var hashedOtp = otpHasher.hash(plainOtp);
-
-            otpRepository.save(foundAccountId, hashedOtp, passwordResetConfig.otpTtl());
-            passwordResetNotifier.sendResetCode(email, plainOtp);
+            passwordResetOtpSender.send(foundAccountId, email);
 
             log.info("Password reset OTP sent");
 
