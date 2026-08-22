@@ -136,6 +136,10 @@ circuit denies exactly as a Redis failure denies, and an open Turnstile circuit 
 exactly as a Cloudflare outage does. A breaker that altered the verdict would be a policy change wearing a
 latency-optimisation costume.
 
+Which is why the `captcha` breaker records only an I/O failure or a 5xx. An uninterpretable 4xx denies the login, and
+counting it towards a circuit whose open state **allows** would let a stream of malformed responses switch the step-up
+off for everyone — the same verdict change, arrived at through the back door.
+
 The breakers are applied with Resilience4j's functional API from **inside** the adapter, never with `@CircuitBreaker`.
 The annotation wraps the method from the outside, which would leave `CallNotPermittedException` uncatchable at the call
 site and let it escape as its own type — surfacing as a 500 on the Redis side, and silently flipping the CAPTCHA to
@@ -199,6 +203,36 @@ For that to hold, the exception must reach the filter **untouched**. Wrapping it
 decoder — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate
 it into an `AuthenticationServiceException` and answer the same **401 `SEC-003`**, hiding a Redis outage behind an
 ordinary authentication failure.
+
+## Configuration Integrity
+
+Every guarantee above is a number in `application.yml` — the deadlines, the breaker thresholds, the lockout tiers, the
+fourteen rate-limit rules. A misspelled key does not fail: it falls back to a default in silence, and whatever it fed
+quietly stops holding. Two mechanisms close that, one per source of the value.
+
+What the **versioned file** binds is pinned by `ProductionConfigurationTest`, which binds `application.yml` with
+Spring's own `Binder` and asserts the values in effect together with the full key set. A typo is not a changed value: it
+is a key that stops existing while a stranger appears beside it, which is why the key set is asserted and not only the
+numbers.
+
+What a **deployment** binds — environment variables, profile overrides — no test can see, so the application refuses to
+start on a configuration that did not bind. The degree of the guard follows the shape of the rule: declarative
+constraints where a value must simply be present and well-formed (`JwtProperties`, `RateLimitProperties`,
+`CaptchaProperties`), and a compact-constructor guard where the rule is conditional or cross-field — a rule list is
+required only while the limiter is enabled, a Turnstile endpoint and secret only while the CAPTCHA is, and
+`AsyncProperties`' three pool sizes are only meaningful against each other.
+
+`LoginLockoutProperties` carries neither, deliberately: its invariants belong to `LoginLockoutPolicy`, which
+`ApplicationWiring` builds at startup, so an invalid lockout configuration still refuses to start — through the domain,
+rather than through a second copy of its rules at the boundary. Those invariants are worth stating, because the file
+does not show them: `min-failures` values must be unique, lockouts must be strictly ascending by `min-failures`, and
+the challenge threshold must sit **below** the first tier, or the CAPTCHA step-up is unreachable — the account would
+already be locked by the time it would trigger. `lockoutFor` then applies the **longest** lockout among the tiers
+reached, so the order the tiers appear in the file is legibility, not a guarantee.
+
+Four values never appear in the file at all: `JWT_PRIVATE_KEY`, `TURNSTILE_SECRET`, `DATABASE_PASSWORD` and
+`REDIS_PASSWORD` are `${…}` placeholders, and stay that way. A real secret pasted into a versioned file is the one
+mistake a revert cannot undo.
 
 ## Known Behaviours
 
