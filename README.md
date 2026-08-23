@@ -53,6 +53,9 @@ Tests are split by Maven phase, so the inner loop never needs Docker:
 # Full build — also runs the integration/E2E slices (Failsafe, *IT) against
 # Testcontainers Postgres + Redis. Requires Docker to be running.
 ./mvnw verify
+
+# Mutation coverage on the modules that carry the business logic (no Docker).
+./mvnw -Pmutation -am -pl valadir-domain,valadir-application test
 ```
 
 Coverage is attributed by test type via two JaCoCo exec files and two gates: a strict **unit gate**
