@@ -24,6 +24,11 @@ that gives meaningful coverage.
 - Exempt from the target: DI wiring and configuration classes, the application entry
   point, framework-managed accessors, and compiler-generated synthetic branches
   (e.g. the implicit default of a switch over a sealed type).
+- A mutation threshold, once green, is never lowered to make a build pass. A surviving mutant is
+  killed by a new test or discussed on its merits, never accommodated (`mutationThreshold`, `pom.xml`).
+- Adapters earn their coverage from integration tests against the real dependency, never from
+  mock-based unit tests that only assert the interaction — a mocked adapter test stays green when
+  the query, the key or the script is wrong.
 
 ## Unit tests
 
@@ -48,10 +53,30 @@ that gives meaningful coverage.
 - Use Testcontainers for real infrastructure (DB, queues, caches). Never rely on a shared external environment.
 - Keep full integration tests separated from unit tests in the build lifecycle.
 - Run full integration tests in the `verify` phase, not on every local compile.
+- An IT class asserts only what belongs to its flow. Before adding a case, ask which regression
+  turns it red while every other test stays green; if another class already owns that answer, the
+  case does not belong here (the functional suite disables per-IP rate limiting because one
+  enforcement class owns it).
+- Share the HTTP vocabulary through a base class split into three families, never blended:
+
+| Family | Rule |
+|---|---|
+| Steps | one call to the system, no assertions — the same step drives the success and the failure case |
+| Readers | pull one value out of a response or a test double; when it is absent, throw with the status in the message |
+| Preconditions | composed from steps, and they do assert — a broken precondition must fail on the spot, not surface as a null further down |
+
+- Pull a helper up to the base class on its first reuse, not before, and never nest one helper call
+  inside another.
 
 ## Test data
 - Use builder methods or Object Mother factories for complex fixtures. Centralize them in dedicated classes under `src/test/` (e.g. `UserTestData`, `OrderBuilder`).
 - Never duplicate fixture construction inline across multiple tests — a single change should only require one update.
+- An invalid fixture must be invalid for the reason under test, not for an earlier one: a value that
+  trips input validation never reaches the branch it was meant to exercise. A wrong one-time code is
+  a well-formed code with one digit substituted, not a malformed string. A body carrying a null
+  field needs a mutable map — `Map.of` rejects the null before the request is ever sent. A null goes
+  through the type the code takes (`GivenName.from(null)`), not as a bare `null`, so the test
+  exercises that type's validation instead of an ambiguous call.
 
 ## General rules
 
@@ -60,6 +85,10 @@ that gives meaningful coverage.
   Never assert language or framework behavior: exception message/cause storage,
   record accessors, trivial field assignment. Custom logic in constructors
   (validation, defensive copies, defaults) is our code and must be tested.
+- Assert that something is single-use by replaying it, never by claiming it "expires eventually":
+  a second call with the same code must be rejected.
+- Put two entities in play whenever a regression could resolve the wrong one — a flow scoped to an
+  account is tested with two accounts, and the second must come out untouched.
 - Extract repeated primitive values to local variables when the same data appears multiple
   times in a test. Two objects with the same primitive value are not the same data
   (e.g. `new Id("5")` and `new Year("5")` are unrelated despite sharing `"5"`).
