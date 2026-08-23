@@ -1,6 +1,7 @@
 package com.valadir.security.config;
 
-import com.valadir.application.port.out.AccessTokenBlacklist;
+import com.valadir.application.port.out.AccessTokenRevocation;
+import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpRepository;
@@ -8,7 +9,8 @@ import com.valadir.application.port.out.PasswordResetVerificationTokenRepository
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.domain.service.PasswordHasher;
-import com.valadir.security.adapter.AccessTokenBlacklistRedisAdapter;
+import com.valadir.security.adapter.AccessTokenRevocationRedisAdapter;
+import com.valadir.security.adapter.AccountTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
@@ -51,9 +53,19 @@ class SecurityWiring {
     }
 
     @Bean
-    AccessTokenBlacklist accessTokenBlacklist(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
+    AccessTokenRevocation accessTokenRevocation(RedisTemplate<String, String> redisTemplate, RedisCircuitGuard redisCircuitGuard) {
 
-        return new AccessTokenBlacklistRedisAdapter(redisTemplate, redisCircuitGuard);
+        return new AccessTokenRevocationRedisAdapter(redisTemplate, redisCircuitGuard);
+    }
+
+    @Bean
+    AccountTokensInvalidator accountTokensInvalidator(
+        RedisTemplate<String, String> redisTemplate,
+        RedisCircuitGuard redisCircuitGuard,
+        JwtProperties jwtProperties
+    ) {
+
+        return new AccountTokensInvalidatorRedisAdapter(redisTemplate, redisCircuitGuard, jwtProperties);
     }
 
     @Bean

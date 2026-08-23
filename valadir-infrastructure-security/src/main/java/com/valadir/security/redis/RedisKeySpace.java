@@ -29,6 +29,11 @@ public final class RedisKeySpace {
         return AUTH_SPACE_PREFIX + "user_tokens:" + accountId;
     }
 
+    public static String forTokenCutoff(String accountId) {
+
+        return AUTH_SPACE_PREFIX + "token_cutoff:" + accountId;
+    }
+
     public static String forAccountActivationOtp(String accountId) {
 
         return AUTH_SPACE_PREFIX + "account_activation_otp:" + accountId;

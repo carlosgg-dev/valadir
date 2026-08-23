@@ -20,7 +20,6 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     private final JwtProperties jwtProperties;
     private final RedisScript<Long> saveRefreshTokenScript;
     private final RedisScript<Long> rotateRefreshTokenScript;
-    private final RedisScript<Long> revokeAllRefreshTokensScript;
 
     public RefreshTokenRepositoryRedisAdapter(
         RedisOperations<String, String> redisOperations,
@@ -33,7 +32,6 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
         this.jwtProperties = jwtProperties;
         this.saveRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/save_refresh_token.lua"), Long.class);
         this.rotateRefreshTokenScript = RedisScript.of(new ClassPathResource("scripts/rotate_refresh_token.lua"), Long.class);
-        this.revokeAllRefreshTokensScript = RedisScript.of(new ClassPathResource("scripts/revoke_all_refresh_tokens.lua"), Long.class);
     }
 
     @Override
@@ -84,19 +82,5 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
         );
 
         return Long.valueOf(1L).equals(result);
-    }
-
-    // Atomic: revokes all refresh tokens for the account.
-    // Active access tokens remain valid until they expire — intentional trade-off to avoid per-user JTI tracking.
-    @Override
-    public void revokeAllForAccount(AccountId accountId) {
-
-        circuitGuard.run("refresh token revocation failed", () ->
-            redisOperations.execute(
-                revokeAllRefreshTokensScript,
-                List.of(RedisKeySpace.forUserTokens(accountId.value().toString())),
-                RedisKeySpace.REFRESH_TOKEN_PREFIX
-            )
-        );
     }
 }

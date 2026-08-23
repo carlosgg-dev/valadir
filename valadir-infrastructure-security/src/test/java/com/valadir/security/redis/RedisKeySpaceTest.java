@@ -34,6 +34,13 @@ class RedisKeySpaceTest {
     }
 
     @Test
+    void forTokenCutoff_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forTokenCutoff(ACCOUNT_ID))
+            .isEqualTo("auth:token_cutoff:" + ACCOUNT_ID);
+    }
+
+    @Test
     void forAccountActivationOtp_returnsExpectedKey() {
 
         assertThat(RedisKeySpace.forAccountActivationOtp(ACCOUNT_ID))

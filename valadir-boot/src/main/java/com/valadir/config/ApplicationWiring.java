@@ -13,7 +13,8 @@ import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
-import com.valadir.application.port.out.AccessTokenBlacklist;
+import com.valadir.application.port.out.AccessTokenRevocation;
+import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.AccountRepository;
@@ -50,7 +51,7 @@ import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.security.adapter.CaptchaVerifierTurnstileAdapter;
 import com.valadir.security.adapter.LoginAttemptRepositoryRedisAdapter;
 import com.valadir.security.adapter.OtpHasherArgon2Adapter;
-import com.valadir.security.jwt.BlacklistAwareJwtDecoder;
+import com.valadir.security.jwt.RevocationAwareJwtDecoder;
 import com.valadir.security.redis.RedisCircuitGuard;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -317,7 +318,7 @@ class ApplicationWiring {
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RefreshTokenRepository refreshTokenRepository
+        AccountTokensInvalidator accountTokensInvalidator
     ) {
 
         return new CompletePasswordResetService(
@@ -326,13 +327,13 @@ class ApplicationWiring {
             userRepository,
             passwordHasher,
             passwordSecurityService,
-            refreshTokenRepository
+            accountTokensInvalidator
         );
     }
 
     @Bean
-    JwtDecoder jwtDecoder(@Qualifier("nimbusJwtDecoder") JwtDecoder delegate, AccessTokenBlacklist accessTokenBlacklist) {
+    JwtDecoder jwtDecoder(@Qualifier("nimbusJwtDecoder") JwtDecoder delegate, AccessTokenRevocation accessTokenRevocation) {
 
-        return new BlacklistAwareJwtDecoder(delegate, accessTokenBlacklist);
+        return new RevocationAwareJwtDecoder(delegate, accessTokenRevocation);
     }
 }

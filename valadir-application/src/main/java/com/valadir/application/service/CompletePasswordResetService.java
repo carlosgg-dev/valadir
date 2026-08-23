@@ -4,8 +4,8 @@ import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
-import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
@@ -28,7 +28,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final AccountTokensInvalidator accountTokensInvalidator;
 
     public CompletePasswordResetService(
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
@@ -36,7 +36,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        RefreshTokenRepository refreshTokenRepository
+        AccountTokensInvalidator accountTokensInvalidator
     ) {
 
         this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
@@ -44,7 +44,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
-        this.refreshTokenRepository = refreshTokenRepository;
+        this.accountTokensInvalidator = accountTokensInvalidator;
     }
 
     @Override
@@ -83,7 +83,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         // Failure leaves a reusable verification token and active sessions until their TTLs expire.
         try {
             passwordResetVerificationTokenRepository.delete(verificationToken);
-            refreshTokenRepository.revokeAllForAccount(accountId);
+            accountTokensInvalidator.invalidateAll(accountId);
         } catch (InfrastructureException e) {
             log.error("Password reset succeeded but Redis cleanup failed — sessions may remain active until TTL expires", e);
         }

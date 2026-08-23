@@ -6,8 +6,9 @@ What this system guarantees, and how it behaves when it cannot.
 
 Authentication is based on two tokens with different roles:
 
-- **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), stateless, sent on every request.
-  Validated by signature and expiry.
+- **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), sent on every request. Validated by
+  signature, by expiry, and against the revocation keys below — a token that carries no `jti`, `sub` or `iat` is
+  refused, since it cannot be matched against either of them.
 - **Refresh token** — opaque UUID, long-lived (7 days), stored server-side in Redis. Carries no claims.
 
 The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the
@@ -15,10 +16,10 @@ signing key.
 
 ## Redis Usage
 
-| Repository               | Type      | Purpose                                                                                                                                                               |
-|--------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist | Tracks active refresh tokens. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry. |
-| `AccessTokenBlacklist`   | Blacklist | Tracks revoked access tokens. Consulted on every request to reject tokens invalidated before expiry. Each entry has a TTL equal to the remaining token lifetime.      |
+| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+|--------------------------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
+| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
@@ -30,29 +31,37 @@ Every refresh operation consumes the current refresh token and issues a new pair
 as invalid — the user must log in again.
 
 The system supports multiple active sessions. Each login issues a new refresh token without invalidating existing ones,
-allowing concurrent sessions across different devices. All sessions can be explicitly revoked via a dedicated endpoint.
+allowing concurrent sessions across different devices. There is no endpoint to close them all: today only a password
+reset does that, as part of completing it.
 
 ## Session Ownership
 
 `auth:user_tokens:{accountId}` holds the set of live sessions of one account. Four flows mutate it, and each upholds one
 property:
 
-| Flow                      | Property                                        |
-|---------------------------|-------------------------------------------------|
-| Login                     | **adds** a session; existing ones stay alive    |
-| Refresh                   | rotates **exactly one** member of the set       |
-| Logout                    | revokes **exactly one** session                 |
-| Password reset (complete) | revokes **every** refresh token of that account |
+| Flow                      | Property                                     |
+|---------------------------|----------------------------------------------|
+| Login                     | **adds** a session; existing ones stay alive |
+| Refresh                   | rotates **exactly one** member of the set    |
+| Logout                    | revokes **exactly one** session              |
+| Password reset (complete) | revokes **every** session of that account    |
 
 Every operation is scoped to the account resolved from the authenticated principal, never to an identifier carried in
 the request body. Logout checks that the refresh token it is asked to revoke belongs to the authenticated account
 (`GET KEYS[2] == accountId` in `logout_invalidate_tokens.lua`); without that guard, an access token of account A plus a
 refresh token of account B would kill B's session.
 
-**Access tokens are not revoked by a password reset.** `complete` revokes refresh tokens only, so an access token issued
-before the reset keeps authenticating for up to its 15-minute lifetime — precisely in the flow a user runs when they
-suspect the account is compromised. Closing this requires a registry of live `jti` per account, which does not exist
-today.
+**A password reset closes every session, access tokens included.** Revoking the refresh tokens alone would leave an
+access token issued before the reset authenticating for the rest of its 15 minutes — precisely in the flow a user runs
+when they suspect the account is compromised. `invalidate_account_tokens.lua` deletes the refresh tokens and writes
+`auth:token_cutoff:{accountId}` in one atomic call, so both halves of "this session is over" land together; every access
+token of that account whose `iat` is at or before the cutoff is then refused on its next request.
+
+The cutoff revokes by time rather than by identity, so it needs no registry of live `jti` and no write on the token
+issue path. Its cost is resolution: `iat` travels in whole seconds, so a token minted within the same second as the
+reset cannot be proven newer than the cutoff and is refused. The tie is resolved closed — a sign-in that lands in that
+same second is answered 401 and succeeds on the retry, whereas resolving it open would let that one token live out its
+full lifetime.
 
 ## Account Identity
 
@@ -71,27 +80,27 @@ In an authentication system, the failure mode is a security property, not an ope
 
 ### Fail-closed — security operations
 
-| Situation                                                | Behaviour                                                                                           |
-|----------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| Postgres/Redis down while **validating credentials**     | **Deny** the login. Never issue a token.                                                            |
-| Redis down while checking the access-token **blacklist** | The token is **not validatable → deny** access. It cannot be confirmed as unrevoked.                |
-| Failure mid **refresh token rotation**                   | Never issue a new pair without atomic revocation of the old one. When in doubt, **deny**.           |
-| Redis down in the **rate limiter**                       | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
-| Redis down while reading the **failed-attempt counter**  | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
+| Situation                                                 | Behaviour                                                                                           |
+|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| Postgres/Redis down while **validating credentials**      | **Deny** the login. Never issue a token.                                                            |
+| Redis down while checking the access-token **revocation** | The token is **not validatable → deny** access. It cannot be confirmed as unrevoked.                |
+| Failure mid **refresh token rotation**                    | Never issue a new pair without atomic revocation of the old one. When in doubt, **deny**.           |
+| Redis down in the **rate limiter**                        | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
+| Redis down while reading the **failed-attempt counter**   | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
 
 All of these surface as **503 `INFRA-001`**, logout included: no flow translates an outage into a business error code. A
 500 would tell the client not to retry a failure that is precisely worth retrying — the revocation did not happen and
-the token is still live. In practice a total Redis outage never reaches the logout use case anyway: the blacklist lookup
-in `BlacklistAwareJwtDecoder` is the first Redis touch of an authenticated request, so the denial comes from the filter
-chain. The use case's own path is reachable only on a partial failure, where reads work and writes do not.
+the token is still live. In practice a total Redis outage never reaches the logout use case anyway: the revocation
+lookup in `RevocationAwareJwtDecoder` is the first Redis touch of an authenticated request, so the denial comes from the
+filter chain. The use case's own path is reachable only on a partial failure, where reads work and writes do not.
 
 The rate-limiter row is a genuine trade-off: failing closed accepts a self-DoS risk, in that an outage of the limiter
 takes down the endpoints it protects. It is accepted because the cost is small — with Redis down there is no refresh, no
 logout, no OTP and no password reset either — while the alternative hands unlimited credential stuffing to anyone who
 can degrade one dependency.
 
-The same reasoning applies to the blacklist. Failing open there was the previous behaviour, and it is defensible on
-availability grounds: an outage denies every authenticated request. It was inverted because it makes `logout` a
+The same reasoning applies to the revocation lookup. Failing open there was the previous behaviour, and it is defensible
+on availability grounds: an outage denies every authenticated request. It was inverted because it makes `logout` a
 suggestion — a revoked token keeps authenticating for the rest of its 15-minute lifetime, and the client cannot tell.
 
 **Clearing the attempt counter is the one exception**, and it is not a hole. If Redis fails while erasing the counter
@@ -225,10 +234,10 @@ required only while the limiter is enabled, a Turnstile endpoint and secret only
 `LoginLockoutProperties` carries neither, deliberately: its invariants belong to `LoginLockoutPolicy`, which
 `ApplicationWiring` builds at startup, so an invalid lockout configuration still refuses to start — through the domain,
 rather than through a second copy of its rules at the boundary. Those invariants are worth stating, because the file
-does not show them: `min-failures` values must be unique, lockouts must be strictly ascending by `min-failures`, and
-the challenge threshold must sit **below** the first tier, or the CAPTCHA step-up is unreachable — the account would
-already be locked by the time it would trigger. `lockoutFor` then applies the **longest** lockout among the tiers
-reached, so the order the tiers appear in the file is legibility, not a guarantee.
+does not show them: `min-failures` values must be unique, lockouts must be strictly ascending by `min-failures`, and the
+challenge threshold must sit **below** the first tier, or the CAPTCHA step-up is unreachable — the account would already
+be locked by the time it would trigger. `lockoutFor` then applies the **longest** lockout among the tiers reached, so
+the order the tiers appear in the file is legibility, not a guarantee.
 
 Four values never appear in the file at all: `JWT_PRIVATE_KEY`, `TURNSTILE_SECRET`, `DATABASE_PASSWORD` and
 `REDIS_PASSWORD` are `${…}` placeholders, and stay that way. A real secret pasted into a versioned file is the one
@@ -250,5 +259,5 @@ Not defects, but things that are expensive to rediscover.
   all, `REQ-001` included.
 - **A refresh token whose account no longer exists answers 500.** Unreachable today: the only deletion path is the purge
   of `PENDING_ACTIVATION` accounts, which can never hold a refresh token. If a real account-deletion flow ever lands,
-  the fix is for that use case to call `refreshTokenRepository.revokeAllForAccount(...)` — as `CompletePasswordReset`
+  the fix is for that use case to call `accountTokensInvalidator.invalidateAll(...)` — as `CompletePasswordReset`
   already does — **not** to soften the status code. The 500 is the alarm for a genuine integrity breach.

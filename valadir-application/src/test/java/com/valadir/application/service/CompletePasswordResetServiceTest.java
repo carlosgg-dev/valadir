@@ -3,8 +3,8 @@ package com.valadir.application.service;
 import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
-import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
@@ -52,7 +52,7 @@ class CompletePasswordResetServiceTest {
     private PasswordSecurityService passwordSecurityService;
 
     @Mock
-    private RefreshTokenRepository refreshTokenRepository;
+    private AccountTokensInvalidator accountTokensInvalidator;
 
     @InjectMocks
     private CompletePasswordResetService service;
@@ -80,7 +80,7 @@ class CompletePasswordResetServiceTest {
         then(passwordSecurityService).should().validatePassword(newPassword, email, user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
         then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
-        then(refreshTokenRepository).should().revokeAllForAccount(accountId);
+        then(accountTokensInvalidator).should().invalidateAll(accountId);
     }
 
     @Test
@@ -97,7 +97,7 @@ class CompletePasswordResetServiceTest {
 
         then(accountRepository).should(never()).updatePassword(any(), any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
     @Test
@@ -116,7 +116,7 @@ class CompletePasswordResetServiceTest {
 
         then(accountRepository).should(never()).updatePassword(any(), any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
     @Test
@@ -138,7 +138,7 @@ class CompletePasswordResetServiceTest {
 
         then(accountRepository).should(never()).updatePassword(any(), any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
     @Test
@@ -187,6 +187,6 @@ class CompletePasswordResetServiceTest {
             .extracting("errorCode").isEqualTo(ErrorCode.INSECURE_PASSWORD);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
-        then(refreshTokenRepository).should(never()).revokeAllForAccount(any());
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 }

@@ -2,6 +2,7 @@ package com.valadir.e2e;
 
 import com.valadir.security.redis.RedisKeySpace;
 import io.restassured.response.Response;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -9,6 +10,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -35,6 +37,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
     private static final String INVALID_RESET_OTP_CODE = "BIZ-006";
     private static final String INVALID_VERIFICATION_TOKEN_CODE = "BIZ-007";
     private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
+    private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
     private static final String INVALID_PASSWORD_CODE = "VAL-002";
 
     // Mirror auth.password-reset.*. application-test.yml does not redeclare them, so unlike the
@@ -358,23 +361,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         Response secondDevice = login(EMAIL, PASSWORD);
         String secondDeviceToken = refreshTokenOf(secondDevice);
 
-        initiatePasswordReset(EMAIL)
-            .then()
-            .statusCode(HttpStatus.NO_CONTENT.value());
-
-        String resetOtp = passwordResetOtpFor(EMAIL);
-
-        Response verified = verifyPasswordResetOtp(EMAIL, resetOtp)
-            .then()
-            .statusCode(HttpStatus.OK.value())
-            .extract()
-            .response();
-
-        String verificationToken = verificationTokenOf(verified);
-
-        completePasswordReset(verificationToken, NEW_PASSWORD)
-            .then()
-            .statusCode(HttpStatus.NO_CONTENT.value());
+        resetPasswordTo(EMAIL, NEW_PASSWORD);
 
         // A reset is what a user does when they suspect the account is compromised: leaving any
         // device signed in would defeat the point of changing the password.
@@ -402,24 +389,9 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         // The bystander account never resets: its session is the state the revocation must not reach.
         Response bystanderAccountLogin = login(BYSTANDER_EMAIL, PASSWORD);
         String bystanderAccountToken = refreshTokenOf(bystanderAccountLogin);
+        String bystanderAccessToken = accessTokenOf(bystanderAccountLogin);
 
-        initiatePasswordReset(EMAIL)
-            .then()
-            .statusCode(HttpStatus.NO_CONTENT.value());
-
-        String resetOtp = passwordResetOtpFor(EMAIL);
-
-        Response verified = verifyPasswordResetOtp(EMAIL, resetOtp)
-            .then()
-            .statusCode(HttpStatus.OK.value())
-            .extract()
-            .response();
-
-        String verificationToken = verificationTokenOf(verified);
-
-        completePasswordReset(verificationToken, NEW_PASSWORD)
-            .then()
-            .statusCode(HttpStatus.NO_CONTENT.value());
+        resetPasswordTo(EMAIL, NEW_PASSWORD);
 
         String resettingAccountId = accountIdOf(EMAIL);
         String bystanderAccountId = accountIdOf(BYSTANDER_EMAIL);
@@ -427,16 +399,94 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(resettingAccountToken))).isFalse();
         assertThat(userTokensOf(resettingAccountId)).isEmpty();
 
-        // revokeAllForAccount is the most damaging place to resolve the wrong account: with a
+        // Account-wide invalidation is the most damaging place to resolve the wrong account: with a
         // single account in the database, a mistake there would pass unnoticed.
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderAccountToken)))
             .isEqualTo(bystanderAccountId);
         assertThat(userTokensOf(bystanderAccountId)).containsExactly(bystanderAccountToken);
 
+        // The cutoff is written per account: an account-wide key would sign the bystander out too,
+        // and no refresh-token assertion above would notice.
+        logout(bystanderAccessToken, bystanderAccountToken)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
         // And the bystander's password is untouched: only the sessions were at stake above.
         login(BYSTANDER_EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.OK.value());
+    }
+
+    @Test
+    void completePasswordReset_liveAccessToken_stopsAuthenticating() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response loggedIn = login(EMAIL, PASSWORD);
+        String accessToken = accessTokenOf(loggedIn);
+        String refreshToken = refreshTokenOf(loggedIn);
+
+        resetPasswordTo(EMAIL, NEW_PASSWORD);
+
+        // Revoking the refresh token alone leaves a stolen access token authenticating for the rest
+        // of its lifetime — the very window the user is trying to close by resetting the password.
+        logout(accessToken, refreshToken)
+            .then()
+            .statusCode(HttpStatus.UNAUTHORIZED.value())
+            .body("code", equalTo(AUTHENTICATION_REQUIRED_CODE));
+    }
+
+    @Test
+    void completePasswordReset_signingInAfterwards_authenticatesAgain() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        resetPasswordTo(EMAIL, NEW_PASSWORD);
+        awaitTheNextSecond();
+
+        Response loggedIn = login(EMAIL, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+            .response();
+
+        // The cutoff closes a window, it does not close the account: a token issued after it must
+        // authenticate. A cutoff written into the future, or without a TTL, would deny this forever.
+        logout(accessTokenOf(loggedIn), refreshTokenOf(loggedIn))
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    // Precondition: the whole reset flow, asserted step by step, so a test about what the reset
+    // leaves behind fails on its outcome and never on a broken setup.
+    private void resetPasswordTo(String email, String newPassword) {
+
+        initiatePasswordReset(email)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        Response verified = verifyPasswordResetOtp(email, passwordResetOtpFor(email))
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+            .response();
+
+        completePasswordReset(verificationTokenOf(verified), newPassword)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    // A JWT carries iat in whole seconds, so a token minted within the same second as the cutoff
+    // cannot be proven newer than it and is denied. Crossing the tick is what makes the test above
+    // measure the cutoff instead of that ambiguity.
+    private static void awaitTheNextSecond() {
+
+        long secondOfTheReset = Instant.now().getEpochSecond();
+
+        Awaitility.await("the clock to cross into the second after the reset")
+            .atMost(Duration.ofSeconds(2))
+            .pollInterval(Duration.ofMillis(20))
+            .until(() -> Instant.now().getEpochSecond() > secondOfTheReset);
     }
 
     private static Stream<Arguments> rejectedPasswords() {
