@@ -77,13 +77,14 @@ class AccountTokensInvalidatorRedisAdapterIT {
 
         var accountId = AccountId.generate();
         var cutoffKey = RedisKeySpace.forTokenCutoff(accountId.value().toString());
-        var beforeTheCall = Instant.now().getEpochSecond();
 
+        var beforeTheCall = Instant.now().getEpochSecond();
         accountTokensInvalidatorAdapter.invalidateAll(accountId);
+        var afterTheCall = Instant.now().getEpochSecond();
 
         assertThat(redisTemplate.opsForValue().get(cutoffKey))
             .asLong()
-            .isGreaterThanOrEqualTo(beforeTheCall);
+            .isBetween(beforeTheCall, afterTheCall);
 
         // Past the access token lifetime there is nothing left for the cutoff to reject.
         assertThat(redisTemplate.getExpire(cutoffKey))
