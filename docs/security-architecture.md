@@ -20,7 +20,7 @@ signing key.
 
 | Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |--------------------------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
+| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Both the token key and the set carry a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
 | `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
@@ -59,6 +59,11 @@ property:
 | Refresh                   | rotates **exactly one** member of the set    |
 | Logout                    | revokes **exactly one** session              |
 | Password reset (complete) | revokes **every** session of that account    |
+
+The set carries the same TTL as a refresh token, refreshed on every login and every rotation. Since all refresh tokens
+live the same span, the member just added is always the last of the set to die, so the set never outlives a live session
+and never survives the account's last one. Nothing removes a fingerprint when its token expires on its own — only logout
+and rotation do the `SREM` — so an unbounded set would keep one dead member per login, forever.
 
 Every operation is scoped to the account resolved from the authenticated principal, never to an identifier carried in
 the request body. Logout checks that the refresh token it is asked to revoke belongs to the authenticated account

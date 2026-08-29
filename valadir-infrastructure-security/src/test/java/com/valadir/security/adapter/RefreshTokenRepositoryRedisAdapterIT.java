@@ -1,6 +1,7 @@
 package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
+import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.security.redis.TokenFingerprint;
 import com.valadir.test.containers.RedisContainerConfig;
@@ -13,6 +14,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,11 +27,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(RedisContainerConfig.class)
 class RefreshTokenRepositoryRedisAdapterIT {
 
+    // What Redis answers for a key that exists and carries no expiry.
+    private static final long NO_EXPIRY = -1;
+
     @Autowired
     private RefreshTokenRepositoryRedisAdapter adapter;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private JwtProperties jwtProperties;
 
     @BeforeEach
     void setUp() {
@@ -86,6 +94,48 @@ class RefreshTokenRepositoryRedisAdapterIT {
     }
 
     @Test
+    void save_token_boundsTheUserTokenSetLifetime() {
+
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var token = UUID.randomUUID().toString();
+
+        adapter.save(token, accountId);
+
+        Long tokenTtl = redisTemplate.getExpire(RedisKeySpace.forRefreshToken(TokenFingerprint.of(token)));
+
+        assertThat(redisTemplate.getExpire(RedisKeySpace.forUserTokens(accountIdStr)))
+            .isBetween(tokenTtl, jwtProperties.refreshTokenTtl().getSeconds());
+    }
+
+    @Test
+    void save_secondSessionOnAnExpiringSet_extendsItToTheNewestToken() {
+
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var firstToken = UUID.randomUUID().toString();
+        var secondToken = UUID.randomUUID().toString();
+        var firstFingerprint = TokenFingerprint.of(firstToken);
+        var secondFingerprint = TokenFingerprint.of(secondToken);
+        String userTokensKey = RedisKeySpace.forUserTokens(accountIdStr);
+
+        adapter.save(firstToken, accountId);
+
+        // The set as it looks once the session that created it is about to expire. Without the
+        // refresh, it would take the second token's fingerprint down with it a minute later.
+        redisTemplate.expire(userTokensKey, Duration.ofMinutes(1));
+
+        adapter.save(secondToken, accountId);
+
+        Long secondTokenTtl = redisTemplate.getExpire(RedisKeySpace.forRefreshToken(secondFingerprint));
+
+        assertThat(redisTemplate.getExpire(userTokensKey))
+            .isBetween(secondTokenTtl, jwtProperties.refreshTokenTtl().getSeconds());
+        assertThat(redisTemplate.opsForSet().members(userTokensKey))
+            .containsExactlyInAnyOrder(firstFingerprint.value(), secondFingerprint.value());
+    }
+
+    @Test
     void rotate_existingToken_replacesOldWithNew() {
 
         var accountId = AccountId.generate();
@@ -133,5 +183,32 @@ class RefreshTokenRepositoryRedisAdapterIT {
         assertThat(everythingStoredIn(redisTemplate))
             .isNotEmpty()
             .noneMatch(stored -> stored.contains(oldToken) || stored.contains(newToken));
+    }
+
+    @Test
+    void rotate_tokenOnAPersistentSet_boundsItsLifetime() {
+
+        var accountId = AccountId.generate();
+        var accountIdStr = accountId.value().toString();
+        var oldToken = UUID.randomUUID().toString();
+        var newToken = UUID.randomUUID().toString();
+        var oldFingerprint = TokenFingerprint.of(oldToken);
+        var newFingerprint = TokenFingerprint.of(newToken);
+        String userTokensKey = RedisKeySpace.forUserTokens(accountIdStr);
+
+        redisTemplate.opsForValue().set(RedisKeySpace.forRefreshToken(oldFingerprint), accountIdStr, jwtProperties.refreshTokenTtl());
+        redisTemplate.opsForSet().add(userTokensKey, oldFingerprint.value());
+
+        // The scenario is the set reaching the rotation without an expiry. Were the seeding to stop
+        // producing one, the rotation would create the set itself and this would silently degrade
+        // into the save case.
+        assertThat(redisTemplate.getExpire(userTokensKey)).isEqualTo(NO_EXPIRY);
+
+        adapter.rotate(oldToken, newToken, accountId);
+
+        Long newTokenTtl = redisTemplate.getExpire(RedisKeySpace.forRefreshToken(newFingerprint));
+
+        assertThat(redisTemplate.getExpire(userTokensKey))
+            .isBetween(newTokenTtl, jwtProperties.refreshTokenTtl().getSeconds());
     }
 }
