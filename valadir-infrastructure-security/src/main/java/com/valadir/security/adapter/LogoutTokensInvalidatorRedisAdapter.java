@@ -4,6 +4,7 @@ import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -30,18 +31,19 @@ public class LogoutTokensInvalidatorRedisAdapter implements LogoutTokensInvalida
     public void invalidate(String jti, Duration remainingTtl, String refreshToken, AccountId accountId) {
 
         String accountIdValue = accountId.value().toString();
+        var fingerprint = TokenFingerprint.of(refreshToken);
 
         circuitGuard.run("logout token invalidation failed for jti: " + jti, () ->
             redisOperations.execute(
                 logoutInvalidateTokensScript,
                 List.of(
                     RedisKeySpace.forBlacklist(jti),
-                    RedisKeySpace.forRefreshToken(refreshToken),
+                    RedisKeySpace.forRefreshToken(fingerprint),
                     RedisKeySpace.forUserTokens(accountIdValue)
                 ),
                 RedisKeySpace.BLACKLIST_REVOKED_VALUE,
                 String.valueOf(remainingTtl.getSeconds()),
-                refreshToken,
+                fingerprint.value(),
                 accountIdValue
             )
         );

@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RedisKeySpaceTest {
 
     private static final String JTI = "abc-123";
-    private static final String TOKEN = "refresh-token-xyz";
+    private static final TokenFingerprint FINGERPRINT = TokenFingerprint.of("refresh-token-xyz");
     private static final String PATH_KEY = "api_auth_login";
     private static final String IP = "192.168.1.1";
     private static final String EMAIL = "user@example.com";
@@ -23,7 +23,8 @@ class RedisKeySpaceTest {
     @Test
     void forRefreshToken_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forRefreshToken(TOKEN)).isEqualTo("auth:refresh_token:" + TOKEN);
+        assertThat(RedisKeySpace.forRefreshToken(FINGERPRINT))
+            .isEqualTo("auth:refresh_token:" + FINGERPRINT.value());
     }
 
     @Test
@@ -57,8 +58,8 @@ class RedisKeySpaceTest {
     @Test
     void forPasswordResetVerificationToken_returnsExpectedKey() {
 
-        assertThat(RedisKeySpace.forPasswordResetVerificationToken(TOKEN))
-            .isEqualTo("auth:password_reset_verification_token:" + TOKEN);
+        assertThat(RedisKeySpace.forPasswordResetVerificationToken(FINGERPRINT))
+            .isEqualTo("auth:password_reset_verification_token:" + FINGERPRINT.value());
     }
 
     @Test

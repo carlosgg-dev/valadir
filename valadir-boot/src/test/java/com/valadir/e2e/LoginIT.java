@@ -49,7 +49,7 @@ class LoginIT extends AbstractAuthE2EIT {
             .extract().path("refreshToken");
 
         String accountId = accountIdOf(EMAIL);
-        String tokenKey = RedisKeySpace.forRefreshToken(refreshToken);
+        String tokenKey = refreshTokenKeyOf(refreshToken);
 
         assertThat(redisTemplate.opsForValue().get(tokenKey)).isEqualTo(accountId);
         assertThat(redisTemplate.getExpire(tokenKey))
@@ -57,7 +57,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // Exactly one session: a fresh login must not leave duplicate or stray tokens behind.
         assertThat(redisTemplate.opsForSet().size(RedisKeySpace.forUserTokens(accountId))).isEqualTo(1);
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), refreshToken))
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), fingerprintOf(refreshToken)))
             .isTrue();
 
         assertThat(failedAttemptsFor(EMAIL)).isNull();
@@ -105,8 +105,8 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // Login adds a session, it does not replace one. This flow is what mutates the set, so it is
         // where the semantics belong — RefreshTokenIT logs in twice, but to rotate, not to assert this.
-        assertThat(userTokensOf(accountId))
-            .containsExactlyInAnyOrder(firstRefreshToken, secondRefreshToken);
+        assertThat(sessionFingerprintsOf(accountId))
+            .containsExactlyInAnyOrder(fingerprintOf(firstRefreshToken), fingerprintOf(secondRefreshToken));
     }
 
     @Test
@@ -334,6 +334,6 @@ class LoginIT extends AbstractAuthE2EIT {
     // entries and the pattern scan guarantees no token escaped under any key.
     private void assertNoRefreshTokenIssued() {
 
-        assertThat(redisTemplate.keys(RedisKeySpace.forRefreshToken("*"))).isEmpty();
+        assertThat(redisTemplate.keys(RedisKeySpace.REFRESH_TOKEN_PREFIX + "*")).isEmpty();
     }
 }

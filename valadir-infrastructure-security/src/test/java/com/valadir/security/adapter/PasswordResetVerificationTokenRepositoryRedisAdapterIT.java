@@ -1,8 +1,9 @@
 package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
-import com.valadir.test.containers.RedisContainerConfig;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
+import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
+import static com.valadir.test.redis.RedisTestUtils.everythingStoredIn;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -46,12 +48,22 @@ class PasswordResetVerificationTokenRepositoryRedisAdapterIT {
 
         var accountId = AccountId.generate();
         var token = UUID.randomUUID().toString();
-        String redisKey = RedisKeySpace.forPasswordResetVerificationToken(token);
+        String redisKey = RedisKeySpace.forPasswordResetVerificationToken(TokenFingerprint.of(token));
 
         adapter.save(token, accountId, TOKEN_TTL);
 
         assertThat(redisTemplate.opsForValue().get(redisKey)).isEqualTo(accountId.value().toString());
         assertThat(redisTemplate.getExpire(redisKey)).isGreaterThan(0);
+    }
+
+    @Test
+    void save_token_leavesItNowhereInRedis() {
+
+        var token = UUID.randomUUID().toString();
+
+        adapter.save(token, AccountId.generate(), TOKEN_TTL);
+
+        assertThat(everythingStoredIn(redisTemplate)).isNotEmpty().noneMatch(stored -> stored.contains(token));
     }
 
     @Test

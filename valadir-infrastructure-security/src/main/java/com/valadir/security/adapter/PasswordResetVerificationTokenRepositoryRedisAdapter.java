@@ -4,6 +4,7 @@ import com.valadir.application.port.out.PasswordResetVerificationTokenRepository
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import org.springframework.data.redis.core.RedisOperations;
 
 import java.time.Duration;
@@ -55,6 +56,6 @@ public class PasswordResetVerificationTokenRepositoryRedisAdapter implements Pas
 
     private String redisKey(String verificationToken) {
 
-        return RedisKeySpace.forPasswordResetVerificationToken(verificationToken);
+        return RedisKeySpace.forPasswordResetVerificationToken(TokenFingerprint.of(verificationToken));
     }
 }

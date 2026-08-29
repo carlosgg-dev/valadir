@@ -9,7 +9,9 @@ Authentication is based on two tokens with different roles:
 - **Access token** — JWT signed with ECDSA P-256 (ES256), short-lived (15 min), sent on every request. Validated by
   signature, by expiry, and against the revocation keys below — a token that carries no `jti`, `sub` or `iat` is
   refused, since it cannot be matched against either of them.
-- **Refresh token** — opaque UUID, long-lived (7 days), stored server-side in Redis. Carries no claims.
+- **Refresh token** — opaque UUID, long-lived (7 days), stored server-side in Redis. Carries no claims. Redis holds
+  its SHA-256 fingerprint, never the token: read access to Redis — a dump, a backup, a replica — yields no usable
+  credential. The same applies to the password reset verification token.
 
 The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the
 signing key.
@@ -18,12 +20,24 @@ signing key.
 
 | Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |--------------------------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
+| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Each entry has a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
 | `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
 grow indefinitely without TTL-based cleanup.
+
+A plain SHA-256 is the right derivation for these tokens, and a password hash is not. The lookup happens *by* the token,
+so it must be deterministic — Argon2, which the OTPs use, yields a different hash per call by design. The work factor
+buys nothing either: a refresh token is a 122-bit random UUID, so there is no candidate list to run against the digest.
+What a fingerprint costs is the ability to read a token back, which nothing needs: the token travels only in the
+response that issued it and in the request that spends it.
+
+Fingerprinting the keys ends every session live at the moment it is deployed: what `validate` now looks up no longer
+matches what the old keys were named, so users sign in again. Nothing needs migrating — unlike the email normalisation
+below, there is no row to rewrite, only keys to let expire, which they do within their own TTL. The key prefix is
+deliberately unchanged: a 64-character hex fingerprint cannot collide with a 36-character UUID, so a new namespace
+would buy nothing.
 
 ## Refresh Token Rotation
 

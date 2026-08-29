@@ -2,6 +2,7 @@ package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.valadir.test.redis.RedisTestUtils.everythingStoredIn;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -67,8 +69,20 @@ class RefreshTokenRepositoryRedisAdapterIT {
 
         adapter.save(token, accountId);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(token))).isEqualTo(accountIdStr);
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), token)).isTrue();
+        var fingerprint = TokenFingerprint.of(token);
+
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(fingerprint))).isEqualTo(accountIdStr);
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), fingerprint.value())).isTrue();
+    }
+
+    @Test
+    void save_token_leavesItNowhereInRedis() {
+
+        var token = UUID.randomUUID().toString();
+
+        adapter.save(token, AccountId.generate());
+
+        assertThat(everythingStoredIn(redisTemplate)).isNotEmpty().noneMatch(stored -> stored.contains(token));
     }
 
     @Test
@@ -83,11 +97,14 @@ class RefreshTokenRepositoryRedisAdapterIT {
 
         boolean rotated = adapter.rotate(oldToken, newToken, accountId);
 
+        var oldFingerprint = TokenFingerprint.of(oldToken);
+        var newFingerprint = TokenFingerprint.of(newToken);
+
         assertThat(rotated).isTrue();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(oldToken))).isNull();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isEqualTo(accountIdStr);
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), oldToken)).isFalse();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), newToken)).isTrue();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(oldFingerprint))).isNull();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newFingerprint))).isEqualTo(accountIdStr);
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), oldFingerprint.value())).isFalse();
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountIdStr), newFingerprint.value())).isTrue();
     }
 
     @Test
@@ -100,6 +117,21 @@ class RefreshTokenRepositoryRedisAdapterIT {
         boolean rotated = adapter.rotate(nonExistingToken, newToken, accountId);
 
         assertThat(rotated).isFalse();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(newToken))).isNull();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(TokenFingerprint.of(newToken)))).isNull();
+    }
+
+    @Test
+    void rotate_token_leavesNeitherTokenAnywhereInRedis() {
+
+        var accountId = AccountId.generate();
+        var oldToken = UUID.randomUUID().toString();
+        var newToken = UUID.randomUUID().toString();
+
+        adapter.save(oldToken, accountId);
+        adapter.rotate(oldToken, newToken, accountId);
+
+        assertThat(everythingStoredIn(redisTemplate))
+            .isNotEmpty()
+            .noneMatch(stored -> stored.contains(oldToken) || stored.contains(newToken));
     }
 }

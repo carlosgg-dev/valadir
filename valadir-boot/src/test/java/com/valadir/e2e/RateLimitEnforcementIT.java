@@ -133,7 +133,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         assertThat(numericHeader(blocked, HttpHeaders.RETRY_AFTER)).isBetween(1L, LOGIN_IP_WINDOW.toSeconds());
 
         // The credentials were valid, so a missing session can only mean the block came first
-        assertThat(userTokensOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
+        assertThat(sessionFingerprintsOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
     }
 
     @Test
@@ -154,7 +154,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         blocked.forEach(response -> response.then().body("code", equalTo(RATE_LIMIT_EXCEEDED_CODE)));
 
         // The same count, read from the side effect
-        assertThat(userTokensOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
+        assertThat(sessionFingerprintsOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
     }
 
     @Test

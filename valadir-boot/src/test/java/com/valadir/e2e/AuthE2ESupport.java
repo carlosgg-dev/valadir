@@ -7,6 +7,7 @@ import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordRese
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import com.valadir.web.config.ApiRoutes;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -255,13 +256,23 @@ public abstract class AuthE2ESupport {
         return requireToken(response, "refreshToken");
     }
 
-    protected List<String> userTokensOf(String accountId) {
+    protected List<String> sessionFingerprintsOf(String accountId) {
 
-        var tokens = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
+        var fingerprints = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
 
-        return tokens == null
+        return fingerprints == null
             ? List.of()
-            : List.copyOf(tokens);
+            : List.copyOf(fingerprints);
+    }
+
+    protected String fingerprintOf(String token) {
+
+        return TokenFingerprint.of(token).value();
+    }
+
+    protected String refreshTokenKeyOf(String refreshToken) {
+
+        return RedisKeySpace.forRefreshToken(TokenFingerprint.of(refreshToken));
     }
 
     protected String accountIdOf(String email) {

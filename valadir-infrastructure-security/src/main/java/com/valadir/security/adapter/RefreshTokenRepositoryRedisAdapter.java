@@ -5,6 +5,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.security.config.JwtProperties;
 import com.valadir.security.redis.RedisCircuitGuard;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -37,8 +38,10 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     @Override
     public Optional<AccountId> validate(String token) {
 
+        var fingerprint = TokenFingerprint.of(token);
+
         return circuitGuard.call("refresh token validation failed", () ->
-            Optional.ofNullable(redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(token)))
+            Optional.ofNullable(redisOperations.opsForValue().get(RedisKeySpace.forRefreshToken(fingerprint)))
                 .map(value -> AccountId.from(UUID.fromString(value)))
         );
     }
@@ -48,14 +51,15 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     public void save(String token, AccountId accountId) {
 
         String accountIdStr = accountId.value().toString();
+        var fingerprint = TokenFingerprint.of(token);
 
         circuitGuard.run("refresh token save failed", () ->
             redisOperations.execute(
                 saveRefreshTokenScript,
-                List.of(RedisKeySpace.forRefreshToken(token), RedisKeySpace.forUserTokens(accountIdStr)),
+                List.of(RedisKeySpace.forRefreshToken(fingerprint), RedisKeySpace.forUserTokens(accountIdStr)),
                 accountIdStr,
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds()),
-                token
+                fingerprint.value()
             )
         );
     }
@@ -65,17 +69,19 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     public boolean rotate(String oldToken, String newToken, AccountId accountId) {
 
         String accountIdStr = accountId.value().toString();
+        var oldFingerprint = TokenFingerprint.of(oldToken);
+        var newFingerprint = TokenFingerprint.of(newToken);
 
         Long result = circuitGuard.call("refresh token rotation failed", () ->
             redisOperations.execute(
                 rotateRefreshTokenScript,
                 List.of(
-                    RedisKeySpace.forRefreshToken(oldToken),
-                    RedisKeySpace.forRefreshToken(newToken),
+                    RedisKeySpace.forRefreshToken(oldFingerprint),
+                    RedisKeySpace.forRefreshToken(newFingerprint),
                     RedisKeySpace.forUserTokens(accountIdStr)
                 ),
-                oldToken,
-                newToken,
+                oldFingerprint.value(),
+                newFingerprint.value(),
                 accountIdStr,
                 String.valueOf(jwtProperties.refreshTokenTtl().getSeconds())
             )

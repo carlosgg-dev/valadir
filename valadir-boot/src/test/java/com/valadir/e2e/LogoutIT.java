@@ -55,8 +55,8 @@ class LogoutIT extends AbstractAuthE2EIT {
         String accountId = accountIdOf(EMAIL);
 
         // Revoking the access token alone would leave the session mintable again through /refresh
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();
-        assertThat(userTokensOf(accountId)).isEmpty();
+        assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(refreshToken))).isNull();
+        assertThat(sessionFingerprintsOf(accountId)).isEmpty();
     }
 
     @Test
@@ -97,15 +97,15 @@ class LogoutIT extends AbstractAuthE2EIT {
         String accountId = accountIdOf(EMAIL);
 
         // Precondition: the account really holds two live sessions
-        assertThat(userTokensOf(accountId))
-            .containsExactlyInAnyOrder(loggingOutDeviceRefreshToken, bystanderDeviceRefreshToken);
+        assertThat(sessionFingerprintsOf(accountId))
+            .containsExactlyInAnyOrder(fingerprintOf(loggingOutDeviceRefreshToken), fingerprintOf(bystanderDeviceRefreshToken));
 
         logout(loggingOutDeviceAccessToken, loggingOutDeviceRefreshToken)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(userTokensOf(accountId)).containsExactly(bystanderDeviceRefreshToken);
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderDeviceRefreshToken)))
+        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(bystanderDeviceRefreshToken));
+        assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderDeviceRefreshToken)))
             .isNotNull();
 
         // Signing out of one device must not sign out of the rest: the revocation targets the jti
@@ -133,8 +133,8 @@ class LogoutIT extends AbstractAuthE2EIT {
 
         // Logout is the only POST route outside POST_PUBLIC_ROUTES: an anonymous call must die in
         // the filter chain, before the refresh token named in the body can be revoked by a stranger
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNotNull();
-        assertThat(userTokensOf(accountId)).containsExactly(refreshToken);
+        assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(refreshToken))).isNotNull();
+        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(refreshToken));
         assertThat(redisTemplate.keys(RedisKeySpace.forBlacklist("*"))).isEmpty();
     }
 

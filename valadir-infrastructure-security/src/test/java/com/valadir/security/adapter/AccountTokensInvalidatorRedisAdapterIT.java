@@ -2,6 +2,7 @@ package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,8 +57,8 @@ class AccountTokensInvalidatorRedisAdapterIT {
 
         accountTokensInvalidatorAdapter.invalidateAll(accountId);
 
-        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(token1))).isFalse();
-        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(token2))).isFalse();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(TokenFingerprint.of(token1)))).isFalse();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRefreshToken(TokenFingerprint.of(token2)))).isFalse();
         assertThat(redisTemplate.hasKey(RedisKeySpace.forUserTokens(accountId.value().toString()))).isFalse();
     }
 
@@ -103,10 +104,14 @@ class AccountTokensInvalidatorRedisAdapterIT {
 
         accountTokensInvalidatorAdapter.invalidateAll(accountId);
 
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderToken)))
+        var bystanderFingerprint = TokenFingerprint.of(bystanderToken);
+
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderFingerprint)))
             .isEqualTo(bystanderAccountId.value().toString());
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(bystanderAccountId.value().toString()), bystanderToken))
+
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(bystanderAccountId.value().toString()), bystanderFingerprint.value()))
             .isTrue();
+
         assertThat(redisTemplate.hasKey(RedisKeySpace.forTokenCutoff(bystanderAccountId.value().toString()))).isFalse();
     }
 }

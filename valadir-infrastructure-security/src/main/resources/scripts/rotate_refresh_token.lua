@@ -1,11 +1,11 @@
 -- Atomically rotates a refresh token: deletes the old one and saves the new one.
 -- Returns 1 if the rotation succeeded, 0 if the old token did not exist.
 --
--- KEYS[1] = auth:refresh_token:{oldToken}
--- KEYS[2] = auth:refresh_token:{newToken}
+-- KEYS[1] = auth:refresh_token:{oldFingerprint}
+-- KEYS[2] = auth:refresh_token:{newFingerprint}
 -- KEYS[3] = auth:user_tokens:{accountId}
--- ARGV[1] = oldToken (UUID, used for SREM)
--- ARGV[2] = newToken (UUID, used for SADD)
+-- ARGV[1] = oldFingerprint (used for SREM)
+-- ARGV[2] = newFingerprint (used for SADD)
 -- ARGV[3] = accountId (value stored for the new token)
 -- ARGV[4] = TTL in seconds for the new token
 

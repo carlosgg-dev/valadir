@@ -2,6 +2,7 @@ package com.valadir.security.adapter;
 
 import com.valadir.domain.model.AccountId;
 import com.valadir.security.redis.RedisKeySpace;
+import com.valadir.security.redis.TokenFingerprint;
 import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,8 +56,10 @@ class LogoutTokensInvalidatorRedisAdapterIT {
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
         assertThat(redisTemplate.getExpire(RedisKeySpace.forBlacklist(jti))).isPositive();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId.value().toString()), refreshToken)).isFalse();
+        var fingerprint = TokenFingerprint.of(refreshToken);
+
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(fingerprint))).isNull();
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId.value().toString()), fingerprint.value())).isFalse();
     }
 
     @Test
@@ -92,10 +95,12 @@ class LogoutTokensInvalidatorRedisAdapterIT {
             .isEqualTo(RedisKeySpace.BLACKLIST_REVOKED_VALUE);
 
         // The other account's session survives untouched — logging out must not reach across accounts.
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderRefreshToken)))
+        var bystanderFingerprint = TokenFingerprint.of(bystanderRefreshToken);
+
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(bystanderFingerprint)))
             .isEqualTo(bystanderAccountId.value().toString());
 
-        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(bystanderAccountId.value().toString()), bystanderRefreshToken))
+        assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(bystanderAccountId.value().toString()), bystanderFingerprint.value()))
             .isTrue();
     }
 
@@ -111,6 +116,6 @@ class LogoutTokensInvalidatorRedisAdapterIT {
         tokenInvalidatorAdapter.invalidate(jti, Duration.ZERO, refreshToken, accountId);
 
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forBlacklist(jti))).isNull();
-        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(refreshToken))).isNull();
+        assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forRefreshToken(TokenFingerprint.of(refreshToken)))).isNull();
     }
 }

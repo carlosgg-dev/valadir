@@ -19,9 +19,9 @@ public final class RedisKeySpace {
         return AUTH_SPACE_PREFIX + "blacklist:" + jti;
     }
 
-    public static String forRefreshToken(String token) {
+    public static String forRefreshToken(TokenFingerprint fingerprint) {
 
-        return AUTH_SPACE_PREFIX + "refresh_token:" + token;
+        return REFRESH_TOKEN_PREFIX + fingerprint.value();
     }
 
     public static String forUserTokens(String accountId) {
@@ -44,9 +44,9 @@ public final class RedisKeySpace {
         return AUTH_SPACE_PREFIX + "password_reset_otp:" + accountId;
     }
 
-    public static String forPasswordResetVerificationToken(String token) {
+    public static String forPasswordResetVerificationToken(TokenFingerprint fingerprint) {
 
-        return AUTH_SPACE_PREFIX + "password_reset_verification_token:" + token;
+        return AUTH_SPACE_PREFIX + "password_reset_verification_token:" + fingerprint.value();
     }
 
     public static String forRateLimitIp(String pathKey, String ip) {

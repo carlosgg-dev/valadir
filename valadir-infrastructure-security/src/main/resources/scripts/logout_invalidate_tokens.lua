@@ -5,11 +5,11 @@
 -- Returns 1 always (the blacklist write is the mandatory operation).
 --
 -- KEYS[1] = auth:blacklist:{jti}
--- KEYS[2] = auth:refresh_token:{refreshToken}
+-- KEYS[2] = auth:refresh_token:{fingerprint}
 -- KEYS[3] = auth:user_tokens:{accountId}
 -- ARGV[1] = "revoked" (blacklist value)
 -- ARGV[2] = TTL in seconds for the blacklist entry
--- ARGV[3] = refreshToken (UUID, used for SREM)
+-- ARGV[3] = fingerprint of the refresh token (used for SREM)
 -- ARGV[4] = accountId (owner of the session, matched against the stored token value)
 
 if tonumber(ARGV[2]) > 0 then
