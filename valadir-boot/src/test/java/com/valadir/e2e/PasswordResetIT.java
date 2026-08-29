@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.security.redis.TokenFingerprint;
 import io.restassured.response.Response;
@@ -33,13 +34,6 @@ class PasswordResetIT extends AbstractAuthE2EIT {
     private static final String TOO_SHORT_PASSWORD = "Short1@";
     // Rejected before hashing: contains the full name
     private static final String PERSONAL_DATA_PASSWORD = "BruceWayne@1";
-
-    private static final String INSECURE_PASSWORD_CODE = "BIZ-001";
-    private static final String INVALID_RESET_OTP_CODE = "BIZ-005";
-    private static final String INVALID_VERIFICATION_TOKEN_CODE = "BIZ-006";
-    private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
-    private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
-    private static final String INVALID_PASSWORD_CODE = "VAL-002";
 
     // Mirror auth.password-reset.*. application-test.yml does not redeclare them, so unlike the
     // JWT TTLs these pin the production binding from application.yml.
@@ -133,7 +127,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         verifyPasswordResetOtp(EMAIL, resetOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_RESET_OTP_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_OTP.getCode()));
     }
 
     @Test
@@ -144,7 +138,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         verifyPasswordResetOtp(UNKNOWN_EMAIL, "123456")
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_RESET_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_OTP.getCode()))
             .body("errors", nullValue());
     }
 
@@ -166,7 +160,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         verifyPasswordResetOtp(EMAIL, resetOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_RESET_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_OTP.getCode()))
             .body("errors", nullValue());
     }
 
@@ -184,7 +178,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         verifyPasswordResetOtp(EMAIL, otherOtpThan(resetOtp))
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_RESET_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_OTP.getCode()))
             .body("errors", nullValue());
 
         // A failed guess must not burn the real code: otherwise anyone knowing the email could
@@ -215,7 +209,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         verifyPasswordResetOtp(EMAIL, bystanderOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_RESET_OTP_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_OTP.getCode()));
 
         // And it is still the bystander's own code, unspent by the failed crossing.
         verifyPasswordResetOtp(BYSTANDER_EMAIL, bystanderOtp)
@@ -249,7 +243,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         login(EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE));
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
 
         // Asserted through behaviour rather than by reading the hash: what matters is which
         // password opens the account.
@@ -270,7 +264,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         completePasswordReset(UUID.randomUUID().toString(), NEW_PASSWORD)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_VERIFICATION_TOKEN_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN.getCode()))
             .body("errors", nullValue());
 
         login(EMAIL, PASSWORD)
@@ -305,7 +299,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         completePasswordReset(verificationToken, "YetAnotherP@ss789")
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_VERIFICATION_TOKEN_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN.getCode()))
             .body("errors", nullValue());
 
         login(EMAIL, NEW_PASSWORD)
@@ -435,7 +429,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         logout(accessToken, refreshToken)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(AUTHENTICATION_REQUIRED_CODE));
+            .body("code", equalTo(ErrorCode.AUTHENTICATION_REQUIRED.getCode()));
     }
 
     @Test
@@ -494,8 +488,8 @@ class PasswordResetIT extends AbstractAuthE2EIT {
     private static Stream<Arguments> rejectedPasswords() {
 
         return Stream.of(
-            Arguments.of(TOO_SHORT_PASSWORD, INVALID_PASSWORD_CODE),
-            Arguments.of(PERSONAL_DATA_PASSWORD, INSECURE_PASSWORD_CODE)
+            Arguments.of(TOO_SHORT_PASSWORD, ErrorCode.INVALID_PASSWORD.getCode()),
+            Arguments.of(PERSONAL_DATA_PASSWORD, ErrorCode.INSECURE_PASSWORD.getCode())
         );
     }
 }

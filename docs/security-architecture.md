@@ -107,11 +107,12 @@ In an authentication system, the failure mode is a security property, not an ope
 | Redis down in the **rate limiter**                        | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
 | Redis down while reading the **failed-attempt counter**   | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
 
-All of these surface as **503 `INFRA-001`**, logout included: no flow translates an outage into a business error code. A
-500 would tell the client not to retry a failure that is precisely worth retrying — the revocation did not happen and
-the token is still live. In practice a total Redis outage never reaches the logout use case anyway: the revocation
-lookup in `RevocationAwareJwtDecoder` is the first Redis touch of an authenticated request, so the denial comes from the
-filter chain. The use case's own path is reachable only on a partial failure, where reads work and writes do not.
+All of these surface as **503 `INFRASTRUCTURE_UNAVAILABLE`**, logout included: no flow translates an outage into a
+business error code. A 500 would tell the client not to retry a failure that is precisely worth retrying — the
+revocation did not happen and the token is still live. In practice a total Redis outage never reaches the logout use
+case anyway: the revocation lookup in `RevocationAwareJwtDecoder` is the first Redis touch of an authenticated request,
+so the denial comes from the filter chain. The use case's own path is reachable only on a partial failure, where reads
+work and writes do not.
 
 The rate-limiter row is a genuine trade-off: failing closed accepts a self-DoS risk, in that an outage of the limiter
 takes down the endpoints it protects. It is accepted because the cost is small — with Redis down there is no refresh, no
@@ -180,10 +181,10 @@ Nothing but an `ErrorCode` crosses the boundary — no stack traces, no infrastr
 material. An infrastructure outage is externally indistinguishable from any other 503.
 
 Opaque is not the same as uninformative: the code must still say which side got it wrong. A request the framework
-rejected before it reached a use case answers `REQ-001` — distinct from `VAL-xxx`, which reports a field that failed
-validation and carries the offending fields — and never `SYS-001`, which would report our failure as the caller's
-request. `ErrorCodeResolver` is the inverse of `HttpStatusResolver`: where the application throws, the code decides the
-status; where the framework rejects, the status decides the code. Both
+rejected before it reached a use case answers `MALFORMED_REQUEST` — distinct from `INVALID_FIELD`, which reports a field
+that was validated and failed and carries the offending fields — and never `INTERNAL_SERVER_ERROR`, which would report
+our failure as the caller's request. `ErrorCodeResolver` is the inverse of `HttpStatusResolver`: where the application
+throws, the code decides the status; where the framework rejects, the status decides the code. Both
 `GlobalExceptionHandler.handleExceptionInternal` and `GlobalErrorController` resolve through it, so a status means the
 same thing whether it was raised above or below the DispatcherServlet. The headers Spring resolved travel with the
 response, since for some statuses they are the answer: `Allow` on a 405, `Accept` on a 415.
@@ -203,18 +204,24 @@ status **and the caller has to act differently on each** — the three that answ
 that answer 401 and the two that answer 429. A code no flow can reach is not a contract but an obligation to invent a
 status for it, which is why `AUTHENTICATION_FAILED` was deleted rather than kept: nothing threw it.
 
-**Once the catalogue ships, codes are never renumbered or reused.** The client keeps its own table of what to do with
-each one, so a number that changes meaning does not break anything visibly — the client simply does the wrong thing.
-From the first release on, adding a code is backwards compatible, and deleting or renumbering one is a breaking change.
-That day has not come: nothing is deployed and no client holds such a table, so the sequence is still kept contiguous
-and a deleted code is closed up rather than retired. When writing history, refer to a code by its constant — a number
-from an earlier commit may name something else today.
+**The constant is the contract: the published identifier is the name, lower-cased.** `getCode()` returns
+`name().toLowerCase(Locale.ROOT)`, so `CAPTCHA_REQUIRED` answers `captcha_required` and there is no second table to
+maintain — one grep finds the enum, the log line, the test and the response. The identifier it replaced was a number,
+and the price of the indirection was paid in full: two renumberings, the first across eleven files; five E2E classes
+each keeping their own alias row; and comments in `application.yml` naming a code the reader then had to look up.
+
+Once the catalogue ships, a name is as frozen as a number was. The client keeps its own table of what to do with each
+one, so an identifier that changes meaning breaks nothing visibly — the client simply does the wrong thing. From the
+first release on, adding a code is backwards compatible; renaming or deleting one is a breaking change, and renaming a
+constant now moves the wire value with it. That day has not come — nothing is deployed and no client holds such a
+table — so the catalogue is still free to be corrected in place.
 
 Exceptions thrown inside a servlet filter never reach `GlobalExceptionHandler`, which only sees what the
 DispatcherServlet dispatches; Spring Security's `ExceptionTranslationFilter` only handles
 `AuthenticationException`/`AccessDeniedException`, so anything else escapes to the container. `GlobalErrorController`
-catches those on `/error` and keeps them opaque, but as a generic 500 `SYS-001` — the right answer for a failure nobody
-recognises, and the wrong one for an outage, which is a 503 the caller should retry. `InfrastructureFailureFilter` sits
+catches those on `/error` and keeps them opaque, but as a generic 500 `INTERNAL_SERVER_ERROR` — the right answer for a
+failure nobody recognises, and the wrong one for an outage, which is a 503 the caller should retry.
+`InfrastructureFailureFilter` sits
 between the two: registered directly inside the MDC filter, so it wraps the JWT decoder and the rate limiter and logs
 with the request id, it is the single place where an outage raised below the controller is turned into its 503.
 
@@ -224,22 +231,22 @@ the transaction proxy then rolls back on a connection the pool already closed, r
 `InfrastructureException` with a `JpaSystemException` on the way out — outside every `catch` in the adapter, and so a
 500 telling the caller not to retry a failure that is exactly worth retrying.
 `GlobalExceptionHandler.handlePersistence` is where that lands: any `DataAccessException` that escaped adapter
-translation is an outage and answers **503 `INFRA-001`**. It covers the five `@Transactional` adapter methods and the
-deferred INSERT that flushes at commit, without putting transaction plumbing in each of them. Measured with
-`PostgresOutageIT`, not reasoned.
+translation is an outage and answers **503 `INFRASTRUCTURE_UNAVAILABLE`**. It covers the five `@Transactional` adapter
+methods and the deferred INSERT that flushes at commit, without putting transaction plumbing in each of them. Measured
+with `PostgresOutageIT`, not reasoned.
 
 The answer without that filter is worse than the generic 500: removing it and pausing Redis on an authenticated request
-returns **401 `SEC-003`**, because the `/error` dispatch re-enters the chain with no principal and the entry point
-answers before `GlobalErrorController` is reached. Measured with `RedisOutageIT`, not reasoned — and it is not a
-peculiarity of failing mid-authentication. The same removal on a **public** endpoint, where no authentication happens at
-all and the failing filter is the rate limiter, answers the same **401 `SEC-003`**; measured with
-`RateLimiterOutageIT`. `GlobalErrorController` is therefore effectively unreachable for a filter-level failure, and
+returns **401 `AUTHENTICATION_REQUIRED`**, because the `/error` dispatch re-enters the chain with no principal and the
+entry point answers before `GlobalErrorController` is reached. Measured with `RedisOutageIT`, not reasoned — and it is
+not a peculiarity of failing mid-authentication. The same removal on a **public** endpoint, where no authentication
+happens at all and the failing filter is the rate limiter, answers the same **401 `AUTHENTICATION_REQUIRED`**; measured
+with `RateLimiterOutageIT`. `GlobalErrorController` is therefore effectively unreachable for a filter-level failure, and
 `InfrastructureFailureFilter` is the only thing standing between an outage and an ordinary-looking bad credential.
 
 For that to hold, the exception must reach the filter **untouched**. Wrapping it in a `JwtException` inside the
 decoder — the natural instinct, since that is what `decode` declares — would have `JwtAuthenticationProvider` translate
-it into an `AuthenticationServiceException` and answer the same **401 `SEC-003`**, hiding a Redis outage behind an
-ordinary authentication failure.
+it into an `AuthenticationServiceException` and answer the same **401 `AUTHENTICATION_REQUIRED`**, hiding a Redis outage
+behind an ordinary authentication failure.
 
 ## Configuration Integrity
 
@@ -284,7 +291,7 @@ Not defects, but things that are expensive to rediscover.
   hammering past its limit keeps pushing its own reset forward. Intended.
 - **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
   the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
-  all, `REQ-001` included.
+  all, `MALFORMED_REQUEST` included.
 - **A refresh token whose account no longer exists answers 500.** Unreachable today: the only deletion path is the purge
   of `PENDING_ACTIVATION` accounts, which can never hold a refresh token. If a real account-deletion flow ever lands,
   the fix is for that use case to call `accountTokensInvalidator.invalidateAll(...)` — as `CompletePasswordReset`

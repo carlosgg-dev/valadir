@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,6 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
     private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
     private static final String PASSWORD = PasswordMother.raw().value();
 
-    private static final String INVALID_TOKEN_CODE = "SEC-002";
-    private static final String INVALID_FIELD_CODE = "VAL-001";
     private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(7);
 
     @Test
@@ -77,7 +76,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         refresh(blankRefreshToken)
             .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
-            .body("code", equalTo(INVALID_FIELD_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
             .body("errors.field", hasItem("refreshToken"));
 
         String accountId = accountIdOf(EMAIL);
@@ -100,7 +99,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         refresh(oldRefreshToken)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_TOKEN_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_TOKEN.getCode()))
             .body("errors", nullValue());
 
         String accountId = accountIdOf(EMAIL);
@@ -185,7 +184,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
 
         rejected.getFirst().then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_TOKEN_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_TOKEN.getCode()));
 
         String winningToken = refreshTokenOf(accepted.getFirst());
         String accountId = accountIdOf(EMAIL);

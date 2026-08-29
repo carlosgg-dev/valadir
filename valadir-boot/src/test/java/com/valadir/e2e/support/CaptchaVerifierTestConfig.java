@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Replaces the Turnstile adapter with a controllable double: E2E must never call the real
  * Cloudflare endpoint (external, flaky, not containerizable). Defaults to accepting every
- * token; individual tests flip it to assert the 403 SEC-007 contract.
+ * token; individual tests flip it to assert the 403 CAPTCHA_REQUIRED contract.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class CaptchaVerifierTestConfig {

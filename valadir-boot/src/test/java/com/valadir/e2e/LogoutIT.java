@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
@@ -19,7 +20,6 @@ class LogoutIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PASSWORD = PasswordMother.raw().value();
-    private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
     private static final Duration ACCESS_TOKEN_TTL = Duration.ofMinutes(15);
 
     // The delegate without the blacklist check: reading a jti must not go through the component
@@ -77,7 +77,7 @@ class LogoutIT extends AbstractAuthE2EIT {
         logout(accessToken, refreshToken)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(AUTHENTICATION_REQUIRED_CODE))
+            .body("code", equalTo(ErrorCode.AUTHENTICATION_REQUIRED.getCode()))
             .body("errors", nullValue());
     }
 
@@ -126,7 +126,7 @@ class LogoutIT extends AbstractAuthE2EIT {
         logout(refreshToken)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(AUTHENTICATION_REQUIRED_CODE))
+            .body("code", equalTo(ErrorCode.AUTHENTICATION_REQUIRED.getCode()))
             .body("errors", nullValue());
 
         String accountId = accountIdOf(EMAIL);

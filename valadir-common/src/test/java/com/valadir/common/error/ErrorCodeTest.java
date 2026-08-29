@@ -4,45 +4,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.Arrays;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ErrorCodeTest {
 
-    @Test
-    void getCode_allErrorCodes_areUnique() {
-
-        var codes = Arrays.stream(ErrorCode.values())
-            .map(ErrorCode::getCode)
-            .toList();
-
-        assertThat(codes).doesNotHaveDuplicates();
-    }
-
     @ParameterizedTest
     @CsvSource({
-        "INVALID_FIELD,                            VAL-001",
-        "INVALID_PASSWORD,                         VAL-002",
-        "REQUIRED_FIELD_MISSING,                   VAL-003",
-        "INVALID_OTP,                              VAL-004",
-        "INSECURE_PASSWORD,                        BIZ-001",
-        "EMAIL_ALREADY_EXISTS,                     BIZ-002",
-        "ACCOUNT_PENDING_ACTIVATION,               BIZ-003",
-        "INVALID_ACCOUNT_ACTIVATION_OTP,           BIZ-004",
-        "INVALID_PASSWORD_RESET_OTP,               BIZ-005",
-        "INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,BIZ-006",
-        "CREDENTIAL_INTEGRITY_ERROR,               SEC-001",
-        "INVALID_TOKEN,                            SEC-002",
-        "AUTHENTICATION_REQUIRED,                  SEC-003",
-        "ACCESS_DENIED,                            SEC-004",
-        "RATE_LIMIT_EXCEEDED,                      SEC-005",
-        "ACCOUNT_TEMPORARILY_LOCKED,               SEC-006",
-        "CAPTCHA_REQUIRED,                         SEC-007",
-        "MALFORMED_REQUEST,                        REQ-001",
-        "INFRASTRUCTURE_UNAVAILABLE,               INFRA-001",
-        "DATA_INTEGRITY_ERROR,                     PER-001",
-        "INTERNAL_SERVER_ERROR,                    SYS-001"
+        "INVALID_FIELD,                            invalid_field",
+        "INVALID_PASSWORD,                         invalid_password",
+        "REQUIRED_FIELD_MISSING,                   required_field_missing",
+        "INVALID_OTP,                              invalid_otp",
+        "INSECURE_PASSWORD,                        insecure_password",
+        "EMAIL_ALREADY_EXISTS,                     email_already_exists",
+        "ACCOUNT_PENDING_ACTIVATION,               account_pending_activation",
+        "INVALID_ACCOUNT_ACTIVATION_OTP,           invalid_account_activation_otp",
+        "INVALID_PASSWORD_RESET_OTP,               invalid_password_reset_otp",
+        "INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,invalid_password_reset_verification_token",
+        "CREDENTIAL_INTEGRITY_ERROR,               credential_integrity_error",
+        "INVALID_TOKEN,                            invalid_token",
+        "AUTHENTICATION_REQUIRED,                  authentication_required",
+        "ACCESS_DENIED,                            access_denied",
+        "RATE_LIMIT_EXCEEDED,                      rate_limit_exceeded",
+        "ACCOUNT_TEMPORARILY_LOCKED,               account_temporarily_locked",
+        "CAPTCHA_REQUIRED,                         captcha_required",
+        "MALFORMED_REQUEST,                        malformed_request",
+        "INFRASTRUCTURE_UNAVAILABLE,               infrastructure_unavailable",
+        "DATA_INTEGRITY_ERROR,                     data_integrity_error",
+        "INTERNAL_SERVER_ERROR,                    internal_server_error"
     })
     void getCode_everyConstant_mapsToExpectedCode(ErrorCode errorCode, String expectedCode) {
 

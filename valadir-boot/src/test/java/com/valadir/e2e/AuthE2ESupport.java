@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.e2e.support.CaptchaVerifierTestConfig.ControllableCaptchaVerifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountActivationNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountLockedNotifier;
@@ -46,7 +47,6 @@ public abstract class AuthE2ESupport {
 
     protected static final String FULL_NAME = "Bruce Wayne";
     protected static final String GIVEN_NAME = "Batman";
-    protected static final String INFRASTRUCTURE_UNAVAILABLE_CODE = "INFRA-001";
 
     private static final int CONCURRENT_CALL_TIMEOUT_SECONDS = 30;
 
@@ -345,7 +345,7 @@ public abstract class AuthE2ESupport {
         response.then().statusCode(HttpStatus.SERVICE_UNAVAILABLE.value());
 
         assertThat(response.jsonPath().getMap("$"))
-            .containsExactly(Map.entry("code", INFRASTRUCTURE_UNAVAILABLE_CODE));
+            .containsExactly(Map.entry("code", ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
     }
 
     // --- Concurrency: the only way to exercise an atomicity guarantee over HTTP.

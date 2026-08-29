@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.mother.PasswordMother;
@@ -37,12 +38,6 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String TOO_SHORT_PASSWORD = "Short1@";
     // Rejected before hashing: contains the full name
     private static final String PERSONAL_DATA_PASSWORD = "BruceWayne@1";
-
-    private static final String EMAIL_ALREADY_EXISTS_CODE = "BIZ-002";
-    private static final String INVALID_ACTIVATION_OTP_CODE = "BIZ-004";
-    private static final String INSECURE_PASSWORD_CODE = "BIZ-001";
-    private static final String INVALID_PASSWORD_CODE = "VAL-002";
-    private static final String INVALID_FIELD_CODE = "VAL-001";
 
     // Mirrors auth.account-activation.otp.ttl. Unlike the JWT TTLs, application-test.yml does not
     // redeclare it, so this pins the production binding from application.yml.
@@ -82,11 +77,11 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
 
         // Jakarta's @Email accepts a domain without a dot, Email.from does not: this is the only
         // way in to the DomainException branch of the use case. The null errors array is what
-        // tells it apart from the VAL-001 Bean Validation returns.
+        // tells it apart from the INVALID_FIELD Bean Validation returns.
         register(EMAIL_WITHOUT_DOT_IN_DOMAIN, PASSWORD)
             .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
-            .body("code", equalTo(INVALID_FIELD_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
             .body("errors", nullValue());
 
         assertThat(accountJpaRepository.count()).isZero();
@@ -105,7 +100,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         register(EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.CONFLICT.value())
-            .body("code", equalTo(EMAIL_ALREADY_EXISTS_CODE))
+            .body("code", equalTo(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()))
             .body("errors", nullValue());
 
         // A rejected registration must not mint a code for an account that is already live:
@@ -140,7 +135,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, abandonedOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()));
 
         assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
@@ -180,7 +175,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         assertThat(created).hasSize(1);
         assertThat(rejected).hasSize(1);
 
-        rejected.getFirst().then().body("code", equalTo(EMAIL_ALREADY_EXISTS_CODE));
+        rejected.getFirst().then().body("code", equalTo(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
 
         assertThat(accountJpaRepository.count()).isEqualTo(1);
         assertThat(userJpaRepository.count()).isEqualTo(1);
@@ -215,7 +210,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         register(EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.CONFLICT.value())
-            .body("code", equalTo(EMAIL_ALREADY_EXISTS_CODE));
+            .body("code", equalTo(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
 
         assertThat(accountJpaRepository.count()).isEqualTo(1);
     }
@@ -256,7 +251,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, activationOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
         assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
@@ -268,7 +263,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(UNKNOWN_EMAIL, "123456")
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
         assertThat(accountJpaRepository.count()).isZero();
@@ -286,7 +281,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, otherOtpThan(activationOtp))
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
         assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
@@ -316,7 +311,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, otherAccountOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()));
 
         assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(accountStatusOf(SECOND_EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
@@ -339,7 +334,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, activationOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE))
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
         assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
@@ -371,7 +366,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         activate(EMAIL, supersededOtp)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_ACTIVATION_OTP_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()));
 
         activate(EMAIL, resentOtp)
             .then()
@@ -419,8 +414,8 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static Stream<Arguments> rejectedPasswords() {
 
         return Stream.of(
-            Arguments.of(TOO_SHORT_PASSWORD, INVALID_PASSWORD_CODE),
-            Arguments.of(PERSONAL_DATA_PASSWORD, INSECURE_PASSWORD_CODE)
+            Arguments.of(TOO_SHORT_PASSWORD, ErrorCode.INVALID_PASSWORD.getCode()),
+            Arguments.of(PERSONAL_DATA_PASSWORD, ErrorCode.INSECURE_PASSWORD.getCode())
         );
     }
 

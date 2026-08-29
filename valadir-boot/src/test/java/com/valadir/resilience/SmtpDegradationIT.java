@@ -1,5 +1,6 @@
 package com.valadir.resilience;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.e2e.AbstractAuthE2EIT;
 import com.valadir.security.redis.RedisKeySpace;
@@ -29,7 +30,6 @@ class SmtpDegradationIT extends AbstractAuthE2EIT {
     private static final String PASSWORD = PasswordMother.raw().value();
     private static final String WRONG_PASSWORD = "Wrong@password123";
     private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
-    private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
 
     private static final int FIRST_TIER_FAILURES = 5;
     private static final Duration FIRST_TIER_LOCKOUT = Duration.ofSeconds(60);
@@ -69,7 +69,7 @@ class SmtpDegradationIT extends AbstractAuthE2EIT {
         login(EMAIL, WRONG_PASSWORD, CAPTCHA_TOKEN)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE));
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
 
         // Nothing was delivered, which is what proves the outage happened at all: without this the
         // case would stay green on a notification that succeeded, asserting an absence of nothing.

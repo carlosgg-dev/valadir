@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.security.redis.RedisKeySpace;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,6 @@ class LoginIT extends AbstractAuthE2EIT {
     private static final String PASSWORD = "SecureP@ss123";
     private static final String WRONG_PASSWORD = "Wrong@password123";
     private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
-
-    private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
-    private static final String ACCOUNT_LOCKED_CODE = "SEC-006";
-    private static final String CAPTCHA_REQUIRED_CODE = "SEC-007";
-    private static final String PENDING_ACTIVATION_CODE = "BIZ-003";
 
     // The flip points these cases drive. What auth.lockout binds to is pinned by
     // ProductionConfigurationTest; what those numbers do to a login is pinned here.
@@ -117,7 +113,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(EMAIL, WRONG_PASSWORD)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE))
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()))
             .body("errors", nullValue());
 
         assertThat(failedAttemptsFor(EMAIL)).isEqualTo("1");
@@ -140,7 +136,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(EMAIL, WRONG_PASSWORD)
             .then()
             .statusCode(HttpStatus.FORBIDDEN.value())
-            .body("code", equalTo(CAPTCHA_REQUIRED_CODE))
+            .body("code", equalTo(ErrorCode.CAPTCHA_REQUIRED.getCode()))
             .body("errors", nullValue());
 
         // The rejected step-up never reaches the password check: the counter must remain at its current
@@ -157,7 +153,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(EMAIL, WRONG_PASSWORD, CAPTCHA_TOKEN)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE));
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
 
         assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD + 1));
 
@@ -182,7 +178,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(EMAIL, PASSWORD, CAPTCHA_TOKEN)
             .then()
             .statusCode(HttpStatus.FORBIDDEN.value())
-            .body("code", equalTo(CAPTCHA_REQUIRED_CODE));
+            .body("code", equalTo(ErrorCode.CAPTCHA_REQUIRED.getCode()));
 
         // The error counter does not accumulate (it does not reach the password check)
         assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD));
@@ -202,7 +198,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         lockedOut.then()
             .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(ACCOUNT_LOCKED_CODE))
+            .body("code", equalTo(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED.getCode()))
             .body("errors", nullValue());
 
         assertThat(Long.parseLong(lockedOut.header("Retry-After")))
@@ -242,7 +238,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         lockedOut.then()
             .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(ACCOUNT_LOCKED_CODE));
+            .body("code", equalTo(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED.getCode()));
 
         assertThat(Long.parseLong(lockedOut.header("Retry-After")))
             .isBetween(SECOND_TIER_LOCKOUT.minusSeconds(30).toSeconds(), SECOND_TIER_LOCKOUT.toSeconds());
@@ -270,7 +266,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.FORBIDDEN.value())
-            .body("code", equalTo(PENDING_ACTIVATION_CODE))
+            .body("code", equalTo(ErrorCode.ACCOUNT_PENDING_ACTIVATION.getCode()))
             .body("errors", nullValue());
 
         // The password is right: only the activation check stands between this request and a
@@ -289,7 +285,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(email, WRONG_PASSWORD)
             .then()
             .statusCode(HttpStatus.FORBIDDEN.value())
-            .body("code", equalTo(CAPTCHA_REQUIRED_CODE))
+            .body("code", equalTo(ErrorCode.CAPTCHA_REQUIRED.getCode()))
             .body("errors", nullValue());
 
         failLoginWithCaptcha(email);
@@ -298,7 +294,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(email, WRONG_PASSWORD, CAPTCHA_TOKEN)
             .then()
             .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(ACCOUNT_LOCKED_CODE))
+            .body("code", equalTo(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED.getCode()))
             .body("errors", nullValue());
     }
 
@@ -314,7 +310,7 @@ class LoginIT extends AbstractAuthE2EIT {
         IntStream.range(0, times).forEach(i -> login(email, WRONG_PASSWORD)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE)));
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode())));
     }
 
     private void failLoginWithCaptcha(String email) {
@@ -322,7 +318,7 @@ class LoginIT extends AbstractAuthE2EIT {
         login(email, WRONG_PASSWORD, CAPTCHA_TOKEN)
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
-            .body("code", equalTo(INVALID_CREDENTIALS_CODE));
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
     }
 
     private String failedAttemptsFor(String email) {

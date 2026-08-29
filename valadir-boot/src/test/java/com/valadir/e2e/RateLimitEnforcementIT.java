@@ -1,5 +1,6 @@
 package com.valadir.e2e;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.mother.PasswordMother;
 import io.restassured.RestAssured;
@@ -25,9 +26,6 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String PASSWORD = PasswordMother.raw().value();
-
-    private static final String RATE_LIMIT_EXCEEDED_CODE = "SEC-005";
-    private static final String INVALID_FIELD_CODE = "VAL-001";
 
     private static final String LIMIT_HEADER = "X-RateLimit-Limit";
     private static final String REMAINING_HEADER = "X-RateLimit-Remaining";
@@ -71,7 +69,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
         blocked.then()
             .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(RATE_LIMIT_EXCEEDED_CODE))
+            .body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()))
             .body("errors", nullValue());
 
         // Limit 3 names the email rule: the IP one (5/1h) still has budget at the fourth request
@@ -87,7 +85,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         registerWithoutEmail(PASSWORD)
             .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
-            .body("code", equalTo(INVALID_FIELD_CODE));
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()));
 
         assertThat(redisTemplate.keys(RedisKeySpace.forRateLimitEmail("*", "*"))).isEmpty();
     }
@@ -125,7 +123,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // rest of the API answers with has to hold here on its own.
         blocked.then()
             .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-            .body("code", equalTo(RATE_LIMIT_EXCEEDED_CODE))
+            .body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()))
             .body("errors", nullValue());
 
         assertThat(blocked.contentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
@@ -151,7 +149,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         assertThat(allowed).hasSize(LOGIN_IP_LIMIT);
         assertThat(blocked).hasSize(CONCURRENT_LOGINS - LOGIN_IP_LIMIT);
 
-        blocked.forEach(response -> response.then().body("code", equalTo(RATE_LIMIT_EXCEEDED_CODE)));
+        blocked.forEach(response -> response.then().body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode())));
 
         // The same count, read from the side effect
         assertThat(sessionFingerprintsOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);

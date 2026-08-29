@@ -38,7 +38,7 @@ class RateLimiterOutageIT extends AbstractResilienceIT {
 
         // A 503 must not be dressed as a 429: the client is not being throttled, and no limiter state
         // crosses the boundary. The denial is raised in the filter chain, so it only reads as
-        // INFRA-001 because InfrastructureFailureFilter wraps the limiter.
+        // INFRASTRUCTURE_UNAVAILABLE because InfrastructureFailureFilter wraps the limiter.
         assertThat(response.header(LIMIT_HEADER)).isNull();
         assertThat(response.header(REMAINING_HEADER)).isNull();
         assertThat(response.header(RESET_HEADER)).isNull();
