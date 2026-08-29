@@ -24,7 +24,7 @@ class LoginIT extends AbstractAuthE2EIT {
     private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
     private static final String ACCOUNT_LOCKED_CODE = "SEC-006";
     private static final String CAPTCHA_REQUIRED_CODE = "SEC-007";
-    private static final String PENDING_ACTIVATION_CODE = "BIZ-004";
+    private static final String PENDING_ACTIVATION_CODE = "BIZ-003";
 
     // The flip points these cases drive. What auth.lockout binds to is pinned by
     // ProductionConfigurationTest; what those numbers do to a login is pinned here.

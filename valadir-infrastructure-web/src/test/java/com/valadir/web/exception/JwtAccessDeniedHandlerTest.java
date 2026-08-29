@@ -31,11 +31,11 @@ class JwtAccessDeniedHandlerTest {
     private JwtAccessDeniedHandler handler;
 
     @Test
-    void handle_forbiddenRequest_delegates403ToResponseWriter() throws Exception {
+    void handle_forbiddenRequest_delegatesAccessDeniedToResponseWriter() throws Exception {
 
         handler.handle(request, response, exception);
 
-        then(responseWriter).should().write(response, HttpServletResponse.SC_FORBIDDEN, ErrorCode.ACCESS_DENIED);
+        then(responseWriter).should().write(response, ErrorCode.ACCESS_DENIED);
         then(responseWriter).shouldHaveNoMoreInteractions();
     }
 }

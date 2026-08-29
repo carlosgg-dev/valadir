@@ -26,6 +26,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         log.warn("Authentication failed: {}", e.getMessage());
 
-        responseWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.AUTHENTICATION_REQUIRED);
+        responseWriter.write(response, ErrorCode.AUTHENTICATION_REQUIRED);
     }
 }

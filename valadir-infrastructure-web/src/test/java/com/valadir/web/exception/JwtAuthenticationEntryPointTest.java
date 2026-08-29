@@ -31,11 +31,11 @@ class JwtAuthenticationEntryPointTest {
     private JwtAuthenticationEntryPoint entryPoint;
 
     @Test
-    void commence_unauthenticatedRequest_delegates401ToResponseWriter() throws Exception {
+    void commence_unauthenticatedRequest_delegatesAuthenticationRequiredToResponseWriter() throws Exception {
 
         entryPoint.commence(request, response, exception);
 
-        then(responseWriter).should().write(response, HttpServletResponse.SC_UNAUTHORIZED, ErrorCode.AUTHENTICATION_REQUIRED);
+        then(responseWriter).should().write(response, ErrorCode.AUTHENTICATION_REQUIRED);
         then(responseWriter).shouldHaveNoMoreInteractions();
     }
 }

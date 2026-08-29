@@ -57,7 +57,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Validation failed: {}", errors);
 
         return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
+            .status(httpStatusResolver.resolve(ErrorCode.INVALID_FIELD))
             .body(new ErrorResponse(ErrorCode.INVALID_FIELD.getCode(), errors));
     }
 
@@ -95,7 +95,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Account temporarily locked: {}", e.getMessage());
 
         return ResponseEntity
-            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .status(httpStatusResolver.resolve(e.getErrorCode()))
             .header("Retry-After", String.valueOf(e.lockout().toSeconds()))
             .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
@@ -106,7 +106,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Infrastructure dependency unavailable: {}", e.getMessage(), e);
 
         return ResponseEntity
-            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .status(httpStatusResolver.resolve(e.getErrorCode()))
             .body(new ErrorResponse(e.getErrorCode().getCode()));
     }
 
@@ -125,7 +125,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Persistence dependency unavailable, reported without adapter translation: {}", e.getMessage(), e);
 
         return ResponseEntity
-            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .status(httpStatusResolver.resolve(ErrorCode.INFRASTRUCTURE_UNAVAILABLE))
             .body(new ErrorResponse(ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
     }
 
@@ -135,7 +135,7 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Unexpected error", e);
 
         return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .status(httpStatusResolver.resolve(ErrorCode.INTERNAL_SERVER_ERROR))
             .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
     }
 

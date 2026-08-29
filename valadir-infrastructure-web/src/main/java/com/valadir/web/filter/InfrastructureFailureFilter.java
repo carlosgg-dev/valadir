@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -43,7 +42,7 @@ public class InfrastructureFailureFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } catch (InfrastructureException e) {
             log.error("Infrastructure dependency unavailable before the request reached the controller: {}", e.getMessage(), e);
-            responseWriter.write(response, HttpStatus.SERVICE_UNAVAILABLE.value(), e.getErrorCode());
+            responseWriter.write(response, e.getErrorCode());
         }
     }
 }

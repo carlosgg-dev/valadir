@@ -83,9 +83,9 @@ class GlobalExceptionHandlerTest {
 
         var exception = new MethodArgumentNotValidException(anyHandlerParameter(), bindingResult);
 
-        // Handed a status we never answer, so the 400 below can only come from the handler pinning it
-        // and not from propagating what Spring proposed. The inherited signature allows a null
-        // response; ours never returns one.
+        // Handed a status we never answer, so the 400 below can only come from the handler resolving
+        // it from the code and not from propagating what Spring proposed. The inherited signature
+        // allows a null response; ours never returns one.
         ResponseEntity<Object> response =
             requireNonNull(handler.handleMethodArgumentNotValid(exception, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, anyWebRequest()));
 
@@ -128,7 +128,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_validationCategory_returns400() throws Exception {
+    void handleApplication_invalidPasswordCode_returns400() throws Exception {
 
         mockMvc.perform(get("/application/validation"))
             .andExpect(status().isBadRequest())
@@ -136,7 +136,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_conflictCategory_returns409() throws Exception {
+    void handleApplication_emailAlreadyExistsCode_returns409() throws Exception {
 
         mockMvc.perform(get("/application/conflict"))
             .andExpect(status().isConflict())
@@ -144,7 +144,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_unauthorizedCategory_returns401() throws Exception {
+    void handleApplication_credentialIntegrityErrorCode_returns401() throws Exception {
 
         mockMvc.perform(get("/application/unauthorized"))
             .andExpect(status().isUnauthorized())
@@ -152,7 +152,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_forbiddenCategory_returns403() throws Exception {
+    void handleApplication_accessDeniedCode_returns403() throws Exception {
 
         mockMvc.perform(get("/application/forbidden"))
             .andExpect(status().isForbidden())
@@ -160,7 +160,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_rateLimitedCategory_returns429() throws Exception {
+    void handleApplication_rateLimitExceededCode_returns429() throws Exception {
 
         mockMvc.perform(get("/application/rate-limited"))
             .andExpect(status().isTooManyRequests())
@@ -168,7 +168,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void handleApplication_serverErrorCategory_returns500() throws Exception {
+    void handleApplication_dataIntegrityErrorCode_returns500() throws Exception {
 
         mockMvc.perform(get("/application/server-error"))
             .andExpect(status().isInternalServerError())

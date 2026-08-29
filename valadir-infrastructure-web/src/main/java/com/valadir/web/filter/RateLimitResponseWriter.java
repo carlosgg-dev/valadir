@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.web.dto.response.ErrorResponse;
+import com.valadir.web.exception.HttpStatusResolver;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 import java.io.IOException;
@@ -18,15 +18,17 @@ public class RateLimitResponseWriter {
     private static final String HEADER_RETRY_AFTER = "Retry-After";
 
     private final ObjectMapper objectMapper;
+    private final HttpStatusResolver httpStatusResolver;
 
-    public RateLimitResponseWriter(ObjectMapper objectMapper) {
+    public RateLimitResponseWriter(ObjectMapper objectMapper, HttpStatusResolver httpStatusResolver) {
 
         this.objectMapper = objectMapper;
+        this.httpStatusResolver = httpStatusResolver;
     }
 
     public void writeBlockedResponse(HttpServletResponse response, RateLimitResult result) throws IOException {
 
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setStatus(httpStatusResolver.resolve(ErrorCode.RATE_LIMIT_EXCEEDED).value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setHeader(HEADER_LIMIT, String.valueOf(result.maxRequests()));
         response.setHeader(HEADER_REMAINING, "0");

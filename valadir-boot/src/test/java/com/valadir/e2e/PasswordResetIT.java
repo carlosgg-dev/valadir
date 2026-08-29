@@ -35,8 +35,8 @@ class PasswordResetIT extends AbstractAuthE2EIT {
     private static final String PERSONAL_DATA_PASSWORD = "BruceWayne@1";
 
     private static final String INSECURE_PASSWORD_CODE = "BIZ-001";
-    private static final String INVALID_RESET_OTP_CODE = "BIZ-006";
-    private static final String INVALID_VERIFICATION_TOKEN_CODE = "BIZ-007";
+    private static final String INVALID_RESET_OTP_CODE = "BIZ-005";
+    private static final String INVALID_VERIFICATION_TOKEN_CODE = "BIZ-006";
     private static final String INVALID_CREDENTIALS_CODE = "SEC-001";
     private static final String AUTHENTICATION_REQUIRED_CODE = "SEC-003";
     private static final String INVALID_PASSWORD_CODE = "VAL-002";

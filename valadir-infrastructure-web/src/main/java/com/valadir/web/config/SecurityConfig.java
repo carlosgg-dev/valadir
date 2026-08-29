@@ -68,9 +68,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityErrorResponseWriter securityErrorResponseWriter() {
+    SecurityErrorResponseWriter securityErrorResponseWriter(HttpStatusResolver httpStatusResolver) {
 
-        return new SecurityErrorResponseWriter(objectMapper);
+        return new SecurityErrorResponseWriter(objectMapper, httpStatusResolver);
     }
 
     @Bean
@@ -110,7 +110,8 @@ public class SecurityConfig {
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAccessDeniedHandler jwtAccessDeniedHandler,
         RateLimitKeyResolver rateLimitKeyResolver,
-        SecurityErrorResponseWriter securityErrorResponseWriter
+        SecurityErrorResponseWriter securityErrorResponseWriter,
+        HttpStatusResolver httpStatusResolver
     ) throws Exception {
 
         return http
@@ -119,7 +120,7 @@ public class SecurityConfig {
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
             // After the MDC filter so an outage is logged with its request id, and before everything else so it wraps the JWT decoder and the rate limiter.
             .addFilterAfter(new InfrastructureFailureFilter(securityErrorResponseWriter), MdcRequestFilter.class)
-            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper), rateLimitKeyResolver),
+            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper, httpStatusResolver), rateLimitKeyResolver),
                             BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
             .authorizeHttpRequests(auth -> auth

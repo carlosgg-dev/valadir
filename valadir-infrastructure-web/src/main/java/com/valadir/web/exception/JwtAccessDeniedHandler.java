@@ -26,6 +26,6 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
         log.warn("Access denied: {}", e.getMessage());
 
-        responseWriter.write(response, HttpServletResponse.SC_FORBIDDEN, ErrorCode.ACCESS_DENIED);
+        responseWriter.write(response, ErrorCode.ACCESS_DENIED);
     }
 }

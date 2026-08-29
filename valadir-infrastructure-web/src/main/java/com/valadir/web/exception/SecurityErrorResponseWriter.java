@@ -11,15 +11,17 @@ import java.io.IOException;
 public class SecurityErrorResponseWriter {
 
     private final ObjectMapper objectMapper;
+    private final HttpStatusResolver httpStatusResolver;
 
-    public SecurityErrorResponseWriter(ObjectMapper objectMapper) {
+    public SecurityErrorResponseWriter(ObjectMapper objectMapper, HttpStatusResolver httpStatusResolver) {
 
         this.objectMapper = objectMapper;
+        this.httpStatusResolver = httpStatusResolver;
     }
 
-    public void write(HttpServletResponse response, int status, ErrorCode errorCode) throws IOException {
+    public void write(HttpServletResponse response, ErrorCode errorCode) throws IOException {
 
-        response.setStatus(status);
+        response.setStatus(httpStatusResolver.resolve(errorCode).value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), new ErrorResponse(errorCode.getCode()));
     }

@@ -13,15 +13,15 @@ class ApplicationExceptionTest {
     @Test
     void constructor_messageAndErrorCode_setsErrorCode() {
 
-        var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED);
+        var exception = new ApplicationException(MESSAGE, ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AUTHENTICATION_FAILED);
+        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
     }
 
     @Test
     void constructor_messageErrorCodeAndCause_preservesCause() {
 
-        var exception = new ApplicationException(MESSAGE, ErrorCode.AUTHENTICATION_FAILED, CAUSE);
+        var exception = new ApplicationException(MESSAGE, ErrorCode.CREDENTIAL_INTEGRITY_ERROR, CAUSE);
 
         assertThat(exception.getCause()).isSameAs(CAUSE);
     }

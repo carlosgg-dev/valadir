@@ -188,18 +188,27 @@ status; where the framework rejects, the status decides the code. Both
 same thing whether it was raised above or below the DispatcherServlet. The headers Spring resolved travel with the
 response, since for some statuses they are the answer: `Allow` on a 405, `Accept` on a 415.
 
+**Each code states its own status, and `HttpStatusResolver` is the only place it is stated.** The switch is exhaustive
+and carries no `default`, so a new code does not compile until someone decides what it answers. The alternative failed
+twice over: a category in between took the decision away from the compiler, and every path that fixed a status at the
+throw site took it away from the table — which is how `INFRASTRUCTURE_UNAVAILABLE` came to declare a 500 while three
+call sites answered 503. Both writers and every handler now resolve, so the two can no longer disagree. Only the
+framework-rejection path keeps its own status, and by design: there the status is the input, not the output.
+
 **A single code covers every rejection, not one per status.** The status already tells 400 from 404, 405 and 415, so a
 code per status would carry nothing the caller does not have. A code of its own is earned where several causes share a
 status **and the caller has to act differently on each** — the three that answer 403 are the case that earns it:
 `CAPTCHA_REQUIRED` means show the widget and retry, `ACCOUNT_PENDING_ACTIVATION` means send the user to the OTP screen,
-`ACCESS_DENIED` means do not retry. With the status alone none of those flows can be built. The same holds for the seven
-that answer 401 and the two that answer 429.
+`ACCESS_DENIED` means do not retry. With the status alone none of those flows can be built. The same holds for the six
+that answer 401 and the two that answer 429. A code no flow can reach is not a contract but an obligation to invent a
+status for it, which is why `AUTHENTICATION_FAILED` was deleted rather than kept: nothing threw it.
 
-**The catalogue is a public contract: codes are never renumbered or reused.** The client keeps its own table of what to
-do with each one, so a number that changes meaning does not break anything visibly — the client simply does the wrong
-thing. Deleting a code leaves its number retired for good. Adding one is backwards compatible; changing what an existing
-one means is a breaking change. (The `BIZ-*`/`SEC-*` renumbering recorded below predates this rule and is why it exists;
-when writing history, refer to a code by its constant, since an old number may name something else.)
+**Once the catalogue ships, codes are never renumbered or reused.** The client keeps its own table of what to do with
+each one, so a number that changes meaning does not break anything visibly — the client simply does the wrong thing.
+From the first release on, adding a code is backwards compatible, and deleting or renumbering one is a breaking change.
+That day has not come: nothing is deployed and no client holds such a table, so the sequence is still kept contiguous
+and a deleted code is closed up rather than retired. When writing history, refer to a code by its constant — a number
+from an earlier commit may name something else today.
 
 Exceptions thrown inside a servlet filter never reach `GlobalExceptionHandler`, which only sees what the
 DispatcherServlet dispatches; Spring Security's `ExceptionTranslationFilter` only handles

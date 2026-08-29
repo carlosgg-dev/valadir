@@ -39,7 +39,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String PERSONAL_DATA_PASSWORD = "BruceWayne@1";
 
     private static final String EMAIL_ALREADY_EXISTS_CODE = "BIZ-002";
-    private static final String INVALID_ACTIVATION_OTP_CODE = "BIZ-005";
+    private static final String INVALID_ACTIVATION_OTP_CODE = "BIZ-004";
     private static final String INSECURE_PASSWORD_CODE = "BIZ-001";
     private static final String INVALID_PASSWORD_CODE = "VAL-002";
     private static final String INVALID_FIELD_CODE = "VAL-001";

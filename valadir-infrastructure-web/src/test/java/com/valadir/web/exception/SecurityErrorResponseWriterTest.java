@@ -14,18 +14,17 @@ class SecurityErrorResponseWriterTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(OBJECT_MAPPER);
+    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(OBJECT_MAPPER, new HttpStatusResolver());
 
     @Test
     void write_setsStatusContentTypeAndErrorCodeBody() throws Exception {
 
         var response = new MockHttpServletResponse();
-        int status = HttpServletResponse.SC_UNAUTHORIZED;
         ErrorCode errorCode = ErrorCode.AUTHENTICATION_REQUIRED;
 
-        writer.write(response, status, errorCode);
+        writer.write(response, errorCode);
 
-        assertThat(response.getStatus()).isEqualTo(status);
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
         assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
 
         ErrorResponse body = OBJECT_MAPPER.readValue(response.getContentAsString(), ErrorResponse.class);

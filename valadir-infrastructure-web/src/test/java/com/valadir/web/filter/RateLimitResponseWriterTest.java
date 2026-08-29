@@ -3,6 +3,7 @@ package com.valadir.web.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimitResult;
+import com.valadir.web.exception.HttpStatusResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +23,7 @@ class RateLimitResponseWriterTest {
     private static final int MAX_REQUESTS = 10;
     private static final Duration REMAINING_TTL = Duration.ofSeconds(30);
 
-    private final RateLimitResponseWriter writer = new RateLimitResponseWriter(new ObjectMapper());
+    private final RateLimitResponseWriter writer = new RateLimitResponseWriter(new ObjectMapper(), new HttpStatusResolver());
 
     @Test
     void writeBlockedResponse_sets429StatusAndHeaders() throws Exception {
