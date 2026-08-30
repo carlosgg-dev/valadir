@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,6 +33,10 @@ class RateLimitKeyResolverTest {
     private static final String NORMALIZED_PATH = "api_auth_login";
     private static final int MAX_REQUESTS = 10;
     private static final Duration WINDOW = Duration.ofSeconds(60);
+
+    // Case folding is locale dependent: in this one an uppercase I folds to a dotless "ı" instead
+    // of "i", which the normalizer then rejects as non alphanumeric.
+    private static final Locale LOCALE_WITH_DIFFERENT_CASE_FOLDING = Locale.forLanguageTag("tr");
 
     private RateLimitKeyResolver resolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -211,6 +216,27 @@ class RateLimitKeyResolverTest {
         Optional<String> key = resolver.resolve(request, rule);
 
         assertThat(key).hasValue("rate_limit:ip:" + expectedNormalized + ":" + CLIENT_IP);
+    }
+
+    // "/API/AUTH/LOGIN" would normalize to "ap_auth_log_n" instead of "api_auth_login", rate
+    // limiting the same endpoint under a different Redis key depending on where the JVM runs.
+    @Test
+    void resolve_ipStrategy_normalizesPathIndependentlyOfTheDefaultLocale() {
+
+        var rule = new RateLimitProperties.Rule("/API/AUTH/LOGIN", Strategy.IP, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequest();
+        Locale defaultLocale = Locale.getDefault();
+
+        try {
+            Locale.setDefault(LOCALE_WITH_DIFFERENT_CASE_FOLDING);
+
+            Optional<String> key = resolver.resolve(request, rule);
+
+            assertThat(key).hasValue("rate_limit:ip:" + NORMALIZED_PATH + ":" + CLIENT_IP);
+
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
 

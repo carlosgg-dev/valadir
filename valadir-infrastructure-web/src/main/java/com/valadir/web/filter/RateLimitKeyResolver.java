@@ -41,7 +41,7 @@ public class RateLimitKeyResolver {
 
     private String normalizePathSegment(String path) {
 
-        String normalized = NON_ALPHANUMERIC.matcher(path.toLowerCase()).replaceAll("_");
+        String normalized = NON_ALPHANUMERIC.matcher(path.toLowerCase(Locale.ROOT)).replaceAll("_");
         return SURROUNDING_UNDERSCORES.matcher(normalized).replaceAll("");
     }
 

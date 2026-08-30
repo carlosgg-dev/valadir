@@ -6,6 +6,7 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.User;
 
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -17,11 +18,11 @@ public class PasswordSecurityService {
 
     public void validatePassword(RawPassword password, Email email, User user) {
 
-        String pwd = password.value().toLowerCase();
-        boolean containsEmail = pwd.contains(email.value().toLowerCase());
+        String pwd = password.value().toLowerCase(Locale.ROOT);
+        boolean containsEmail = pwd.contains(email.value());
 
         Set<String> nameTerms = user.personalData().stream()
-            .map(String::toLowerCase)
+            .map(term -> term.toLowerCase(Locale.ROOT))
             .flatMap(TERM_SEPARATOR::splitAsStream)
             .filter(term -> term.length() >= MIN_TERM_LENGTH)
             .collect(Collectors.toSet());

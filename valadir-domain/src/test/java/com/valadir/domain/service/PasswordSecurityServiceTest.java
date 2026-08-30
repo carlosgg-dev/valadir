@@ -11,7 +11,10 @@ import com.valadir.domain.model.User;
 import com.valadir.domain.model.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -19,6 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class PasswordSecurityServiceTest {
 
     private static final String EMAIL = "brucewayne@email.com";
+
+    // Case folding is locale dependent: in this one an uppercase I folds to a dotless "ı" instead
+    // of "i", so a term lowercased with it no longer matches its Locale.ROOT form.
+    private static final Locale LOCALE_WITH_DIFFERENT_CASE_FOLDING = Locale.forLanguageTag("tr");
 
     private final PasswordSecurityService securityService = new PasswordSecurityService();
 
@@ -115,6 +122,29 @@ class PasswordSecurityServiceTest {
 
         // The full name is still enforced when the given name is absent (null term skipped, not fatal)
         assertInsecurePassword("Wayne@2026", EMAIL, "Bruce Wayne", "   ");
+    }
+
+    // Both sides of the check are lowercased, so a locale only shows up when the uppercase letter
+    // sits on one side alone: each row puts it on a different side, covering both conversions.
+    // With the personal data folded by the default locale the term stops matching and the password
+    // is accepted.
+    @ParameterizedTest(name = "{0} / {1}")
+    @CsvSource({
+        "Isabel Wayne, isabel@2026A",
+        "Bill Wayne, BILL@2026a"
+    })
+    void validatePassword_personalDataFoldedByTheDefaultLocale_throwsDomainException(String fullName, String password) {
+
+        Locale defaultLocale = Locale.getDefault();
+
+        try {
+            Locale.setDefault(LOCALE_WITH_DIFFERENT_CASE_FOLDING);
+
+            assertInsecurePassword(password, EMAIL, fullName, "Batman");
+
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
     }
 
     private void assertSecurePassword(String pwd, String email, String fullName, String givenName) {
