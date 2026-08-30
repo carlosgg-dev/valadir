@@ -5,7 +5,8 @@ import com.valadir.test.mother.PasswordMother;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
@@ -65,7 +66,8 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
     }
 
     @ParameterizedTest
-    @MethodSource("blankRefreshTokens")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
     void refresh_blankToken_returns400AndLeavesSessionIntact(String blankRefreshToken) {
 
         registerAndActivate(EMAIL, PASSWORD);
@@ -200,8 +202,4 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         return concurrently(2, () -> refresh(refreshToken));
     }
 
-    private static String[] blankRefreshTokens() {
-
-        return new String[]{null, "", " "};
-    }
 }

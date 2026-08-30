@@ -6,7 +6,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -48,7 +49,8 @@ class CaptchaVerifierTurnstileAdapterTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankTokens")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
     void isValid_blankToken_returnsFalseWithoutCallingProvider(String blankToken) {
 
         assertThat(enabledAdapter().isValid(blankToken)).isFalse();
@@ -173,8 +175,4 @@ class CaptchaVerifierTurnstileAdapterTest {
         return circuitBreaker;
     }
 
-    private static String[] blankTokens() {
-
-        return new String[]{null, "", " "};
-    }
 }

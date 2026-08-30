@@ -7,8 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -21,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -196,7 +194,15 @@ class RateLimitKeyResolverTest {
     }
 
     @ParameterizedTest(name = "{0} → {1}")
-    @MethodSource("pathNormalizationCases")
+    @CsvSource({
+        "/api/auth/login, api_auth_login",
+        "api/auth/login/, api_auth_login",
+        "/api/auth/login/, api_auth_login",
+        "api/auth/login, api_auth_login",
+        "/API/AUTH/LOGIN, api_auth_login",
+        "/api/v2/users/profile, api_v2_users_profile",
+        "/api//double-slash, api_double_slash"
+    })
     void resolve_ipStrategy_normalizesPathCorrectly(String path, String expectedNormalized) {
 
         var rule = new RateLimitProperties.Rule(path, Strategy.IP, MAX_REQUESTS, WINDOW);
@@ -207,18 +213,6 @@ class RateLimitKeyResolverTest {
         assertThat(key).hasValue("rate_limit:ip:" + expectedNormalized + ":" + CLIENT_IP);
     }
 
-    static Stream<Arguments> pathNormalizationCases() {
-
-        return Stream.of(
-            Arguments.of("/api/auth/login", "api_auth_login"),
-            Arguments.of("api/auth/login/", "api_auth_login"),
-            Arguments.of("/api/auth/login/", "api_auth_login"),
-            Arguments.of("api/auth/login", "api_auth_login"),
-            Arguments.of("/API/AUTH/LOGIN", "api_auth_login"),
-            Arguments.of("/api/v2/users/profile", "api_v2_users_profile"),
-            Arguments.of("/api//double-slash", "api_double_slash")
-        );
-    }
 
     private MockHttpServletRequest buildRequest() {
 

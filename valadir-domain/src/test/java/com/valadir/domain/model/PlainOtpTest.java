@@ -4,7 +4,8 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,7 +24,8 @@ class PlainOtpTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankValues")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
     void constructor_blankValues_throwsIllegalArgumentException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -88,8 +90,4 @@ class PlainOtpTest {
         assertThat(PlainOtp.generate().value()).matches("\\d{6}");
     }
 
-    private static String[] blankValues() {
-
-        return new String[]{null, "", "   "};
-    }
 }

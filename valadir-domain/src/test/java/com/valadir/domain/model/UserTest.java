@@ -2,7 +2,8 @@ package com.valadir.domain.model;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,8 +58,9 @@ class UserTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankGivenNames")
-    void personalData_withBlankGivenName_returnsOnlyFullName(GivenName givenName) {
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void personalData_withBlankGivenName_returnsOnlyFullName(String blankGivenName) {
 
         var fullName = FullName.from("Bruce Wayne");
 
@@ -66,14 +68,10 @@ class UserTest {
             UserId.generate(),
             AccountId.generate(),
             FullName.from(fullName.value()),
-            givenName
+            GivenName.from(blankGivenName)
         );
 
         assertThat(user.personalData()).containsExactly(fullName.value());
     }
 
-    private static GivenName[] blankGivenNames() {
-
-        return new GivenName[]{GivenName.from(null), GivenName.from(""), GivenName.from(" ")};
-    }
 }

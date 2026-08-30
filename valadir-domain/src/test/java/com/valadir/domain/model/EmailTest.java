@@ -4,7 +4,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +35,8 @@ class EmailTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankValues")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
     void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -80,8 +81,4 @@ class EmailTest {
         assertThat(email).isEqualTo(new Email("user@domain.com"));
     }
 
-    private static String[] blankValues() {
-
-        return new String[]{null, "", "   "};
-    }
 }

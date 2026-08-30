@@ -4,7 +4,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +37,8 @@ class RawPasswordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("blankValues")
+    @NullSource
+    @ValueSource(strings = {"", "   "})
     void constructor_blankValues_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -69,8 +70,4 @@ class RawPasswordTest {
         assertThat(password).isEqualTo(new RawPassword("SecureP@ss123"));
     }
 
-    private static String[] blankValues() {
-
-        return new String[]{null, "", " "};
-    }
 }
