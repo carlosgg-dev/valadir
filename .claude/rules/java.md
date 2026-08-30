@@ -13,6 +13,20 @@
   - `ZonedDateTime` / `OffsetDateTime` — date-times with a time zone (user-facing or API serialization).
   - `long` (epoch seconds/millis) — **only** at infrastructure boundaries where the external protocol requires it: Redis Lua scripts, HTTP headers (`Retry-After`, `X-RateLimit-Reset`), Kafka timestamps.
   - Never use `java.util.Date`, `java.sql.Timestamp`, or raw `long`/`int` fields to represent durations or timestamps anywhere else.
+- **Explicit `Locale` whenever case or format depends on one:**
+  - `Locale.ROOT` — the result is consumed by code: cache and Redis keys, identifiers, protocol
+    values, and any normalization that precedes a comparison. It must not depend on where the JVM runs.
+  - The user's locale — only for text a person reads, and only where that locale arrives as an
+    explicit input rather than being picked up from the environment.
+  - Never call the no-arg `toLowerCase()` / `toUpperCase()`, `String.format`, or a `DateTimeFormatter`
+    built without one: they all read `Locale.getDefault()`, which the deployment sets, so the same
+    input produces different output depending on where the JVM runs. Case folding is the sharpest
+    edge — in some locales an uppercase `I` does not fold to `i` — which is enough to key a rate
+    limit under a different Redis key, and enough to make a case-insensitive check accept input it
+    was written to reject.
+  - A regression test for this sets the default locale and restores it in a `finally`. Put the
+    uppercase letter on one side of the comparison only: when both sides carry it they fold alike
+    and the test passes against the very bug it was written for.
 - **`var`** for local variables when the type is unambiguous without navigation: instantiation with `new` where variable and constructor type are identical, or when the type is immediately obvious from the right-hand side. Never use `var` when the type requires navigating to another file to be understood.
 - **Factory method naming conventions:**
   - `from` — construction from parameters or a specific source (`User.from(id, name)`, `User.fromSafetyData(...)`).
