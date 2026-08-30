@@ -2,10 +2,12 @@ package com.valadir.web.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.application.command.LoginCommand;
+import com.valadir.application.command.LogoutAllCommand;
 import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.LoginUseCase;
+import com.valadir.application.port.in.LogoutAllUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.result.AuthTokenResult;
@@ -64,6 +66,9 @@ class SessionControllerTest {
     private LogoutUseCase logoutUseCase;
 
     @MockitoBean
+    private LogoutAllUseCase logoutAllUseCase;
+
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
     @MockitoBean
@@ -71,6 +76,9 @@ class SessionControllerTest {
 
     @Captor
     private ArgumentCaptor<LogoutCommand> logoutCommandCaptor;
+
+    @Captor
+    private ArgumentCaptor<LogoutAllCommand> logoutAllCommandCaptor;
 
     @Test
     void login_validCredentials_returns200WithTokens() throws Exception {
@@ -264,5 +272,28 @@ class SessionControllerTest {
             .andExpect(status().isUnauthorized());
 
         then(logoutUseCase).should(never()).logout(any(LogoutCommand.class));
+    }
+
+    @Test
+    void logoutAll_authenticated_returns204() throws Exception {
+
+        var accountId = AccountId.generate();
+
+        mockMvc.perform(post(ApiRoutes.Auth.Session.LOGOUT_ALL_PATH)
+                            .with(jwt().jwt(jwt -> jwt.subject(accountId.value().toString()))))
+            .andExpect(status().isNoContent());
+
+        then(logoutAllUseCase).should().logoutAll(logoutAllCommandCaptor.capture());
+
+        assertThat(logoutAllCommandCaptor.getValue().accountId()).isEqualTo(accountId.value().toString());
+    }
+
+    @Test
+    void logoutAll_unauthenticated_returns401() throws Exception {
+
+        mockMvc.perform(post(ApiRoutes.Auth.Session.LOGOUT_ALL_PATH))
+            .andExpect(status().isUnauthorized());
+
+        then(logoutAllUseCase).should(never()).logoutAll(any(LogoutAllCommand.class));
     }
 }

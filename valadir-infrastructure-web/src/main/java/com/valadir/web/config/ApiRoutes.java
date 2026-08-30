@@ -28,10 +28,12 @@ public final class ApiRoutes {
             public static final String LOGIN = "/login";
             public static final String REFRESH = "/refresh";
             public static final String LOGOUT = "/logout";
+            public static final String LOGOUT_ALL = LOGOUT + "/all";
 
             public static final String LOGIN_PATH = Auth.BASE + LOGIN;
             public static final String REFRESH_PATH = Auth.BASE + REFRESH;
             public static final String LOGOUT_PATH = Auth.BASE + LOGOUT;
+            public static final String LOGOUT_ALL_PATH = Auth.BASE + LOGOUT_ALL;
 
             private Session() {
 

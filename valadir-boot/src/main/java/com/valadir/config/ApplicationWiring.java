@@ -7,6 +7,7 @@ import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.LoginUseCase;
+import com.valadir.application.port.in.LogoutAllUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.PurgeExpiredPendingActivationAccountsUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
@@ -14,10 +15,10 @@ import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccessTokenRevocation;
-import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.CaptchaVerifier;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
@@ -36,6 +37,7 @@ import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
+import com.valadir.application.service.LogoutAllService;
 import com.valadir.application.service.LogoutService;
 import com.valadir.application.service.PasswordResetOtpSender;
 import com.valadir.application.service.PasswordResetOtpSenderService;
@@ -256,6 +258,12 @@ class ApplicationWiring {
     LogoutUseCase logoutUseCase(LogoutTokensInvalidator logoutTokensInvalidator) {
 
         return new LogoutService(logoutTokensInvalidator);
+    }
+
+    @Bean
+    LogoutAllUseCase logoutAllUseCase(AccountTokensInvalidator accountTokensInvalidator) {
+
+        return new LogoutAllService(accountTokensInvalidator);
     }
 
     @Bean

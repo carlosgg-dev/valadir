@@ -211,6 +211,25 @@ public abstract class AuthE2ESupport {
             .post(ApiRoutes.Auth.Session.LOGOUT_PATH);
     }
 
+    // Anonymous call against a protected route: no Authorization header.
+    protected Response logoutAll() {
+
+        return logoutAll(null);
+    }
+
+    protected Response logoutAll(String accessToken) {
+
+        var request = RestAssured.given();
+
+        if (accessToken != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        }
+
+        return request
+            .when()
+            .post(ApiRoutes.Auth.Session.LOGOUT_ALL_PATH);
+    }
+
     protected Response initiatePasswordReset(String email) {
 
         return RestAssured.given()

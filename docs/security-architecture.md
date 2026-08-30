@@ -21,7 +21,7 @@ signing key.
 | Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 |--------------------------|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation on logout or reuse detection. Both the token key and the set carry a TTL matching the token expiry.                                                                                                                                                                                                                                                                                                                                                  |
-| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
+| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset and "close every session"), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
@@ -45,12 +45,13 @@ Every refresh operation consumes the current refresh token and issues a new pair
 as invalid — the user must log in again.
 
 The system supports multiple active sessions. Each login issues a new refresh token without invalidating existing ones,
-allowing concurrent sessions across different devices. There is no endpoint to close them all: today only a password
-reset does that, as part of completing it.
+allowing concurrent sessions across different devices. `POST /api/auth/logout/all` closes every one of them, the calling
+device included — a user who suspects the account is compromised should not have to reset their password to sign their
+other devices out. Completing a password reset does the same, as part of completing it.
 
 ## Session Ownership
 
-`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Four flows mutate it, and each upholds one
+`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Five flows mutate it, and each upholds one
 property:
 
 | Flow                      | Property                                     |
@@ -58,6 +59,7 @@ property:
 | Login                     | **adds** a session; existing ones stay alive |
 | Refresh                   | rotates **exactly one** member of the set    |
 | Logout                    | revokes **exactly one** session              |
+| Logout all                | revokes **every** session of that account    |
 | Password reset (complete) | revokes **every** session of that account    |
 
 The set carries the same TTL as a refresh token, refreshed on every login and every rotation. Since all refresh tokens
@@ -70,17 +72,17 @@ the request body. Logout checks that the refresh token it is asked to revoke bel
 (`GET KEYS[2] == accountId` in `logout_invalidate_tokens.lua`); without that guard, an access token of account A plus a
 refresh token of account B would kill B's session.
 
-**A password reset closes every session, access tokens included.** Revoking the refresh tokens alone would leave an
-access token issued before the reset authenticating for the rest of its 15 minutes — precisely in the flow a user runs
-when they suspect the account is compromised. `invalidate_account_tokens.lua` deletes the refresh tokens and writes
+**Closing every session closes the access tokens too.** Revoking the refresh tokens alone would leave an access token
+issued beforehand authenticating for the rest of its 15 minutes — precisely in the flows a user runs when they suspect
+the account is compromised. `invalidate_account_tokens.lua` deletes the refresh tokens and writes
 `auth:token_cutoff:{accountId}` in one atomic call, so both halves of "this session is over" land together; every access
 token of that account whose `iat` is at or before the cutoff is then refused on its next request.
 
 The cutoff revokes by time rather than by identity, so it needs no registry of live `jti` and no write on the token
 issue path. Its cost is resolution: `iat` travels in whole seconds, so a token minted within the same second as the
-reset cannot be proven newer than the cutoff and is refused. The tie is resolved closed — a sign-in that lands in that
-same second is answered 401 and succeeds on the retry, whereas resolving it open would let that one token live out its
-full lifetime.
+revocation cannot be proven newer than the cutoff and is refused. The tie is resolved closed — a sign-in that lands in
+that same second is answered 401 and succeeds on the retry, whereas resolving it open would let that one token live out
+its full lifetime.
 
 ## Account Identity
 

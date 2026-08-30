@@ -1,9 +1,11 @@
 package com.valadir.web.adapter;
 
 import com.valadir.application.command.LoginCommand;
+import com.valadir.application.command.LogoutAllCommand;
 import com.valadir.application.command.LogoutCommand;
 import com.valadir.application.command.RefreshTokenCommand;
 import com.valadir.application.port.in.LoginUseCase;
+import com.valadir.application.port.in.LogoutAllUseCase;
 import com.valadir.application.port.in.LogoutUseCase;
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.result.AuthTokenResult;
@@ -33,16 +35,19 @@ class SessionController {
     private final LoginUseCase loginUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
+    private final LogoutAllUseCase logoutAllUseCase;
 
     SessionController(
         LoginUseCase loginUseCase,
         RefreshTokenUseCase refreshTokenUseCase,
-        LogoutUseCase logoutUseCase
+        LogoutUseCase logoutUseCase,
+        LogoutAllUseCase logoutAllUseCase
     ) {
 
         this.loginUseCase = loginUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
+        this.logoutAllUseCase = logoutAllUseCase;
     }
 
     @PostMapping(ApiRoutes.Auth.Session.LOGIN)
@@ -69,5 +74,12 @@ class SessionController {
         Duration remainingTtl = Duration.between(Instant.now(), Objects.requireNonNull(jwt.getExpiresAt()));
 
         logoutUseCase.logout(new LogoutCommand(jwt.getId(), remainingTtl, request.refreshToken(), jwt.getSubject()));
+    }
+
+    @PostMapping(ApiRoutes.Auth.Session.LOGOUT_ALL)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void logoutAll(@AuthenticationPrincipal Jwt jwt) {
+
+        logoutAllUseCase.logoutAll(new LogoutAllCommand(jwt.getSubject()));
     }
 }
