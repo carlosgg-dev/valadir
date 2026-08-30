@@ -21,6 +21,7 @@ public class RateLimitKeyResolver {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitKeyResolver.class);
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
+    private static final Pattern SURROUNDING_UNDERSCORES = Pattern.compile("^_+|_+$");
 
     private final ObjectMapper objectMapper;
 
@@ -41,7 +42,7 @@ public class RateLimitKeyResolver {
     private String normalizePathSegment(String path) {
 
         String normalized = NON_ALPHANUMERIC.matcher(path.toLowerCase()).replaceAll("_");
-        return normalized.replaceAll("^_+", "").replaceAll("_+$", "");
+        return SURROUNDING_UNDERSCORES.matcher(normalized).replaceAll("");
     }
 
     private String resolveIp(HttpServletRequest request) {

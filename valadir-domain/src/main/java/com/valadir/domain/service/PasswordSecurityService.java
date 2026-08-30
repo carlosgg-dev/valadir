@@ -6,12 +6,13 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.User;
 
-import java.util.Arrays;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PasswordSecurityService {
 
+    private static final Pattern TERM_SEPARATOR = Pattern.compile("[\\s._-]+");
     private static final int MIN_TERM_LENGTH = 4;
 
     public void validatePassword(RawPassword password, Email email, User user) {
@@ -21,7 +22,7 @@ public class PasswordSecurityService {
 
         Set<String> nameTerms = user.personalData().stream()
             .map(String::toLowerCase)
-            .flatMap(term -> Arrays.stream(term.split("[\\s._-]+")))
+            .flatMap(TERM_SEPARATOR::splitAsStream)
             .filter(term -> term.length() >= MIN_TERM_LENGTH)
             .collect(Collectors.toSet());
 
