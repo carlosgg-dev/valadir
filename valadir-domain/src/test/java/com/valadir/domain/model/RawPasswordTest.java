@@ -39,7 +39,7 @@ class RawPasswordTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   "})
-    void constructor_blankValues_throwsDomainException(String blankValue) {
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new RawPassword(blankValue))

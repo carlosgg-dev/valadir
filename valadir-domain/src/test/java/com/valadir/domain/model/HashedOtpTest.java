@@ -23,7 +23,7 @@ class HashedOtpTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   "})
-    void constructor_blankValues_throwsIllegalArgumentException(String blankValue) {
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new HashedOtp(blankValue))

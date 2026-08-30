@@ -26,7 +26,7 @@ class PlainOtpTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   "})
-    void constructor_blankValues_throwsIllegalArgumentException(String blankValue) {
+    void constructor_blankValue_throwsDomainException(String blankValue) {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new PlainOtp(blankValue))
@@ -34,7 +34,7 @@ class PlainOtpTest {
     }
 
     @Test
-    void constructor_lessThanSixDigits_throwsIllegalArgumentException() {
+    void constructor_lessThanSixDigits_throwsDomainException() {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new PlainOtp("12345"))
@@ -42,7 +42,7 @@ class PlainOtpTest {
     }
 
     @Test
-    void constructor_moreThanSixDigits_throwsIllegalArgumentException() {
+    void constructor_moreThanSixDigits_throwsDomainException() {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new PlainOtp("1234567"))
@@ -50,7 +50,7 @@ class PlainOtpTest {
     }
 
     @Test
-    void constructor_nonNumeric_throwsIllegalArgumentException() {
+    void constructor_nonNumeric_throwsDomainException() {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new PlainOtp("abcdef"))
