@@ -21,7 +21,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
-class PasswordResetVerificationTokenRepositoryRedisAdapterExceptionTest {
+class PasswordResetVerificationTokenRepositoryRedisAdapterTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
     private static final String TOKEN = "some-verification-token";

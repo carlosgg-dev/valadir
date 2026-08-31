@@ -23,7 +23,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
-class AccountRepositoryJpaAdapterExceptionTest {
+class AccountRepositoryJpaAdapterTest {
 
     private static final DataAccessException POSTGRES_ERROR = new DataAccessException("Postgres error") {
     };

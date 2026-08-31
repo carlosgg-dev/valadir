@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class AccountTokensInvalidatorRedisAdapterExceptionTest {
+class AccountTokensInvalidatorRedisAdapterTest {
 
     @Mock
     private JwtProperties jwtProperties;

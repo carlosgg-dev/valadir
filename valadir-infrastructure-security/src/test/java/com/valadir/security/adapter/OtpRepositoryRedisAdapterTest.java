@@ -16,7 +16,7 @@ import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @ExtendWith(MockitoExtension.class)
-class OtpRepositoryRedisAdapterExceptionTest {
+class OtpRepositoryRedisAdapterTest {
 
     private static final AccountId ACCOUNT_ID = AccountId.generate();
     private static final Duration OTP_TTL = Duration.ofMinutes(10);

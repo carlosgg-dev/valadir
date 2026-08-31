@@ -11,7 +11,7 @@ import java.util.UUID;
 import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-class AccessTokenRevocationRedisAdapterExceptionTest {
+class AccessTokenRevocationRedisAdapterTest {
 
     @Test
     void isRevoked_redisError_throwsInfrastructureException() {

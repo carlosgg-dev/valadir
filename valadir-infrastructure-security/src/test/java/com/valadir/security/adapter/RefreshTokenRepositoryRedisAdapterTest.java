@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class RefreshTokenRepositoryRedisAdapterExceptionTest {
+class RefreshTokenRepositoryRedisAdapterTest {
 
     private static final Duration ONE_WEEK = Duration.ofDays(7);
     private static final String OLD_TOKEN = UUID.randomUUID().toString();

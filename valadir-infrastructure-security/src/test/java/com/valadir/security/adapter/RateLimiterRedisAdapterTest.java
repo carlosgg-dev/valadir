@@ -18,7 +18,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class RateLimiterRedisAdapterExceptionTest {
+class RateLimiterRedisAdapterTest {
 
     private static final Duration WINDOW = Duration.ofSeconds(60);
 

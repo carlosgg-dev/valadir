@@ -17,7 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class ExpiredPendingActivationAccountCleanerJpaAdapterExceptionTest {
+class ExpiredPendingActivationAccountCleanerJpaAdapterTest {
 
     private static final DataAccessException POSTGRES_ERROR = new DataAccessException("Postgres error") {
     };

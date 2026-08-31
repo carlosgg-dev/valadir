@@ -15,7 +15,7 @@ import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitGuard;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @ExtendWith(MockitoExtension.class)
-class LogoutTokensInvalidatorRedisAdapterExceptionTest {
+class LogoutTokensInvalidatorRedisAdapterTest {
 
     @Test
     void invalidate_redisError_throwsInfrastructureException() {
