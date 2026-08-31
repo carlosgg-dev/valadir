@@ -35,9 +35,9 @@ class LogoutAllIT extends AbstractAuthE2EIT {
         Response otherDeviceLogin = login(EMAIL, PASSWORD);
         String otherDeviceRefreshToken = refreshTokenOf(otherDeviceLogin);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
-        assertThat(sessionFingerprintsOf(accountId))
+        assertThat(sessionFingerprintsFor(accountId))
             .containsExactlyInAnyOrder(fingerprintOf(callingDeviceRefreshToken), fingerprintOf(otherDeviceRefreshToken));
 
         logoutAll(callingDeviceAccessToken)
@@ -46,7 +46,7 @@ class LogoutAllIT extends AbstractAuthE2EIT {
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(callingDeviceRefreshToken))).isNull();
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(otherDeviceRefreshToken))).isNull();
-        assertThat(sessionFingerprintsOf(accountId)).isEmpty();
+        assertThat(sessionFingerprintsFor(accountId)).isEmpty();
 
         String cutoffKey = RedisKeySpace.forTokenCutoff(accountId);
 
@@ -109,14 +109,14 @@ class LogoutAllIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        String callingAccountId = accountIdOf(EMAIL);
-        String bystanderAccountId = accountIdOf(BYSTANDER_EMAIL);
+        String callingAccountId = accountIdFor(EMAIL);
+        String bystanderAccountId = accountIdFor(BYSTANDER_EMAIL);
 
-        assertThat(sessionFingerprintsOf(callingAccountId)).isEmpty();
+        assertThat(sessionFingerprintsFor(callingAccountId)).isEmpty();
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderRefreshToken)))
             .isEqualTo(bystanderAccountId);
-        assertThat(sessionFingerprintsOf(bystanderAccountId)).containsExactly(fingerprintOf(bystanderRefreshToken));
+        assertThat(sessionFingerprintsFor(bystanderAccountId)).containsExactly(fingerprintOf(bystanderRefreshToken));
 
         // The cutoff is written per account: an account-wide key would sign the bystander out too,
         // and no refresh-token assertion above would notice.
@@ -140,10 +140,10 @@ class LogoutAllIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.AUTHENTICATION_REQUIRED.getCode()))
             .body("errors", nullValue());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(refreshToken))).isNotNull();
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(refreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(refreshToken));
         assertThat(redisTemplate.opsForValue().get(RedisKeySpace.forTokenCutoff(accountId))).isNull();
     }
 }

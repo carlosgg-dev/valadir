@@ -49,7 +49,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String otpKey = RedisKeySpace.forPasswordResetOtp(accountId);
         String deliveredOtp = passwordResetOtpFor(EMAIL);
 
@@ -101,7 +101,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String resetOtp = passwordResetOtpFor(EMAIL);
 
         Response verified = verifyPasswordResetOtp(EMAIL, resetOtp)
@@ -151,7 +151,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String resetOtp = passwordResetOtpFor(EMAIL);
 
         // What the TTL leaves behind: the code gone from Redis while the owner still holds it.
@@ -369,8 +369,8 @@ class PasswordResetIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value());
 
-        String accountId = accountIdOf(EMAIL);
-        assertThat(sessionFingerprintsOf(accountId)).isEmpty();
+        String accountId = accountIdFor(EMAIL);
+        assertThat(sessionFingerprintsFor(accountId)).isEmpty();
     }
 
     @Test
@@ -389,17 +389,17 @@ class PasswordResetIT extends AbstractAuthE2EIT {
 
         resetPasswordTo(EMAIL, NEW_PASSWORD);
 
-        String resettingAccountId = accountIdOf(EMAIL);
-        String bystanderAccountId = accountIdOf(BYSTANDER_EMAIL);
+        String resettingAccountId = accountIdFor(EMAIL);
+        String bystanderAccountId = accountIdFor(BYSTANDER_EMAIL);
 
         assertThat(redisTemplate.hasKey(refreshTokenKeyOf(resettingAccountToken))).isFalse();
-        assertThat(sessionFingerprintsOf(resettingAccountId)).isEmpty();
+        assertThat(sessionFingerprintsFor(resettingAccountId)).isEmpty();
 
         // Account-wide invalidation is the most damaging place to resolve the wrong account: with a
         // single account in the database, a mistake there would pass unnoticed.
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderAccountToken)))
             .isEqualTo(bystanderAccountId);
-        assertThat(sessionFingerprintsOf(bystanderAccountId)).containsExactly(fingerprintOf(bystanderAccountToken));
+        assertThat(sessionFingerprintsFor(bystanderAccountId)).containsExactly(fingerprintOf(bystanderAccountToken));
 
         // The cutoff is written per account: an account-wide key would sign the bystander out too,
         // and no refresh-token assertion above would notice.

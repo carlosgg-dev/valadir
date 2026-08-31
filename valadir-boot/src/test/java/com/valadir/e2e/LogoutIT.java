@@ -52,11 +52,11 @@ class LogoutIT extends AbstractAuthE2EIT {
         assertThat(redisTemplate.getExpire(blacklistKey))
             .isBetween(1L, ACCESS_TOKEN_TTL.toSeconds());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // Revoking the access token alone would leave the session mintable again through /refresh
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(refreshToken))).isNull();
-        assertThat(sessionFingerprintsOf(accountId)).isEmpty();
+        assertThat(sessionFingerprintsFor(accountId)).isEmpty();
     }
 
     @Test
@@ -94,17 +94,17 @@ class LogoutIT extends AbstractAuthE2EIT {
         String bystanderDeviceAccessToken = accessTokenOf(bystanderDeviceLogin);
         String bystanderDeviceRefreshToken = refreshTokenOf(bystanderDeviceLogin);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // Precondition: the account really holds two live sessions
-        assertThat(sessionFingerprintsOf(accountId))
+        assertThat(sessionFingerprintsFor(accountId))
             .containsExactlyInAnyOrder(fingerprintOf(loggingOutDeviceRefreshToken), fingerprintOf(bystanderDeviceRefreshToken));
 
         logout(loggingOutDeviceAccessToken, loggingOutDeviceRefreshToken)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(bystanderDeviceRefreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(bystanderDeviceRefreshToken));
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderDeviceRefreshToken)))
             .isNotNull();
 
@@ -129,12 +129,12 @@ class LogoutIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.AUTHENTICATION_REQUIRED.getCode()))
             .body("errors", nullValue());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // Logout is the only POST route outside POST_PUBLIC_ROUTES: an anonymous call must die in
         // the filter chain, before the refresh token named in the body can be revoked by a stranger
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(refreshToken))).isNotNull();
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(refreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(refreshToken));
         assertThat(redisTemplate.keys(RedisKeySpace.forBlacklist("*"))).isEmpty();
     }
 

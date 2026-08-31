@@ -51,7 +51,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // The filter reads the body before the controller does. A 201 with the profile intact is
         // what proves it put the body back: without it registration breaks, and no other E2E runs
         // with the limiter on to notice.
-        var user = userJpaRepository.findByAccountId(UUID.fromString(accountIdOf(EMAIL))).orElseThrow();
+        var user = userJpaRepository.findByAccountId(UUID.fromString(accountIdFor(EMAIL))).orElseThrow();
         assertThat(user.getFullName()).isEqualTo(FULL_NAME);
         assertThat(user.getGivenName()).isEqualTo(GIVEN_NAME);
 
@@ -131,7 +131,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         assertThat(numericHeader(blocked, HttpHeaders.RETRY_AFTER)).isBetween(1L, LOGIN_IP_WINDOW.toSeconds());
 
         // The credentials were valid, so a missing session can only mean the block came first
-        assertThat(sessionFingerprintsOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
+        assertThat(sessionFingerprintsFor(accountIdFor(EMAIL))).hasSize(LOGIN_IP_LIMIT);
     }
 
     @Test
@@ -152,7 +152,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         blocked.forEach(response -> response.then().body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode())));
 
         // The same count, read from the side effect
-        assertThat(sessionFingerprintsOf(accountIdOf(EMAIL))).hasSize(LOGIN_IP_LIMIT);
+        assertThat(sessionFingerprintsFor(accountIdFor(EMAIL))).hasSize(LOGIN_IP_LIMIT);
     }
 
     @Test
@@ -175,7 +175,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // The key is built from the authenticated accountId, so it only appears if the filter runs
         // after authentication. Placed before it, the /api/** rule would find no principal and skip
         // itself: the per-user limit would be gone with no error and no log.
-        assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(accountIdOf(EMAIL)))).isTrue();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(accountIdFor(EMAIL)))).isTrue();
         assertThat(numericHeader(loggedOut, LIMIT_HEADER)).isEqualTo(USER_LIMIT);
     }
 

@@ -34,6 +34,15 @@
   - `new` + context — construction with a clear domain purpose (`User.newProfile(...)`, `User.newAnonymous(...)`).
   - `create` — belongs in **services only**, signals orchestration and side effects.
   - `build` — reserved for test helper methods (`buildValidUser()`, `buildExpiredAccount()`).
+  - `of` / `xxxOf(x)` — `x` is the concrete source transformed or derived into the result (hash,
+    decode, field extraction). The result is computed *from* `x` (`TokenFingerprint.of(token)`,
+    `fingerprintOf(token)`, `jtiOf(accessToken)`).
+  - `xxxFor(key)` — `key` is an opaque identifier used to look up or compute a value that
+    conceptually belongs to it (a DB/Redis lookup, or a rule mapping the key to a domain value).
+    The method name states the domain concept returned, not necessarily the literal Java type
+    (`lockoutFor(failureCount)`, `passwordResetOtpFor(email)`). Never use `of` when the argument is
+    a lookup key rather than the source being transformed, and never use `for` when the argument is
+    the source itself.
 
 ## Transactions
 - Apply `@Transactional` at the **service layer** only — never on controllers or repository methods.

@@ -16,7 +16,7 @@ class CachedBodyRequestWrapperTest {
     @Test
     void getInputStream_readTwice_returnsSameBodyBothTimes() throws IOException {
 
-        var wrapper = wrapperFor(BODY);
+        var wrapper = wrapperOf(BODY);
 
         var firstRead = new String(wrapper.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         var secondRead = new String(wrapper.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -28,7 +28,7 @@ class CachedBodyRequestWrapperTest {
     @Test
     void getReader_nonAsciiBody_decodesAsUtf8() throws IOException {
 
-        var wrapper = wrapperFor(BODY);
+        var wrapper = wrapperOf(BODY);
 
         try (var reader = wrapper.getReader()) {
             assertThat(reader.readLine()).isEqualTo(BODY);
@@ -38,13 +38,13 @@ class CachedBodyRequestWrapperTest {
     @Test
     void isFinished_beforeReading_returnsFalse() throws IOException {
 
-        assertThat(wrapperFor(BODY).getInputStream().isFinished()).isFalse();
+        assertThat(wrapperOf(BODY).getInputStream().isFinished()).isFalse();
     }
 
     @Test
     void isFinished_afterConsumingBody_returnsTrue() throws IOException {
 
-        var inputStream = wrapperFor(BODY).getInputStream();
+        var inputStream = wrapperOf(BODY).getInputStream();
 
         inputStream.readAllBytes();
 
@@ -54,25 +54,25 @@ class CachedBodyRequestWrapperTest {
     @Test
     void isFinished_emptyBody_returnsTrue() throws IOException {
 
-        assertThat(wrapperFor("").getInputStream().isFinished()).isTrue();
+        assertThat(wrapperOf("").getInputStream().isFinished()).isTrue();
     }
 
     @Test
     void isReady_always_returnsTrue() throws IOException {
 
-        assertThat(wrapperFor(BODY).getInputStream().isReady()).isTrue();
+        assertThat(wrapperOf(BODY).getInputStream().isReady()).isTrue();
     }
 
     @Test
     void setReadListener_asyncReadsUnsupported_throwsUnsupportedOperation() throws IOException {
 
-        var inputStream = wrapperFor(BODY).getInputStream();
+        var inputStream = wrapperOf(BODY).getInputStream();
 
         assertThatExceptionOfType(UnsupportedOperationException.class)
             .isThrownBy(() -> inputStream.setReadListener(null));
     }
 
-    private CachedBodyRequestWrapper wrapperFor(String body) throws IOException {
+    private CachedBodyRequestWrapper wrapperOf(String body) throws IOException {
 
         var request = new MockHttpServletRequest();
         request.setContent(body.getBytes(StandardCharsets.UTF_8));

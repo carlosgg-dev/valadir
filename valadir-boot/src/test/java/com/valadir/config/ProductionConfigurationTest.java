@@ -116,7 +116,7 @@ class ProductionConfigurationTest {
 
         // Narrowing it to a subclass would leave genuine outages off the circuit. That the name still
         // resolves is not asserted here: a class that moved fails the binding of every IT context.
-        assertThat(recordedExceptionsOf("redis"))
+        assertThat(recordedExceptionsFor("redis"))
             .containsExactly("org.springframework.dao.DataAccessException");
     }
 
@@ -125,7 +125,7 @@ class ProductionConfigurationTest {
 
         // A 4xx from Turnstile is an answer, not an outage: counting it towards the circuit would
         // turn an interpretable rejection into the fail-open verdict of a provider outage.
-        assertThat(recordedExceptionsOf("captcha"))
+        assertThat(recordedExceptionsFor("captcha"))
             .containsExactly(
                 "org.springframework.web.client.ResourceAccessException",
                 "org.springframework.web.client.HttpServerErrorException")
@@ -294,7 +294,7 @@ class ProductionConfigurationTest {
             .get();
     }
 
-    private static List<String> recordedExceptionsOf(String instance) {
+    private static List<String> recordedExceptionsFor(String instance) {
 
         return PRODUCTION_CONFIGURATION
             .bind("resilience4j.circuitbreaker.instances." + instance + ".record-exceptions", Bindable.listOf(String.class))

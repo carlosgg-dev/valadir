@@ -275,7 +275,7 @@ public abstract class AuthE2ESupport {
         return requireToken(response, "refreshToken");
     }
 
-    protected List<String> sessionFingerprintsOf(String accountId) {
+    protected List<String> sessionFingerprintsFor(String accountId) {
 
         var fingerprints = redisTemplate.opsForSet().members(RedisKeySpace.forUserTokens(accountId));
 
@@ -294,7 +294,7 @@ public abstract class AuthE2ESupport {
         return RedisKeySpace.forRefreshToken(TokenFingerprint.of(refreshToken));
     }
 
-    protected String accountIdOf(String email) {
+    protected String accountIdFor(String email) {
 
         return accountJpaRepository.findByEmail(email)
             .orElseThrow()

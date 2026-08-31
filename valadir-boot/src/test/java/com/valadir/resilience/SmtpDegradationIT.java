@@ -46,7 +46,7 @@ class SmtpDegradationIT extends AbstractAuthE2EIT {
         // Answering 503 rather than 500 is what tells the caller the attempt is worth repeating.
         assertOpaqueInfrastructureFailure(response);
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
         // Nothing was delivered, so the code stored in Redis is one nobody can present.
         assertThat(accountActivationNotifier.lastOtpFor(EMAIL)).isEmpty();
@@ -141,7 +141,7 @@ class SmtpDegradationIT extends AbstractAuthE2EIT {
         assertOpaqueInfrastructureFailure(initiateResponse);
     }
 
-    private AccountStatus accountStatusOf(String email) {
+    private AccountStatus accountStatusFor(String email) {
 
         return accountJpaRepository.findByEmail(email)
             .orElseThrow()

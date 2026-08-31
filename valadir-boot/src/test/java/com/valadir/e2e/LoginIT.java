@@ -44,7 +44,7 @@ class LoginIT extends AbstractAuthE2EIT {
             .body("refreshToken", notNullValue())
             .extract().path("refreshToken");
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String tokenKey = refreshTokenKeyOf(refreshToken);
 
         assertThat(redisTemplate.opsForValue().get(tokenKey)).isEqualTo(accountId);
@@ -97,11 +97,11 @@ class LoginIT extends AbstractAuthE2EIT {
         Response secondLogin = login(EMAIL, PASSWORD);
         String secondRefreshToken = refreshTokenOf(secondLogin);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // Login adds a session, it does not replace one. This flow is what mutates the set, so it is
         // where the semantics belong — RefreshTokenIT logs in twice, but to rotate, not to assert this.
-        assertThat(sessionFingerprintsOf(accountId))
+        assertThat(sessionFingerprintsFor(accountId))
             .containsExactlyInAnyOrder(fingerprintOf(firstRefreshToken), fingerprintOf(secondRefreshToken));
     }
 

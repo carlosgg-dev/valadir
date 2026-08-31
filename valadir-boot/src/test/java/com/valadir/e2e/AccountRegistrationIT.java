@@ -50,9 +50,9 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
         // The profile travels request → command → domain → entity; only an E2E sees it land intact
         var user = userJpaRepository.findByAccountId(UUID.fromString(accountId)).orElseThrow();
@@ -92,10 +92,10 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
 
         registerAndActivate(EMAIL, PASSWORD);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
-        assertThat(accountIdOf(EMAIL)).isEqualTo(accountId);
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountIdFor(EMAIL)).isEqualTo(accountId);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
 
         register(EMAIL, PASSWORD)
             .then()
@@ -115,14 +115,14 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String abandonedAccountId = accountIdOf(EMAIL);
+        String abandonedAccountId = accountIdFor(EMAIL);
         String abandonedOtp = activationOtpFor(EMAIL);
 
         register(EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String currentAccountId = accountIdOf(EMAIL);
+        String currentAccountId = accountIdFor(EMAIL);
         String currentOtp = activationOtpFor(EMAIL);
 
         // The pending account is replaced, not duplicated: the unique email index would reject a
@@ -137,13 +137,13 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.UNAUTHORIZED.value())
             .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()));
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
         activate(EMAIL, currentOtp)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
     }
 
     @ParameterizedTest
@@ -203,7 +203,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
 
         // Registering it again in yet another case is a conflict, not a second account: without
         // normalization the unique index would take each spelling for a different address.
@@ -222,14 +222,14 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String activationOtp = activationOtpFor(EMAIL);
 
         activate(EMAIL, activationOtp)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
 
         // Single use: the code is spent on success, it does not sit around until its TTL
         assertThat(redisTemplate.hasKey(RedisKeySpace.forAccountActivationOtp(accountId))).isFalse();
@@ -254,7 +254,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
     }
 
     @Test
@@ -284,7 +284,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
 
         // A failed attempt must not burn the real code: otherwise anyone knowing the email could
         // lock the owner out of their own activation by guessing once.
@@ -313,8 +313,8 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.UNAUTHORIZED.value())
             .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()));
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
-        assertThat(accountStatusOf(SECOND_EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(SECOND_EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
     }
 
     @Test
@@ -324,7 +324,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String activationOtp = activationOtpFor(EMAIL);
 
         // What the TTL leaves behind: the account still pending, the code gone from Redis.
@@ -337,7 +337,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_ACCOUNT_ACTIVATION_OTP.getCode()))
             .body("errors", nullValue());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.PENDING_ACTIVATION);
     }
 
     @Test
@@ -347,7 +347,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String otpKey = RedisKeySpace.forAccountActivationOtp(accountId);
         String supersededOtp = activationOtpFor(EMAIL);
 
@@ -372,7 +372,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
 
-        assertThat(accountStatusOf(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(accountStatusFor(EMAIL)).isEqualTo(AccountStatus.ACTIVE);
     }
 
     @Test
@@ -380,7 +380,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
 
         registerAndActivate(EMAIL, PASSWORD);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         resendActivationCode(EMAIL)
             .then()
@@ -404,7 +404,7 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         assertThat(redisTemplate.keys(RedisKeySpace.forAccountActivationOtp("*"))).isEmpty();
     }
 
-    private AccountStatus accountStatusOf(String email) {
+    private AccountStatus accountStatusFor(String email) {
 
         return accountJpaRepository.findByEmail(email)
             .orElseThrow()

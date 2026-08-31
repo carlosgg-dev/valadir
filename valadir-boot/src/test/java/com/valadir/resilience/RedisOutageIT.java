@@ -57,8 +57,8 @@ class RedisOutageIT extends AbstractResilienceIT {
 
         Response loggedIn = login(EMAIL, PASSWORD);
         String refreshToken = refreshTokenOf(loggedIn);
-        String accountId = accountIdOf(EMAIL);
-        List<String> sessionsBeforeTheOutage = sessionFingerprintsOf(accountId);
+        String accountId = accountIdFor(EMAIL);
+        List<String> sessionsBeforeTheOutage = sessionFingerprintsFor(accountId);
 
         pauseRedis();
 
@@ -69,7 +69,7 @@ class RedisOutageIT extends AbstractResilienceIT {
         resumeRedis();
 
         // A rotation is a revoke and an issue in one script: a denial must leave neither half done.
-        assertThat(sessionFingerprintsOf(accountId)).isEqualTo(sessionsBeforeTheOutage);
+        assertThat(sessionFingerprintsFor(accountId)).isEqualTo(sessionsBeforeTheOutage);
 
         // And the token the client still holds is not spent, so the session survives the outage.
         refresh(refreshToken)

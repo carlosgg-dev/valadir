@@ -53,7 +53,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         String oldTokenKey = refreshTokenKeyOf(oldRefreshToken);
         assertThat(redisTemplate.opsForValue().get(oldTokenKey)).isNull();
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
         String newTokenKey = refreshTokenKeyOf(newRefreshToken);
 
         assertThat(redisTemplate.opsForValue().get(newTokenKey)).isEqualTo(accountId);
@@ -62,7 +62,7 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
 
         // Still exactly one session: the rotation swapped the member instead of piling up a second
         // one, so the set does not leak an entry per refresh over the token's 7-day life.
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(newRefreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(newRefreshToken));
     }
 
     @ParameterizedTest
@@ -81,10 +81,10 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
             .body("errors.field", hasItem("refreshToken"));
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // Bean Validation rejects the request before the use case runs, so nothing was rotated.
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(refreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(refreshToken));
     }
 
     @Test
@@ -104,11 +104,11 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_TOKEN.getCode()))
             .body("errors", nullValue());
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
         // The replay must not take the live session down with it: rejecting a spent token is not a
         // reason to revoke the one the legitimate user is holding.
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(newRefreshToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(newRefreshToken));
     }
 
     @Test
@@ -126,9 +126,9 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         Response refreshed = refresh(refreshingDeviceToken);
         String rotatedToken = refreshTokenOf(refreshed);
 
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
-        assertThat(sessionFingerprintsOf(accountId))
+        assertThat(sessionFingerprintsFor(accountId))
             .containsExactlyInAnyOrder(fingerprintOf(rotatedToken), fingerprintOf(bystanderDeviceToken));
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderDeviceToken)))
@@ -151,16 +151,16 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         Response refreshed = refresh(rotatingAccountToken);
         String rotatedToken = refreshTokenOf(refreshed);
 
-        String rotatingAccountId = accountIdOf(EMAIL);
-        String bystanderAccountId = accountIdOf(BYSTANDER_EMAIL);
+        String rotatingAccountId = accountIdFor(EMAIL);
+        String bystanderAccountId = accountIdFor(BYSTANDER_EMAIL);
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(rotatedToken)))
             .isEqualTo(rotatingAccountId);
-        assertThat(sessionFingerprintsOf(rotatingAccountId)).containsExactly(fingerprintOf(rotatedToken));
+        assertThat(sessionFingerprintsFor(rotatingAccountId)).containsExactly(fingerprintOf(rotatedToken));
 
         assertThat(redisTemplate.opsForValue().get(refreshTokenKeyOf(bystanderAccountToken)))
             .isEqualTo(bystanderAccountId);
-        assertThat(sessionFingerprintsOf(bystanderAccountId)).containsExactly(fingerprintOf(bystanderAccountToken));
+        assertThat(sessionFingerprintsFor(bystanderAccountId)).containsExactly(fingerprintOf(bystanderAccountToken));
     }
 
     @Test
@@ -189,9 +189,9 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.INVALID_TOKEN.getCode()));
 
         String winningToken = refreshTokenOf(accepted.getFirst());
-        String accountId = accountIdOf(EMAIL);
+        String accountId = accountIdFor(EMAIL);
 
-        assertThat(sessionFingerprintsOf(accountId)).containsExactly(fingerprintOf(winningToken));
+        assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(winningToken));
     }
 
     // Released together, so both requests reach Redis in the same window. Just submitting them would
