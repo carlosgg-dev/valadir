@@ -2,7 +2,6 @@ package com.valadir.security.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +15,8 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 
+import static com.valadir.security.redis.CircuitGuards.buildClosedCircuitBreaker;
+import static com.valadir.security.redis.CircuitGuards.buildOpenCircuitBreaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -42,7 +43,7 @@ class CaptchaVerifierTurnstileAdapterTest {
     @Test
     void isValid_disabled_returnsTrueWithoutCallingProvider() {
 
-        var adapter = new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, false, closedCircuitBreaker());
+        var adapter = new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, false, buildClosedCircuitBreaker());
 
         assertThat(adapter.isValid(null)).isTrue();
         server.verify();
@@ -105,7 +106,7 @@ class CaptchaVerifierTurnstileAdapterTest {
 
         // No expectation is registered, so the request never leaving is what keeps this green:
         // the outage is answered without paying the connect + read timeout again.
-        assertThat(enabledAdapter(openCircuitBreaker()).isValid(TOKEN)).isTrue();
+        assertThat(enabledAdapter(buildOpenCircuitBreaker()).isValid(TOKEN)).isTrue();
         server.verify();
     }
 
@@ -141,7 +142,7 @@ class CaptchaVerifierTurnstileAdapterTest {
         strictServer.expect(requestTo(VERIFY_URL))
             .andRespond(withSuccess(responseWithExtraFields, MediaType.APPLICATION_JSON));
 
-        var adapter = new CaptchaVerifierTurnstileAdapter(strictBuilder.build(), VERIFY_URL, SECRET, true, closedCircuitBreaker());
+        var adapter = new CaptchaVerifierTurnstileAdapter(strictBuilder.build(), VERIFY_URL, SECRET, true, buildClosedCircuitBreaker());
 
         assertThat(adapter.isValid(TOKEN)).isTrue();
         strictServer.verify();
@@ -149,30 +150,12 @@ class CaptchaVerifierTurnstileAdapterTest {
 
     private CaptchaVerifierTurnstileAdapter enabledAdapter() {
 
-        return enabledAdapter(closedCircuitBreaker());
+        return enabledAdapter(buildClosedCircuitBreaker());
     }
 
     private CaptchaVerifierTurnstileAdapter enabledAdapter(CircuitBreaker circuitBreaker) {
 
         return new CaptchaVerifierTurnstileAdapter(restClientBuilder.build(), VERIFY_URL, SECRET, true, circuitBreaker);
-    }
-
-    /**
-     * A fresh, closed circuit per call, so no state leaks between tests. The new registry is what
-     * makes it fresh: a shared one caches by name and would hand back the same instance, carrying
-     * its call count and state over. The default config needs 100 calls before it can open, well
-     * beyond what any test makes.
-     */
-    private static CircuitBreaker closedCircuitBreaker() {
-
-        return CircuitBreakerRegistry.ofDefaults().circuitBreaker("test");
-    }
-
-    private static CircuitBreaker openCircuitBreaker() {
-
-        var circuitBreaker = closedCircuitBreaker();
-        circuitBreaker.transitionToOpenState();
-        return circuitBreaker;
     }
 
 }
