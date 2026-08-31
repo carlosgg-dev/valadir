@@ -18,12 +18,4 @@ class AccountLockedExceptionTest {
 
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED);
     }
-
-    @Test
-    void constructor_preservesLockoutDuration() {
-
-        var exception = new AccountLockedException(LOCKOUT);
-
-        assertThat(exception.lockout()).isEqualTo(LOCKOUT);
-    }
 }

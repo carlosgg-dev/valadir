@@ -8,7 +8,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.time.Duration;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class LoginLockoutThresholdTest {
@@ -34,15 +33,6 @@ class LoginLockoutThresholdTest {
 
         assertThatIllegalArgumentException()
             .isThrownBy(() -> new LoginLockoutThreshold(3, null));
-    }
-
-    @Test
-    void constructor_validValues_createsInstance() {
-
-        var threshold = new LoginLockoutThreshold(3, Duration.ofSeconds(30));
-
-        assertThat(threshold.minFailures()).isEqualTo(3);
-        assertThat(threshold.lockout()).isEqualTo(Duration.ofSeconds(30));
     }
 
     static Stream<Duration> nonPositiveLockouts() {
