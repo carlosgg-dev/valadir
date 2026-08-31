@@ -10,7 +10,6 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.Email;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.test.mother.AccountMother;
@@ -65,8 +64,7 @@ class CompletePasswordResetServiceTest {
         var newPassword = PasswordMother.raw();
         var hashedPassword = PasswordMother.hashed();
         var accountId = AccountId.generate();
-        var email = Email.from("bruce.wayne@example.com");
-        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var account = AccountMother.active().withId(accountId).build();
         var user = UserMother.builder().withAccountId(accountId).build();
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
@@ -77,7 +75,7 @@ class CompletePasswordResetServiceTest {
 
         service.complete(command);
 
-        then(passwordSecurityService).should().validatePassword(newPassword, email, user);
+        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
         then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
         then(accountTokensInvalidator).should().invalidateAll(accountId);
@@ -123,9 +121,8 @@ class CompletePasswordResetServiceTest {
     void complete_userNotFound_throwsApplicationException() {
 
         var newPassword = PasswordMother.raw();
-        var email = Email.from("bruce.wayne@example.com");
         var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var account = AccountMother.active().withId(accountId).build();
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
@@ -147,8 +144,7 @@ class CompletePasswordResetServiceTest {
         var newPassword = PasswordMother.raw();
         var hashedPassword = PasswordMother.hashed();
         var accountId = AccountId.generate();
-        var email = Email.from("bruce.wayne@example.com");
-        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var account = AccountMother.active().withId(accountId).build();
         var user = UserMother.builder().withAccountId(accountId).build();
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
 
@@ -161,7 +157,7 @@ class CompletePasswordResetServiceTest {
 
         assertThatCode(() -> service.complete(command)).doesNotThrowAnyException();
 
-        then(passwordSecurityService).should().validatePassword(newPassword, email, user);
+        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
     }
 
@@ -170,8 +166,7 @@ class CompletePasswordResetServiceTest {
 
         var newPassword = PasswordMother.raw();
         var accountId = AccountId.generate();
-        var email = Email.from("bruce.wayne@example.com");
-        var account = AccountMother.active().withId(accountId).withEmail(email).build();
+        var account = AccountMother.active().withId(accountId).build();
         var user = UserMother.builder().withAccountId(accountId).build();
         var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
         var domainException = new DomainException("Password is insecure", ErrorCode.INSECURE_PASSWORD);
@@ -179,7 +174,7 @@ class CompletePasswordResetServiceTest {
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
         given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
         given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        willThrow(domainException).given(passwordSecurityService).validatePassword(newPassword, email, user);
+        willThrow(domainException).given(passwordSecurityService).validatePassword(newPassword, account.getEmail(), user);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.complete(command))
