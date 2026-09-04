@@ -286,6 +286,11 @@ Not defects, but things that are expensive to rediscover.
 
 - **A second password reset does not invalidate the first verification token.** Both resolve to the same account, so it
   is not a hole; the abandoned token simply lives out its 10-minute TTL.
+- **Completing a password reset lifts an active login lockout.** The failures were counted against a password that no
+  longer exists, and the reset proves ownership well beyond what the lockout was throttling. Left in place, the tier
+  would lock the owner out of the account they had just recovered — following the very advice the lockout email gives
+  them. The counter is cleared with the password and never before the verification token resolves: clearing earlier
+  would hand anyone a way to lift a lockout they never proved ownership of.
 - **Re-registering over a pending account orphans its OTP key.** `replace()` deletes the abandoned account's rows but
   not `auth:account_activation_otp:{oldAccountId}`, which lingers until its TTL holding an Argon2 hash. No account
   resolves to that id any more — do not read a stray key as a live code.

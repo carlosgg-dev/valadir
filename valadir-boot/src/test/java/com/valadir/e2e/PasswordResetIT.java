@@ -27,11 +27,18 @@ class PasswordResetIT extends AbstractAuthE2EIT {
 
     private static final String PASSWORD = "SecureP@ss123";
     private static final String NEW_PASSWORD = "AnotherP@ss456";
+    private static final String WRONG_PASSWORD = "Wrong@password123";
+    private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
 
     // Rejected before hashing: fails the RawPassword policy
     private static final String TOO_SHORT_PASSWORD = "Short1@";
     // Rejected before hashing: contains the full name
     private static final String PERSONAL_DATA_PASSWORD = "BruceWayne@1";
+
+    // Mirrors auth.lockout.*, as LoginIT does: the tier itself is pinned there, this suite only
+    // needs an account that is genuinely locked out when the reset begins.
+    private static final int FIRST_TIER_FAILURES = 5;
+    private static final Duration ATTEMPT_WINDOW = Duration.ofHours(1);
 
     // Mirror auth.password-reset.*. application-test.yml does not redeclare them, so unlike the
     // JWT TTLs these pin the production binding from application.yml.
@@ -449,6 +456,39 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         logout(accessTokenOf(loggedIn), refreshTokenOf(loggedIn))
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    @Test
+    void completePasswordReset_lockedOutAccount_signsInWithoutWaitingOutTheLockout() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+        lockOutOfLogin(EMAIL);
+
+        resetPasswordTo(EMAIL, NEW_PASSWORD);
+
+        login(EMAIL, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .body("accessToken", notNullValue())
+            .body("refreshToken", notNullValue());
+    }
+
+    // Precondition: seeded to one failure below the tier, as the resilience suite does, so the
+    // lockout comes from the real flow without driving five logins through it.
+    private void lockOutOfLogin(String email) {
+
+        redisTemplate.opsForValue()
+            .set(RedisKeySpace.forLoginAttempts(email), String.valueOf(FIRST_TIER_FAILURES - 1), ATTEMPT_WINDOW);
+
+        login(email, WRONG_PASSWORD, CAPTCHA_TOKEN)
+            .then()
+            .statusCode(HttpStatus.UNAUTHORIZED.value())
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
+
+        login(email, PASSWORD, CAPTCHA_TOKEN)
+            .then()
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
+            .body("code", equalTo(ErrorCode.ACCOUNT_TEMPORARILY_LOCKED.getCode()));
     }
 
     // Precondition: the whole reset flow, asserted step by step, so a test about what the reset

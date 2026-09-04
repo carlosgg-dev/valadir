@@ -5,6 +5,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
+import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
@@ -29,6 +30,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final AccountTokensInvalidator accountTokensInvalidator;
+    private final LoginAttemptRepository loginAttemptRepository;
 
     public CompletePasswordResetService(
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
@@ -36,7 +38,8 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        AccountTokensInvalidator accountTokensInvalidator
+        AccountTokensInvalidator accountTokensInvalidator,
+        LoginAttemptRepository loginAttemptRepository
     ) {
 
         this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
@@ -45,6 +48,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.accountTokensInvalidator = accountTokensInvalidator;
+        this.loginAttemptRepository = loginAttemptRepository;
     }
 
     @Override
@@ -67,6 +71,11 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
 
             var hashedPassword = passwordHasher.hash(rawPassword);
             accountRepository.updatePassword(accountId, hashedPassword);
+
+            // Unconditional: reading the counter first would buy nothing, since a reset without prior
+            // failures deletes nothing. Where there were failures, they were counted against a password
+            // that no longer exists, and the tier would outlive the reset that made them irrelevant.
+            loginAttemptRepository.clearAttempts(account.getEmail());
 
             revokeResetArtifactsQuietly(command.verificationToken(), accountId);
 

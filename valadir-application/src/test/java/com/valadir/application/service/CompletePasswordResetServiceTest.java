@@ -4,6 +4,7 @@ import com.valadir.application.command.CompletePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
+import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
@@ -53,6 +54,9 @@ class CompletePasswordResetServiceTest {
     @Mock
     private AccountTokensInvalidator accountTokensInvalidator;
 
+    @Mock
+    private LoginAttemptRepository loginAttemptRepository;
+
     @InjectMocks
     private CompletePasswordResetService service;
 
@@ -77,6 +81,7 @@ class CompletePasswordResetServiceTest {
 
         then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
+        then(loginAttemptRepository).should().clearAttempts(account.getEmail());
         then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
         then(accountTokensInvalidator).should().invalidateAll(accountId);
     }
@@ -94,6 +99,7 @@ class CompletePasswordResetServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
         then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
@@ -113,6 +119,7 @@ class CompletePasswordResetServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
         then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
@@ -134,6 +141,7 @@ class CompletePasswordResetServiceTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
         then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
@@ -159,6 +167,9 @@ class CompletePasswordResetServiceTest {
 
         then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
+        then(loginAttemptRepository).should().clearAttempts(any());
+
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
     @Test
@@ -182,6 +193,7 @@ class CompletePasswordResetServiceTest {
 
         then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
         then(accountRepository).should().updatePassword(accountId, hashedPassword);
+        then(loginAttemptRepository).should().clearAttempts(any());
     }
 
     @Test
@@ -205,6 +217,7 @@ class CompletePasswordResetServiceTest {
             .extracting("errorCode").isEqualTo(ErrorCode.INSECURE_PASSWORD);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 }

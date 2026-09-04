@@ -326,7 +326,8 @@ class ApplicationWiring {
         UserRepository userRepository,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
-        AccountTokensInvalidator accountTokensInvalidator
+        AccountTokensInvalidator accountTokensInvalidator,
+        LoginAttemptRepository loginAttemptRepository
     ) {
 
         return new CompletePasswordResetService(
@@ -335,7 +336,8 @@ class ApplicationWiring {
             userRepository,
             passwordHasher,
             passwordSecurityService,
-            accountTokensInvalidator
+            accountTokensInvalidator,
+            loginAttemptRepository
         );
     }
 
