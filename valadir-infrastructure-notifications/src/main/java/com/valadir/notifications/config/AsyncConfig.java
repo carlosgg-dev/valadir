@@ -33,6 +33,7 @@ class AsyncConfig implements AsyncConfigurer {
         executor.setMaxPoolSize(properties.maxPoolSize());
         executor.setQueueCapacity(properties.queueCapacity());
         executor.setThreadNamePrefix("notif-async-");
+        executor.setTaskDecorator(new MdcPropagatingTaskDecorator());
         // On saturation, drop the notification instead of letting AbortPolicy turn a login into a 500.
         // Failing open is correct under the brute-force scenario.
         executor.setRejectedExecutionHandler(

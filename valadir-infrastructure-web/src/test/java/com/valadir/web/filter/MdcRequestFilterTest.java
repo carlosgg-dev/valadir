@@ -1,7 +1,10 @@
 package com.valadir.web.filter;
 
 import com.valadir.common.mdc.MdcKeys;
+import com.valadir.domain.model.AccountId;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -20,13 +23,20 @@ class MdcRequestFilterTest {
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     private static final String EXTERNAL_REQUEST_ID = "external-request-id";
+    private static final String REQUEST_METHOD = "POST";
+    private static final String REQUEST_PATH = "/api/auth/login";
 
     private final MdcRequestFilter filter = new MdcRequestFilter();
-    private final MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
+    private final MockHttpServletRequest request = new MockHttpServletRequest(REQUEST_METHOD, REQUEST_PATH);
     private final MockHttpServletResponse response = new MockHttpServletResponse();
 
     private final Map<String, String> mdcDuringChain = new HashMap<>();
-    private final FilterChain capturingChain = (req, res) -> mdcDuringChain.putAll(MDC.getCopyOfContextMap());
+    private final FilterChain capturingChain = (req, res) -> {
+        Map<String, String> context = MDC.getCopyOfContextMap();
+        if (context != null) {
+            mdcDuringChain.putAll(context);
+        }
+    };
 
     @AfterEach
     void tearDown() {
@@ -73,8 +83,8 @@ class MdcRequestFilterTest {
         filter.doFilter(request, response, capturingChain);
 
         assertThat(mdcDuringChain)
-            .containsEntry(MdcKeys.METHOD, "POST")
-            .containsEntry(MdcKeys.PATH, "/api/auth/login")
+            .containsEntry(MdcKeys.METHOD, REQUEST_METHOD)
+            .containsEntry(MdcKeys.PATH, REQUEST_PATH)
             .containsEntry(MdcKeys.ACCOUNT_ID, MdcKeys.UNKNOWN);
     }
 
@@ -84,6 +94,34 @@ class MdcRequestFilterTest {
         filter.doFilter(request, response, capturingChain);
 
         assertThat(MDC.get(MdcKeys.REQUEST_ID)).isNull();
+    }
+
+    @Test
+    void doFilter_errorDispatch_replaysTheContextCapturedByTheRequestDispatch() throws Exception {
+
+        var accountId = AccountId.generate().value().toString();
+        FilterChain accountResolvingChain = (req, res) -> MDC.put(MdcKeys.ACCOUNT_ID, accountId);
+        filter.doFilter(request, response, accountResolvingChain);
+
+        errorDispatch();
+
+        filter.doFilter(request, response, capturingChain);
+
+        assertThat(mdcDuringChain)
+            .containsEntry(MdcKeys.REQUEST_ID, response.getHeader(REQUEST_ID_HEADER))
+            .containsEntry(MdcKeys.METHOD, REQUEST_METHOD)
+            .containsEntry(MdcKeys.PATH, REQUEST_PATH)
+            .containsEntry(MdcKeys.ACCOUNT_ID, accountId);
+    }
+
+    @Test
+    void doFilter_errorDispatchWithoutAPrecedingRequest_runsWithoutContext() throws Exception {
+
+        errorDispatch();
+
+        filter.doFilter(request, response, capturingChain);
+
+        assertThat(mdcDuringChain).isEmpty();
     }
 
     @Test
@@ -97,5 +135,17 @@ class MdcRequestFilterTest {
             .isThrownBy(() -> filter.doFilter(request, response, failingChain));
 
         assertThat(MDC.get(MdcKeys.REQUEST_ID)).isNull();
+    }
+
+    /**
+     * What the container does on its way to the error page. The error attribute is not decoration:
+     * {@code OncePerRequestFilter} reads it to decide whether to skip the dispatch, so without it the
+     * test would pass on a path production never takes.
+     */
+    private void errorDispatch() {
+
+        request.setDispatcherType(DispatcherType.ERROR);
+        request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, request.getRequestURI());
+        request.setRequestURI("/error");
     }
 }

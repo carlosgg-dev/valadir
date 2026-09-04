@@ -120,9 +120,11 @@ public class SecurityConfig {
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
             // After the MDC filter so an outage is logged with its request id, and before everything else so it wraps the JWT decoder and the rate limiter.
             .addFilterAfter(new InfrastructureFailureFilter(securityErrorResponseWriter), MdcRequestFilter.class)
+            // Before the rate limiter: both read the account from the same SecurityContext, and the
+            // other way round a 429 on /api/** is logged without the account it blocked.
+            .addFilterAfter(new MdcSecurityFilter(), BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper, httpStatusResolver), rateLimitKeyResolver),
-                            BearerTokenAuthenticationFilter.class)
-            .addFilterAfter(new MdcSecurityFilter(), RateLimitFilter.class)
+                            MdcSecurityFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, POST_PUBLIC_ROUTES).permitAll()
                 .anyRequest().authenticated()
