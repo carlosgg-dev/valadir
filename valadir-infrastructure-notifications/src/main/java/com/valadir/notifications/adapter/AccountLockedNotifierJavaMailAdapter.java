@@ -10,6 +10,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 
 import java.time.Duration;
+import java.util.Locale;
 
 public class AccountLockedNotifierJavaMailAdapter implements AccountLockedNotifier {
 
@@ -43,7 +44,7 @@ public class AccountLockedNotifierJavaMailAdapter implements AccountLockedNotifi
 
         var text = """
             We detected repeated failed sign-in attempts on your account, \
-            so it has been temporarily locked for %d minutes. \
+            so it has been temporarily locked for %s. \
             If this was you, simply try again once the lock expires. \
             If it was not you, we recommend changing your password as a precaution.\
             """;
@@ -52,7 +53,23 @@ public class AccountLockedNotifierJavaMailAdapter implements AccountLockedNotifi
         message.setFrom(fromAddress);
         message.setTo(email.value());
         message.setSubject("Valadir - suspicious sign-in activity");
-        message.setText(text.formatted(lockoutDuration.toMinutes()));
+        message.setText(String.format(Locale.ROOT, text, spellOut(lockoutDuration)));
         return message;
+    }
+
+    // The tiers are configuration: truncating to minutes would announce a "0 minutes" lockout
+    // as soon as one of them drops below a minute.
+    private static String spellOut(Duration lockoutDuration) {
+
+        long minutes = lockoutDuration.toMinutes();
+
+        return minutes > 0
+            ? pluralize(minutes, "minute")
+            : pluralize(lockoutDuration.toSeconds(), "second");
+    }
+
+    private static String pluralize(long amount, String unit) {
+
+        return String.format(Locale.ROOT, "%d %s%s", amount, unit, amount == 1 ? "" : "s");
     }
 }

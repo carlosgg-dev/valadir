@@ -13,6 +13,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.time.Duration;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -34,6 +35,12 @@ class AccountLockedNotifierJavaMailAdapterTest {
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final String TO_ADDRESS = "bruce.wayne@email.com";
     private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(30);
+    private static final Duration SUB_MINUTE_LOCKOUT = Duration.ofSeconds(45);
+    private static final Duration SINGLE_MINUTE_LOCKOUT = Duration.ofMinutes(1);
+
+    // Its numbering system renders digits as Arabic-Indic, so a %d formatted with the default
+    // locale reaches the owner as a number they cannot compare with the one they were told.
+    private static final Locale LOCALE_WITH_DIFFERENT_DIGITS = Locale.forLanguageTag("ar-EG-u-nu-arab");
 
     @BeforeEach
     void setUp() {
@@ -52,6 +59,44 @@ class AccountLockedNotifierJavaMailAdapterTest {
         assertThat(message.getTo()).containsExactly(TO_ADDRESS);
         assertThat(message.getSubject()).isEqualTo("Valadir - suspicious sign-in activity");
         assertThat(message.getText()).contains(String.valueOf(LOCKOUT_DURATION.toMinutes()));
+    }
+
+    @Test
+    void notifyAccountLocked_subMinuteLockout_reportsItInSeconds() {
+
+        adapter.notifyAccountLocked(Email.from(TO_ADDRESS), SUB_MINUTE_LOCKOUT);
+        
+        then(mailSender).should().send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getText()).contains("45 seconds");
+    }
+
+    @Test
+    void notifyAccountLocked_oneMinuteLockout_readsInSingular() {
+
+        adapter.notifyAccountLocked(Email.from(TO_ADDRESS), SINGLE_MINUTE_LOCKOUT);
+
+        then(mailSender).should().send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getText()).contains("1 minute.");
+    }
+
+    @Test
+    void notifyAccountLocked_defaultLocaleWithOtherDigits_reportsTheLockoutInWesternDigits() {
+
+        Locale defaultLocale = Locale.getDefault();
+
+        try {
+            Locale.setDefault(LOCALE_WITH_DIFFERENT_DIGITS);
+
+            adapter.notifyAccountLocked(Email.from(TO_ADDRESS), LOCKOUT_DURATION);
+
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+
+        // The wording is ours, not the reader's: where the JVM runs must not decide which digits
+        // the owner is asked to wait out.
+        then(mailSender).should().send(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getText()).contains("30 minutes");
     }
 
     @Test
