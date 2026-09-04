@@ -139,7 +139,7 @@ class CompletePasswordResetServiceTest {
     }
 
     @Test
-    void complete_redisCleanupFails_passwordUpdatedAndExceptionSwallowed() {
+    void complete_verificationTokenCleanupFails_passwordUpdatedAndExceptionSwallowed() {
 
         var newPassword = PasswordMother.raw();
         var hashedPassword = PasswordMother.hashed();
@@ -154,6 +154,29 @@ class CompletePasswordResetServiceTest {
         given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
 
         willThrow(InfrastructureException.class).given(verificationTokenRepository).delete(VERIFICATION_TOKEN);
+
+        assertThatCode(() -> service.complete(command)).doesNotThrowAnyException();
+
+        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
+        then(accountRepository).should().updatePassword(accountId, hashedPassword);
+    }
+
+    @Test
+    void complete_sessionInvalidationFails_passwordUpdatedAndExceptionSwallowed() {
+
+        var newPassword = PasswordMother.raw();
+        var hashedPassword = PasswordMother.hashed();
+        var accountId = AccountId.generate();
+        var account = AccountMother.active().withId(accountId).build();
+        var user = UserMother.builder().withAccountId(accountId).build();
+        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
+        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
+        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
+        given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
+
+        willThrow(InfrastructureException.class).given(accountTokensInvalidator).invalidateAll(accountId);
 
         assertThatCode(() -> service.complete(command)).doesNotThrowAnyException();
 

@@ -194,6 +194,38 @@ class RefreshTokenIT extends AbstractAuthE2EIT {
         assertThat(sessionFingerprintsFor(accountId)).containsExactly(fingerprintOf(winningToken));
     }
 
+    @Test
+    void refresh_twoSessionsRotatingConcurrently_keepsBothInTheSet() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response firstDeviceLogin = login(EMAIL, PASSWORD);
+        Response secondDeviceLogin = login(EMAIL, PASSWORD);
+        String firstDeviceToken = refreshTokenOf(firstDeviceLogin);
+        String secondDeviceToken = refreshTokenOf(secondDeviceLogin);
+
+        // Two devices renewing at once write to one set: each rotation has to SREM its own member
+        // and SADD the replacement without either losing the other. Split out of the Lua script,
+        // the interleaving would drop a live session and nothing else in the suite would notice.
+        List<Response> responses = concurrently(List.of(
+            () -> refresh(firstDeviceToken),
+            () -> refresh(secondDeviceToken)
+        ));
+
+        responses.forEach(response -> response.then().statusCode(HttpStatus.OK.value()));
+
+        String accountId = accountIdFor(EMAIL);
+
+        assertThat(sessionFingerprintsFor(accountId))
+            .containsExactlyInAnyOrder(
+                fingerprintOf(refreshTokenOf(responses.get(0))),
+                fingerprintOf(refreshTokenOf(responses.get(1)))
+            );
+
+        assertThat(redisTemplate.hasKey(refreshTokenKeyOf(firstDeviceToken))).isFalse();
+        assertThat(redisTemplate.hasKey(refreshTokenKeyOf(secondDeviceToken))).isFalse();
+    }
+
     // Released together, so both requests reach Redis in the same window. Just submitting them would
     // let the first finish before the second starts — no race at all, only the spent-token path
     // another case already covers.

@@ -128,6 +128,31 @@ class LogoutAllIT extends AbstractAuthE2EIT {
     }
 
     @Test
+    void logoutAll_signingInAfterwards_authenticatesAgain() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        logoutAll(accessTokenOf(login(EMAIL, PASSWORD)))
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        awaitTheNextSecond();
+
+        Response loggedInAgain = login(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+            .response();
+
+        // Closing every session must not close the account: this is the flow a user runs to sign
+        // their other devices out and keep using this one. A cutoff written into the future, or
+        // without a TTL, would deny the session they signed back into.
+        logout(accessTokenOf(loggedInAgain), refreshTokenOf(loggedInAgain))
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    @Test
     void logoutAll_withoutBearerToken_returns401AndLeavesSessionsIntact() {
 
         registerAndActivate(EMAIL, PASSWORD);

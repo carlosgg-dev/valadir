@@ -13,6 +13,7 @@ import com.valadir.web.config.ApiRoutes;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -21,6 +22,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +36,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -263,6 +266,8 @@ public abstract class AuthE2ESupport {
             .post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH);
     }
 
+    // --- End of steps
+
     // --- Readers: pull one value out of a response or the test doubles.
 
     protected String accessTokenOf(Response response) {
@@ -337,6 +342,19 @@ public abstract class AuthE2ESupport {
             .toList();
     }
 
+    private String requireToken(Response response, String field) {
+
+        String token = response.path(field);
+
+        if (token == null) {
+            throw new IllegalStateException("No %s in response (status %s)".formatted(field, response.statusCode()));
+        }
+
+        return token;
+    }
+
+    // --- End of readers
+
     // --- Preconditions: composed on the steps above, and they do assert, because a broken
     // precondition must fail on the spot instead of surfacing as a null token further down.
 
@@ -353,6 +371,8 @@ public abstract class AuthE2ESupport {
             .statusCode(HttpStatus.NO_CONTENT.value());
     }
 
+    // --- End of preconditions
+
     // --- Assertions shared by every suite that drives a dependency into failure.
 
     /**
@@ -367,6 +387,27 @@ public abstract class AuthE2ESupport {
             .containsExactly(Map.entry("code", ErrorCode.INFRASTRUCTURE_UNAVAILABLE.getCode()));
     }
 
+    // --- End of assertions
+
+    // --- Clock: crossing a tick, for the guarantees that are expressed in whole seconds.
+
+    /**
+     * A JWT carries {@code iat} in whole seconds, so a token minted within the same second as a
+     * revocation cutoff cannot be proven newer than it and is denied. Crossing the tick is what
+     * makes a test about signing in again measure the cutoff instead of that ambiguity.
+     */
+    protected static void awaitTheNextSecond() {
+
+        long secondOfTheRevocation = Instant.now().getEpochSecond();
+
+        Awaitility.await("the clock to cross into the second after the revocation")
+            .atMost(Duration.ofSeconds(2))
+            .pollInterval(Duration.ofMillis(20))
+            .until(() -> Instant.now().getEpochSecond() > secondOfTheRevocation);
+    }
+
+    // --- End of clock
+
     // --- Concurrency: the only way to exercise an atomicity guarantee over HTTP.
 
     /**
@@ -375,13 +416,22 @@ public abstract class AuthE2ESupport {
      */
     protected List<Response> concurrently(int times, Callable<Response> call) {
 
+        return concurrently(Collections.nCopies(times, call));
+    }
+
+    /**
+     * The same burst over calls that differ, for a race between two sessions rather than two
+     * attempts at one. Responses come back in the order the calls were given.
+     */
+    protected List<Response> concurrently(List<Callable<Response>> calls) {
+
         var startLine = new CountDownLatch(1);
 
-        try (var executor = Executors.newFixedThreadPool(times)) {
+        try (var executor = Executors.newFixedThreadPool(calls.size())) {
 
             // Collected before awaiting any: draining in the same pipeline would serialize the burst
-            List<Future<Response>> pending = IntStream.range(0, times)
-                .mapToObj(attempt -> executor.submit(() -> awaitThenCall(startLine, call)))
+            List<Future<Response>> pending = calls.stream()
+                .map(call -> executor.submit(() -> awaitThenCall(startLine, call)))
                 .toList();
 
             startLine.countDown();
@@ -414,14 +464,5 @@ public abstract class AuthE2ESupport {
         }
     }
 
-    private String requireToken(Response response, String field) {
-
-        String token = response.path(field);
-
-        if (token == null) {
-            throw new IllegalStateException("No %s in response (status %s)".formatted(field, response.statusCode()));
-        }
-
-        return token;
-    }
+    // --- End of concurrency
 }

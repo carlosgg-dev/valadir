@@ -4,7 +4,6 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.security.redis.TokenFingerprint;
 import io.restassured.response.Response;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -12,7 +11,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -470,19 +468,6 @@ class PasswordResetIT extends AbstractAuthE2EIT {
         completePasswordReset(verificationTokenOf(verified), newPassword)
             .then()
             .statusCode(HttpStatus.NO_CONTENT.value());
-    }
-
-    // A JWT carries iat in whole seconds, so a token minted within the same second as the cutoff
-    // cannot be proven newer than it and is denied. Crossing the tick is what makes the test above
-    // measure the cutoff instead of that ambiguity.
-    private static void awaitTheNextSecond() {
-
-        long secondOfTheReset = Instant.now().getEpochSecond();
-
-        Awaitility.await("the clock to cross into the second after the reset")
-            .atMost(Duration.ofSeconds(2))
-            .pollInterval(Duration.ofMillis(20))
-            .until(() -> Instant.now().getEpochSecond() > secondOfTheReset);
     }
 
     private static Stream<Arguments> rejectedPasswords() {
