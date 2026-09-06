@@ -5,6 +5,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.Role;
 
 public final class AccountMother {
@@ -20,7 +21,8 @@ public final class AccountMother {
             .withEmail(Email.from("bruce.wayne@example.com"))
             .withPassword(PasswordMother.hashed())
             .withRole(Role.USER)
-            .withStatus(AccountStatus.ACTIVE);
+            .withStatus(AccountStatus.ACTIVE)
+            .withLanguage(Language.EN);
     }
 
     public static Builder pendingActivation() {
@@ -30,7 +32,8 @@ public final class AccountMother {
             .withEmail(Email.from("bruce.wayne@example.com"))
             .withPassword(PasswordMother.hashed())
             .withRole(Role.USER)
-            .withStatus(AccountStatus.PENDING_ACTIVATION);
+            .withStatus(AccountStatus.PENDING_ACTIVATION)
+            .withLanguage(Language.EN);
     }
 
     public static final class Builder {
@@ -40,6 +43,7 @@ public final class AccountMother {
         private HashedPassword password;
         private Role role;
         private AccountStatus status;
+        private Language language;
 
         private Builder() {
 
@@ -75,9 +79,15 @@ public final class AccountMother {
             return this;
         }
 
+        public Builder withLanguage(Language language) {
+
+            this.language = language;
+            return this;
+        }
+
         public Account build() {
 
-            return Account.reconstitute(id, email, password, role, status);
+            return Account.reconstitute(id, email, password, role, status, language);
         }
     }
 }

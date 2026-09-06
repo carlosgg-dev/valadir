@@ -13,6 +13,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
@@ -56,6 +57,7 @@ public class RegisterService implements RegisterUseCase {
             var rawPassword = RawPassword.from(command.password());
             var fullName = FullName.from(command.fullName());
             var givenName = GivenName.from(command.givenName());
+            var language = Language.forTag(command.language());
 
             var existingAccountId = accountRepository.findByEmail(email)
                 .map(this::resolveExistingAccountId);
@@ -67,7 +69,7 @@ public class RegisterService implements RegisterUseCase {
             MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
             var hashedPassword = passwordHasher.hash(rawPassword);
-            var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER);
+            var account = Account.newPendingActivation(accountId, email, hashedPassword, Role.USER, language);
 
             if (existingAccountId.isPresent()) {
                 log.info("Re-registration: replacing an account pending activation");
@@ -76,7 +78,7 @@ public class RegisterService implements RegisterUseCase {
                 registerPersistence.save(account, user);
             }
 
-            accountActivationOtpSender.send(accountId, email);
+            accountActivationOtpSender.send(account);
 
             log.info("Registration successful, pending account activation");
 

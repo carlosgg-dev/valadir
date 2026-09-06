@@ -5,6 +5,7 @@ import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.AccountStatus;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.Role;
 import com.valadir.persistence.entity.AccountEntity;
 import org.junit.jupiter.api.Test;
@@ -15,13 +16,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AccountMapperTest {
 
+    // Deliberately not the fallback language: a mapper hardcoding EN would still pass
+    private static final Language LANGUAGE = Language.ES;
+
     @Test
     void toDomain_validEntity_mapsAllFields() {
 
         var id = UUID.randomUUID();
         var email = "bruce.wayne@email.com";
         var hashedPassword = "$2a$12$hashedpassword";
-        var entity = new AccountEntity(id, email, hashedPassword, Role.USER, AccountStatus.ACTIVE);
+        var entity = new AccountEntity(id, email, hashedPassword, Role.USER, AccountStatus.ACTIVE, LANGUAGE);
 
         Account result = AccountMapper.toDomain(entity);
 
@@ -30,6 +34,7 @@ class AccountMapperTest {
         assertThat(result.getPassword().value()).isEqualTo(hashedPassword);
         assertThat(result.getRole()).isEqualTo(Role.USER);
         assertThat(result.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(result.getLanguage()).isEqualTo(LANGUAGE);
     }
 
     @Test
@@ -44,7 +49,8 @@ class AccountMapperTest {
             Email.from(email),
             new HashedPassword(hashedPassword),
             Role.USER,
-            AccountStatus.ACTIVE
+            AccountStatus.ACTIVE,
+            LANGUAGE
         );
 
         AccountEntity result = AccountMapper.toEntity(account);
@@ -54,5 +60,6 @@ class AccountMapperTest {
         assertThat(result.getHashedPassword()).isEqualTo(hashedPassword);
         assertThat(result.getRole()).isEqualTo(Role.USER);
         assertThat(result.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(result.getLanguage()).isEqualTo(LANGUAGE);
     }
 }

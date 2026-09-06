@@ -5,6 +5,7 @@ import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.Language;
 import com.valadir.persistence.config.PersistenceWiring;
 import com.valadir.persistence.mapper.AccountMapper;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -47,7 +48,9 @@ class AccountRepositoryJpaAdapterIT {
     @Test
     void findById_existingAccount_returnsAccount() {
 
-        var account = AccountMother.active().build();
+        // Not the fallback language: the column defaults to EN, so an entity that stopped writing it
+        // would still read back as EN and this test would pass.
+        var account = AccountMother.active().withLanguage(Language.ES).build();
         var saved = jpaRepository.save(AccountMapper.toEntity(account));
 
         Optional<Account> result = adapter.findById(AccountId.from(saved.getId()));
@@ -59,6 +62,7 @@ class AccountRepositoryJpaAdapterIT {
         assertThat(retrieved.getPassword()).isEqualTo(account.getPassword());
         assertThat(retrieved.getRole()).isEqualTo(account.getRole());
         assertThat(retrieved.getStatus()).isEqualTo(account.getStatus());
+        assertThat(retrieved.getLanguage()).isEqualTo(account.getLanguage());
     }
 
     @Test

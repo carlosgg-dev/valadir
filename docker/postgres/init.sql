@@ -1,5 +1,6 @@
 CREATE TYPE user_role AS ENUM ('USER', 'ADMIN');
 CREATE TYPE account_status AS ENUM ('PENDING_ACTIVATION', 'ACTIVE');
+CREATE TYPE account_language AS ENUM ('EN', 'ES');
 
 -- Accounts: Authentication Data
 CREATE TABLE IF NOT EXISTS accounts (
@@ -8,6 +9,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     hashed_password VARCHAR(255) NOT NULL,
     role user_role DEFAULT 'USER',
     status account_status NOT NULL DEFAULT 'PENDING_ACTIVATION',
+    language account_language NOT NULL DEFAULT 'EN',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -2,10 +2,10 @@ package com.valadir.application.service;
 
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpNotification;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.Email;
+import com.valadir.domain.model.Account;
 import com.valadir.domain.model.PlainOtp;
 
 public class PasswordResetOtpSenderService implements PasswordResetOtpSender {
@@ -29,12 +29,14 @@ public class PasswordResetOtpSenderService implements PasswordResetOtpSender {
     }
 
     @Override
-    public void send(AccountId accountId, Email email) {
+    public void send(Account account) {
 
         var plainOtp = PlainOtp.generate();
         var hashedOtp = otpHasher.hash(plainOtp);
+        var ttl = passwordResetConfig.otpTtl();
 
-        otpRepository.save(accountId, hashedOtp, passwordResetConfig.otpTtl());
-        passwordResetNotifier.sendResetCode(email, plainOtp);
+        otpRepository.save(account.getId(), hashedOtp, ttl);
+        var notification = new OtpNotification(account.getEmail(), plainOtp, ttl, account.getLanguage());
+        passwordResetNotifier.sendResetCode(notification);
     }
 }

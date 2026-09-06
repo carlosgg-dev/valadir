@@ -25,6 +25,12 @@
             <groupId>com.valadir</groupId>
             <artifactId>valadir-application</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.valadir</groupId>
+            <artifactId>valadir-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- -->
 
         <!-- Spring Mail -->
@@ -40,9 +46,24 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Thymeleaf: renders the mail bodies. Deliberately not spring-boot-starter-thymeleaf,
+             which auto-configures an MVC ViewResolver this REST API has no use for. The engine is
+             built explicitly in NotificationsWiring; the version comes from the Boot BOM. -->
+        <dependency>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf-spring6</artifactId>
+        </dependency>
+
         <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers: runs Mailpit for the delivery IT -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>

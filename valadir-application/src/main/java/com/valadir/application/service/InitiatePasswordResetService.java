@@ -55,7 +55,7 @@ public class InitiatePasswordResetService implements InitiatePasswordResetUseCas
                 return;
             }
 
-            passwordResetOtpSender.send(foundAccountId, email);
+            passwordResetOtpSender.send(foundAccount);
 
             log.info("Password reset OTP sent");
 

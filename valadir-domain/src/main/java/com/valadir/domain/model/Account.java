@@ -7,29 +7,51 @@ public class Account {
     private final HashedPassword password;
     private final Role role;
     private final AccountStatus status;
+    private final Language language;
 
-    private Account(AccountId id, Email email, HashedPassword password, Role role, AccountStatus status) {
+    private Account(
+        AccountId id,
+        Email email,
+        HashedPassword password,
+        Role role,
+        AccountStatus status,
+        Language language
+    ) {
 
         this.id = id;
         this.email = email;
         this.password = password;
         this.role = role;
         this.status = status;
+        this.language = language;
     }
 
-    public static Account newPendingActivation(AccountId id, Email email, HashedPassword password, Role role) {
+    public static Account newPendingActivation(
+        AccountId id,
+        Email email,
+        HashedPassword password,
+        Role role,
+        Language language
+    ) {
 
-        return new Account(id, email, password, role, AccountStatus.PENDING_ACTIVATION);
+        return new Account(id, email, password, role, AccountStatus.PENDING_ACTIVATION, language);
     }
 
-    public static Account reconstitute(AccountId id, Email email, HashedPassword hashedPassword, Role role, AccountStatus status) {
+    public static Account reconstitute(
+        AccountId id,
+        Email email,
+        HashedPassword hashedPassword,
+        Role role,
+        AccountStatus status,
+        Language language
+    ) {
 
-        return new Account(id, email, hashedPassword, role, status);
+        return new Account(id, email, hashedPassword, role, status, language);
     }
 
     public Account activate() {
 
-        return new Account(id, email, password, role, AccountStatus.ACTIVE);
+        return new Account(id, email, password, role, AccountStatus.ACTIVE, language);
     }
 
     public boolean isActive() {
@@ -65,5 +87,10 @@ public class Account {
     public AccountStatus getStatus() {
 
         return status;
+    }
+
+    public Language getLanguage() {
+
+        return language;
     }
 }

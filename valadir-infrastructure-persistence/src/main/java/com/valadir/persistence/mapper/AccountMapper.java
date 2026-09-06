@@ -19,7 +19,8 @@ public class AccountMapper {
             Email.from(entity.getEmail()),
             new HashedPassword(entity.getHashedPassword()),
             entity.getRole(),
-            entity.getStatus()
+            entity.getStatus(),
+            entity.getLanguage()
         );
     }
 
@@ -30,7 +31,8 @@ public class AccountMapper {
             account.getEmail().value(),
             account.getPassword().value(),
             account.getRole(),
-            account.getStatus()
+            account.getStatus(),
+            account.getLanguage()
         );
     }
 }

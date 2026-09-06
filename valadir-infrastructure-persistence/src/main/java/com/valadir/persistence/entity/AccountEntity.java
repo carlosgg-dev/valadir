@@ -1,6 +1,7 @@
 package com.valadir.persistence.entity;
 
 import com.valadir.domain.model.AccountStatus;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,17 +37,23 @@ public class AccountEntity extends AuditableEntity {
     @Column(nullable = false, columnDefinition = "account_status")
     private AccountStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "account_language")
+    private Language language;
+
     protected AccountEntity() {
 
     }
 
-    public AccountEntity(UUID id, String email, String hashedPassword, Role role, AccountStatus status) {
+    public AccountEntity(UUID id, String email, String hashedPassword, Role role, AccountStatus status, Language language) {
 
         this.id = id;
         this.email = email;
         this.hashedPassword = hashedPassword;
         this.role = role;
         this.status = status;
+        this.language = language;
     }
 
     public UUID getId() {
@@ -72,5 +79,10 @@ public class AccountEntity extends AuditableEntity {
     public AccountStatus getStatus() {
 
         return status;
+    }
+
+    public Language getLanguage() {
+
+        return language;
     }
 }

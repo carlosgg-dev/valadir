@@ -1,9 +1,8 @@
 package com.valadir.application.service;
 
-import com.valadir.domain.model.AccountId;
-import com.valadir.domain.model.Email;
+import com.valadir.domain.model.Account;
 
 public interface PasswordResetOtpSender {
 
-    void send(AccountId accountId, Email email);
+    void send(Account account);
 }

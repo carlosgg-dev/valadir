@@ -48,7 +48,7 @@ class InitiatePasswordResetServiceTest {
 
         service.initiate(command);
 
-        then(passwordResetOtpSender).should().send(activeAccount.getId(), email);
+        then(passwordResetOtpSender).should().send(activeAccount);
         then(otpHasher).should(never()).decoyMatch();
     }
 
@@ -63,7 +63,7 @@ class InitiatePasswordResetServiceTest {
         service.initiate(command);
 
         then(otpHasher).should().decoyMatch();
-        then(passwordResetOtpSender).should(never()).send(any(), any());
+        then(passwordResetOtpSender).should(never()).send(any());
     }
 
     @Test
@@ -78,7 +78,7 @@ class InitiatePasswordResetServiceTest {
         service.initiate(command);
 
         then(otpHasher).should().decoyMatch();
-        then(passwordResetOtpSender).should(never()).send(any(), any());
+        then(passwordResetOtpSender).should(never()).send(any());
     }
 
     @Test

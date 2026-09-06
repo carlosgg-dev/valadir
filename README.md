@@ -51,7 +51,7 @@ Tests are split by Maven phase, so the inner loop never needs Docker:
 ./mvnw test
 
 # Full build — also runs the integration/E2E slices (Failsafe, *IT) against
-# Testcontainers Postgres + Redis. Requires Docker to be running.
+# Testcontainers Postgres, Redis + Mailpit. Requires Docker to be running.
 ./mvnw verify
 
 # Mutation coverage on the modules that carry the business logic (no Docker).

@@ -13,6 +13,7 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
 import com.valadir.domain.service.PasswordHasher;
@@ -59,6 +60,9 @@ class RegisterServiceTest {
     @InjectMocks
     private RegisterService registerService;
 
+    // Carries a region so the regional tag still has to resolve to the language we support.
+    private static final String REQUESTED_LANGUAGE_TAG = "es-ES";
+
     @Captor
     private ArgumentCaptor<Account> accountCaptor;
 
@@ -77,7 +81,8 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         given(passwordHasher.hash(rawPassword)).willReturn(hashedPassword);
 
-        registerService.register(new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value()));
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value(), REQUESTED_LANGUAGE_TAG);
+        registerService.register(command);
 
         then(registerPersistence).should().save(accountCaptor.capture(), userCaptor.capture());
         then(passwordSecurityService).should().validatePassword(rawPassword, email, userCaptor.getValue());
@@ -88,13 +93,14 @@ class RegisterServiceTest {
         assertThat(savedAccount.getPassword()).isEqualTo(hashedPassword);
         assertThat(savedAccount.getRole()).isEqualTo(Role.USER);
         assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
+        assertThat(savedAccount.getLanguage()).isEqualTo(Language.ES);
 
         var savedUser = userCaptor.getValue();
         assertThat(savedUser.getFullName()).isEqualTo(fullName);
         assertThat(savedUser.getGivenName()).isEqualTo(givenName);
         assertThat(savedUser.getAccountId()).isEqualTo(savedAccount.getId());
 
-        then(accountActivationOtpSender).should().send(savedAccount.getId(), email);
+        then(accountActivationOtpSender).should().send(savedAccount);
     }
 
     @Test
@@ -108,14 +114,14 @@ class RegisterServiceTest {
 
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existing));
 
-        RegisterCommand command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value(), REQUESTED_LANGUAGE_TAG);
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> registerService.register(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
 
         then(registerPersistence).should(never()).replace(any(), any(), any());
         then(registerPersistence).should(never()).save(any(), any());
-        then(accountActivationOtpSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any());
     }
 
     @Test
@@ -130,7 +136,7 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
         willThrow(domainException).given(passwordSecurityService).validatePassword(eq(rawPassword), eq(email), any(User.class));
 
-        RegisterCommand command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value());
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value(), REQUESTED_LANGUAGE_TAG);
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> registerService.register(command))
             .withMessage(domainException.getMessage())
@@ -139,7 +145,7 @@ class RegisterServiceTest {
             .isEqualTo(ErrorCode.INSECURE_PASSWORD);
 
         then(registerPersistence).should(never()).save(any(), any());
-        then(accountActivationOtpSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any());
     }
 
     @Test
@@ -163,7 +169,8 @@ class RegisterServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(existingAccount));
         given(passwordHasher.hash(rawPassword)).willReturn(newHashedPassword);
 
-        registerService.register(new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value()));
+        var command = new RegisterCommand(email.value(), rawPassword.value(), fullName.value(), givenName.value(), REQUESTED_LANGUAGE_TAG);
+        registerService.register(command);
 
         then(registerPersistence).should().replace(eq(existingAccountId), accountCaptor.capture(), userCaptor.capture());
         then(registerPersistence).should(never()).save(any(), any());
@@ -173,6 +180,6 @@ class RegisterServiceTest {
         assertThat(newAccount.getId()).isNotEqualTo(existingAccountId);
         assertThat(newAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(newUser.getAccountId()).isEqualTo(newAccount.getId());
-        then(accountActivationOtpSender).should().send(newAccount.getId(), email);
+        then(accountActivationOtpSender).should().send(newAccount);
     }
 }

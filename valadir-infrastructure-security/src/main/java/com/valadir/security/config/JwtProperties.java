@@ -8,7 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import java.time.Duration;
 
 @Validated
-@ConfigurationProperties(prefix = "auth.jwt")
+@ConfigurationProperties("auth.jwt")
 public record JwtProperties(
     @NotBlank String privateKey,
     @NotNull Duration accessTokenTtl,

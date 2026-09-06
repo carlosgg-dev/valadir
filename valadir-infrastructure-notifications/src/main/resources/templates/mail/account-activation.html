@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{_layout.html :: page(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px;font:700 20px/1.3 Arial,Helvetica,sans-serif;color:#1b1f24;"
+        th:text="#{mail.account-activation.heading}"></h1>
+    <p style="margin:0 0 8px;" th:text="#{mail.account-activation.intro}"></p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td align="center" style="padding:24px 0;">
+                <span style="display:inline-block;padding:16px 16px 16px 24px;background-color:#f4f5f7;border-radius:6px;
+                             font:700 32px/1.2 'Courier New',Courier,monospace;letter-spacing:8px;color:#1b1f24;"
+                      th:text="${otp}"></span>
+            </td>
+        </tr>
+    </table>
+    <p style="margin:0 0 8px;" th:text="#{mail.account-activation.expiry(${expiry})}"></p>
+    <p style="margin:0;color:#6b7280;" th:text="#{mail.common.ignore}"></p>
+</div>
+</body>
+</html>

@@ -15,6 +15,7 @@ import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.test.mother.AccountMother;
@@ -40,8 +41,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 class LoginServiceTest {
 
+    // Deliberately not the fallback language: an owner notified in EN regardless would still pass.
+    private static final Language ACCOUNT_LANGUAGE = Language.ES;
+
     private static final Account EXISTING_ACCOUNT = AccountMother.active()
         .withEmail(Email.from("bruce.wayne@email.com"))
+        .withLanguage(ACCOUNT_LANGUAGE)
         .build();
 
     @Mock
@@ -209,7 +214,7 @@ class LoginServiceTest {
             .isThrownBy(() -> service.login(command))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
 
-        then(accountLockedNotifier).should().notifyAccountLocked(email, lockout);
+        then(accountLockedNotifier).should().notifyAccountLocked(email, lockout, ACCOUNT_LANGUAGE);
         then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(authTokenIssuer).should(never()).issue(any(), any());
     }
@@ -228,7 +233,7 @@ class LoginServiceTest {
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
 
         willThrow(new InfrastructureException("Mail server unavailable"))
-            .given(accountLockedNotifier).notifyAccountLocked(email, lockout);
+            .given(accountLockedNotifier).notifyAccountLocked(email, lockout, ACCOUNT_LANGUAGE);
 
         // The lockout is already recorded, so the outage cannot undo it
         assertThatExceptionOfType(ApplicationException.class)

@@ -2,11 +2,14 @@ package com.valadir.application.service;
 
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.port.out.OtpHasher;
+import com.valadir.application.port.out.OtpNotification;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetNotifier;
-import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.PlainOtp;
+import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.OtpMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,14 @@ import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 class PasswordResetOtpSenderServiceTest {
+
+    // Deliberately not the fallback language: a notifier told EN regardless would still pass.
+    private static final Language LANGUAGE = Language.ES;
+
+    private static final Account ACCOUNT = AccountMother.active()
+        .withEmail(Email.from("bruce.wayne@email.com"))
+        .withLanguage(LANGUAGE)
+        .build();
 
     @Mock
     private PasswordResetNotifier passwordResetNotifier;
@@ -46,20 +57,20 @@ class PasswordResetOtpSenderServiceTest {
     @Test
     void send_hashesOtpPersistsAndSendsEmail() {
 
-        var accountId = AccountId.generate();
-        var email = Email.from("bruce.wayne@email.com");
         var hashedOtp = OtpMother.hashed();
         var otpTtl = Duration.ofMinutes(10);
 
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(hashedOtp);
         given(passwordResetConfig.otpTtl()).willReturn(otpTtl);
 
-        passwordResetOtpSenderService.send(accountId, email);
+        passwordResetOtpSenderService.send(ACCOUNT);
 
         then(otpHasher).should().hash(plainOtpCaptor.capture());
         var capturedOtp = plainOtpCaptor.getValue();
 
-        then(otpRepository).should().save(accountId, hashedOtp, otpTtl);
-        then(passwordResetNotifier).should().sendResetCode(email, capturedOtp);
+        then(otpRepository).should().save(ACCOUNT.getId(), hashedOtp, otpTtl);
+        // The same otpTtl on both: the expiry announced to the reader is the one actually enforced.
+        var notification = new OtpNotification(ACCOUNT.getEmail(), capturedOtp, otpTtl, LANGUAGE);
+        then(passwordResetNotifier).should().sendResetCode(notification);
     }
 }

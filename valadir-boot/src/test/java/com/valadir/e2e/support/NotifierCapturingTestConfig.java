@@ -2,9 +2,11 @@ package com.valadir.e2e.support;
 
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
+import com.valadir.application.port.out.OtpNotification;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
+import com.valadir.domain.model.Language;
 import com.valadir.domain.model.PlainOtp;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -91,17 +93,17 @@ public class NotifierCapturingTestConfig {
 
     public static class CapturingAccountActivationNotifier implements AccountActivationNotifier {
 
-        private final Mailbox<PlainOtp> mailbox = new Mailbox<>();
+        private final Mailbox<OtpNotification> mailbox = new Mailbox<>();
 
         @Override
-        public void sendActivationCode(Email email, PlainOtp plainOtp) {
+        public void sendActivationCode(OtpNotification notification) {
 
-            mailbox.deliver(email, plainOtp);
+            mailbox.deliver(notification.email(), notification);
         }
 
         public Optional<PlainOtp> lastOtpFor(String email) {
 
-            return mailbox.lastFor(email);
+            return mailbox.lastFor(email).map(OtpNotification::otp);
         }
 
         public void failNextSend() {
@@ -117,17 +119,17 @@ public class NotifierCapturingTestConfig {
 
     public static class CapturingPasswordResetNotifier implements PasswordResetNotifier {
 
-        private final Mailbox<PlainOtp> mailbox = new Mailbox<>();
+        private final Mailbox<OtpNotification> mailbox = new Mailbox<>();
 
         @Override
-        public void sendResetCode(Email email, PlainOtp plainOtp) {
+        public void sendResetCode(OtpNotification notification) {
 
-            mailbox.deliver(email, plainOtp);
+            mailbox.deliver(notification.email(), notification);
         }
 
         public Optional<PlainOtp> lastOtpFor(String email) {
 
-            return mailbox.lastFor(email);
+            return mailbox.lastFor(email).map(OtpNotification::otp);
         }
 
         public void failNextSend() {
@@ -150,7 +152,7 @@ public class NotifierCapturingTestConfig {
         private final Mailbox<Duration> mailbox = new Mailbox<>();
 
         @Override
-        public void notifyAccountLocked(Email email, Duration lockoutDuration) {
+        public void notifyAccountLocked(Email email, Duration lockoutDuration, Language language) {
 
             mailbox.deliver(email, lockoutDuration);
         }

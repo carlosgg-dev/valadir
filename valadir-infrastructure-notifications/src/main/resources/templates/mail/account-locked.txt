@@ -1,0 +1,8 @@
+[(#{mail.account-locked.heading})]
+
+[(#{mail.account-locked.body(${lockout})})]
+
+[(#{mail.account-locked.advice})]
+
+--
+[(#{mail.common.footer})]

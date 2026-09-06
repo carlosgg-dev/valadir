@@ -37,7 +37,7 @@ public class ResendAccountActivationCodeService implements ResendAccountActivati
                         log.warn("Resend account activation OTP attempted for already active account");
                         return;
                     }
-                    accountActivationOtpSender.send(account.getId(), email);
+                    accountActivationOtpSender.send(account);
                     log.info("Account activation OTP resent");
                 },
                 () -> log.warn("Resend account activation OTP attempted for unknown email")

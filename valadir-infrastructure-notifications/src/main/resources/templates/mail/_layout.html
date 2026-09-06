@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="page(content)" th:lang="${#locale.language}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Valadir</title>
+</head>
+<!--/* Tables, inline CSS and align attributes throughout: mail clients drop style blocks and know
+        nothing of flexbox or grid, so this is what centring actually survives on. */-->
+<body style="margin:0;padding:0;background-color:#f4f5f7;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f4f5f7;margin:0;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+                   style="width:600px;max-width:100%;background-color:#ffffff;border:1px solid #e3e5e8;border-radius:8px;">
+                <tr>
+                    <td style="padding:20px 32px;border-bottom:1px solid #e3e5e8;
+                               font:700 18px/1.2 Arial,Helvetica,sans-serif;color:#1b1f24;">
+                        Valadir
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#1b1f24;">
+                        <th:block th:replace="${content}"></th:block>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:20px 32px;border-top:1px solid #e3e5e8;
+                               font:400 12px/1.5 Arial,Helvetica,sans-serif;color:#6b7280;"
+                        th:text="#{mail.common.footer}"></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Locale;
+
 @RestController
 @RequestMapping(ApiRoutes.Auth.BASE)
 class AccountRegistrationController {
@@ -39,13 +41,17 @@ class AccountRegistrationController {
 
     @PostMapping(ApiRoutes.Auth.Registration.REGISTER)
     @ResponseStatus(HttpStatus.CREATED)
-    void register(@Valid @RequestBody RegisterRequest request) {
+    void register(@Valid @RequestBody RegisterRequest request, Locale locale) {
+
+        // Locale: filled in by Spring from Accept-Language. LocaleConfig is what makes a request without
+        // that header answer English rather than the language of the machine running the service.
 
         registerUseCase.register(new RegisterCommand(
             request.email(),
             request.password(),
             request.fullName(),
-            request.givenName()
+            request.givenName(),
+            locale.toLanguageTag()
         ));
     }
 

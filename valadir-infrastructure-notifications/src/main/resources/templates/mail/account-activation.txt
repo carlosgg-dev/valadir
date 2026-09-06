@@ -1,0 +1,12 @@
+[(#{mail.account-activation.heading})]
+
+[(#{mail.account-activation.intro})]
+
+    [(${otp})]
+
+[(#{mail.account-activation.expiry(${expiry})})]
+
+[(#{mail.common.ignore})]
+
+--
+[(#{mail.common.footer})]

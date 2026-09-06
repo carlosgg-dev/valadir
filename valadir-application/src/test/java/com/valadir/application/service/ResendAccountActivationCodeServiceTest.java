@@ -43,7 +43,7 @@ class ResendAccountActivationCodeServiceTest {
 
         resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
-        then(accountActivationOtpSender).should().send(account.getId(), email);
+        then(accountActivationOtpSender).should().send(account);
     }
 
     @Test
@@ -55,7 +55,7 @@ class ResendAccountActivationCodeServiceTest {
 
         resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
-        then(accountActivationOtpSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any());
     }
 
     @Test
@@ -68,7 +68,7 @@ class ResendAccountActivationCodeServiceTest {
 
         resendAccountActivationCodeService.resend(new ResendAccountActivationCodeCommand(email.value()));
 
-        then(accountActivationOtpSender).should(never()).send(any(), any());
+        then(accountActivationOtpSender).should(never()).send(any());
     }
 
     @Test
