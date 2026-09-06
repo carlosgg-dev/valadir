@@ -278,7 +278,37 @@ the order the tiers appear in the file is legibility, not a guarantee.
 
 Four values never appear in the file at all: `JWT_PRIVATE_KEY`, `TURNSTILE_SECRET`, `DATABASE_PASSWORD` and
 `REDIS_PASSWORD` are `${…}` placeholders, and stay that way. A real secret pasted into a versioned file is the one
-mistake a revert cannot undo.
+mistake a revert cannot undo. `DATABASE_URL` and `DATABASE_USER` are placeholders without being secrets, and the same
+assertion covers them: what it pins is not the four that must stay hidden, it is the six a deployment has to supply,
+which makes it the one executable statement of what this application needs from its environment.
+
+### What startup does not check
+
+Availability. It is not a stable fact — true when checked and false a second later — and the system already answers it
+above, with the retryable 503 and the breaker. A connectivity probe at startup would guarantee nothing past the instant
+it ran, while turning a Redis restart into a process that refuses to come up: a policy that degrades, replaced by one
+that stops.
+
+One dependency is coupled to startup anyway, and not by choice: `ddl-auto: update` runs the schema update while the
+`EntityManagerFactory` is built, so without Postgres there is no context. Redis and SMTP couple nothing — Lettuce and
+JavaMail both connect lazily. Setting `initialization-fail-timeout: 0` on Hikari would read as a decoupling while
+`ddl-auto` still holds the coupling in place, so the coupling is stated here instead of being papered over by a line
+that does not remove it.
+
+Presence of the variables themselves is not checked either, beyond what each value's own consumer already enforces —
+which, measured one variable at a time against a running deployment, is all of them but one. An empty `DATABASE_URL`,
+`DATABASE_USER` or `DATABASE_PASSWORD` fails on the Postgres coupling just described; an empty `JWT_PRIVATE_KEY` fails
+`JwtProperties`' `@NotBlank`; an empty `TURNSTILE_SECRET` fails `CaptchaProperties`' guard. The exception is in Known
+Behaviours below. A startup-wide environment check was built and removed: six variables of machinery to close one case
+that the file's own placeholder map already documents.
+
+Only two of those five are guards by design, and the difference decides what survives a change made for other reasons.
+`@NotBlank` and the CAPTCHA guard validate where the value enters and hold whatever else moves. The three datasource
+ones are covered by a side effect of needing a schema, and it is the whole of their cover: with `ddl-auto: none` the
+same empty `DATABASE_PASSWORD` starts, because Hikari builds its pool lazily and Hibernate is what asks for the first
+connection. Measured, not reasoned. So the day a migration tool lands and `ddl-auto` leaves `update`, three variables
+lose their net at once and nothing turns red to say so — and an empty `TURNSTILE_SECRET` starts too the day the CAPTCHA
+is switched off, since that guard is conditional on `enabled`.
 
 ## Known Behaviours
 
@@ -296,6 +326,11 @@ Not defects, but things that are expensive to rediscover.
   resolves to that id any more — do not read a stray key as a live code.
 - **A rate-limited request still enters the window.** The sliding-window log `ZADD`s before deciding, so a client
   hammering past its limit keeps pushing its own reset forward. Intended.
+- **An empty `REDIS_PASSWORD` starts and then fails every request.** It is the one variable whose consumer does not
+  check it: Lettuce connects lazily, so an empty password resolves, the context comes up, and each request answers 503
+  `INFRASTRUCTURE_UNAVAILABLE` once the first Redis call is refused. Read a total Redis outage on a fresh deployment as
+  a credential that never arrived before reading it as an outage. Absent, rather than empty, still fails at startup on
+  the unresolved placeholder.
 - **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
   the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
   all, `MALFORMED_REQUEST` included.

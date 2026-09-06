@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -273,13 +274,19 @@ class ProductionConfigurationTest {
     }
 
     @Test
-    void secrets_productionConfiguration_comeFromTheEnvironment() {
+    void placeholders_productionConfiguration_areExactlyTheOnesTheEnvironmentSupplies() {
 
-        // Guards the one mistake a revert cannot undo: pasting a real secret into a versioned file.
-        assertThat(string("auth.jwt.private-key")).isEqualTo("${JWT_PRIVATE_KEY}");
-        assertThat(string("auth.captcha.secret")).isEqualTo("${TURNSTILE_SECRET}");
-        assertThat(string("spring.datasource.password")).isEqualTo("${DATABASE_PASSWORD}");
-        assertThat(string("spring.data.redis.password")).isEqualTo("${REDIS_PASSWORD}");
+        // Guards the mistake a revert cannot undo — a real secret pasted into a versioned file
+        // drops its key from this map — and says which value each variable feeds. The two that
+        // are not secrets belong here too: what this pins is not the four that must stay hidden,
+        // it is the six a deployment has to supply.
+        assertThat(placeholdersOf(PRODUCTION)).containsExactlyInAnyOrderEntriesOf(Map.of(
+            "spring.datasource.url", "DATABASE_URL",
+            "spring.datasource.username", "DATABASE_USER",
+            "spring.datasource.password", "DATABASE_PASSWORD",
+            "spring.data.redis.password", "REDIS_PASSWORD",
+            "auth.captcha.secret", "TURNSTILE_SECRET",
+            "auth.jwt.private-key", "JWT_PRIVATE_KEY"));
     }
 
     private static Binder binderOver(Resource resource) {
@@ -311,14 +318,22 @@ class ProductionConfigurationTest {
         return PRODUCTION_CONFIGURATION.bind(key, Integer.class).get();
     }
 
-    private static String string(String key) {
-
-        return PRODUCTION_CONFIGURATION.bind(key, String.class).get();
-    }
-
     private static Map<String, String> entries(String key) {
 
         return PRODUCTION_CONFIGURATION.bind(key, Bindable.mapOf(String.class, String.class)).get();
+    }
+
+    /** Each key that reads a placeholder, mapped to the variable name behind it. */
+    private static Map<String, String> placeholdersOf(Resource resource) {
+
+        return propertiesOf(resource).entrySet().stream()
+            .filter(entry -> entry.getValue().toString().startsWith("${"))
+            .collect(toMap(Map.Entry::getKey, entry -> variableIn(entry.getValue().toString())));
+    }
+
+    private static String variableIn(String placeholder) {
+
+        return placeholder.substring("${".length(), placeholder.length() - "}".length());
     }
 
     private static Set<String> keysOf(Resource resource) {

@@ -42,6 +42,19 @@ The project uses Docker to manage its external dependencies for local developmen
 docker compose -f docker/docker-compose.yml --env-file .env up -d
 ```
 
+### Running the Application
+
+The `--env-file` above feeds Docker Compose, not the JVM. The application reads the same variables from its own
+environment:
+
+```bash
+set -a; source .env; set +a
+./mvnw -pl valadir-boot spring-boot:run
+```
+
+`JWT_PRIVATE_KEY` is a JSON document and must stay single-quoted in `.env`, or sourcing the file strips its quotes and
+the key fails to parse at startup. `.env.example` shows the form.
+
 ### Build and Test
 
 Tests are split by Maven phase, so the inner loop never needs Docker:
