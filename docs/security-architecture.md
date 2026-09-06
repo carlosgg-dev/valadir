@@ -296,19 +296,23 @@ JavaMail both connect lazily. Setting `initialization-fail-timeout: 0` on Hikari
 that does not remove it.
 
 Presence of the variables themselves is not checked either, beyond what each value's own consumer already enforces —
-which, measured one variable at a time against a running deployment, is all of them but one. An empty `DATABASE_URL`,
-`DATABASE_USER` or `DATABASE_PASSWORD` fails on the Postgres coupling just described; an empty `JWT_PRIVATE_KEY` fails
-`JwtProperties`' `@NotBlank`; an empty `TURNSTILE_SECRET` fails `CaptchaProperties`' guard. The exception is in Known
+which, measured one variable at a time against a running deployment, is all of them but one. An empty `DATABASE_URL`
+is not a URL and the driver refuses it on its own; an empty `DATABASE_USER` or `DATABASE_PASSWORD` fails on the
+Postgres coupling just described; an empty `JWT_PRIVATE_KEY` fails `JwtProperties`' `@NotBlank`; an empty
+`TURNSTILE_SECRET` fails `CaptchaProperties`' guard. The exception is in Known
 Behaviours below. A startup-wide environment check was built and removed: six variables of machinery to close one case
 that the file's own placeholder map already documents.
 
 Only two of those five are guards by design, and the difference decides what survives a change made for other reasons.
-`@NotBlank` and the CAPTCHA guard validate where the value enters and hold whatever else moves. The three datasource
-ones are covered by a side effect of needing a schema, and it is the whole of their cover: with `ddl-auto: none` the
-same empty `DATABASE_PASSWORD` starts, because Hikari builds its pool lazily and Hibernate is what asks for the first
-connection. Measured, not reasoned. So the day a migration tool lands and `ddl-auto` leaves `update`, three variables
-lose their net at once and nothing turns red to say so — and an empty `TURNSTILE_SECRET` starts too the day the CAPTCHA
-is switched off, since that guard is conditional on `enabled`.
+`@NotBlank` and the CAPTCHA guard validate where the value enters and hold whatever else moves. The credentials — the
+user and the password, not the URL — are covered by a side effect of needing a schema, and it is the whole of their
+cover: with `ddl-auto: none` both start on an empty value, because Hikari builds its pool lazily and Hibernate is what
+asks for the first connection. Measured, not reasoned. So the day a migration tool lands and `ddl-auto` leaves
+`update`, both lose their net at once. What goes red then is `values_bootTestConfiguration_neverRepeatTheProductionOne`,
+since `application-test.yml` already overrides `ddl-auto` to `none` and the override would turn redundant — an alarm
+for the change, but not for what the change costs, which is what this paragraph is for. Nothing plays even that role
+for `TURNSTILE_SECRET`, whose guard is conditional on `enabled` and so stops covering it the day the CAPTCHA is
+switched off.
 
 ## Known Behaviours
 
@@ -326,11 +330,17 @@ Not defects, but things that are expensive to rediscover.
   resolves to that id any more — do not read a stray key as a live code.
 - **A rate-limited request still enters the window.** The sliding-window log `ZADD`s before deciding, so a client
   hammering past its limit keeps pushing its own reset forward. Intended.
-- **An empty `REDIS_PASSWORD` starts and then fails every request.** It is the one variable whose consumer does not
-  check it: Lettuce connects lazily, so an empty password resolves, the context comes up, and each request answers 503
-  `INFRASTRUCTURE_UNAVAILABLE` once the first Redis call is refused. Read a total Redis outage on a fresh deployment as
-  a credential that never arrived before reading it as an outage. Absent, rather than empty, still fails at startup on
-  the unresolved placeholder.
+- **An empty `REDIS_PASSWORD` starts and then fails every request.** Lettuce connects lazily, so the empty password
+  resolves, the context comes up, and each request answers 503 `INFRASTRUCTURE_UNAVAILABLE` once the first Redis call
+  is refused. Read a total Redis outage on a fresh deployment as a credential that never arrived before reading it as
+  an outage. Absent, rather than empty, still fails at startup on the unresolved placeholder.
+
+  It is the one required value **no local check could catch**, and not for want of one. An empty Redis password is not
+  a malformed value the way an empty JDBC URL or an empty JWK is — it is a valid configuration meaning *Redis without
+  authentication*, which is exactly what `application-test.yml` declares for the Testcontainers instance. Nothing is
+  wrong with the value; what is wrong is that it disagrees with the server, and only the server knows that. Demanding a
+  non-empty password at startup would not be validating the value, it would be deciding that every deployment
+  authenticates to Redis — a policy in a validator's clothing, and wrong on the day one does not.
 - **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
   the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
   all, `MALFORMED_REQUEST` included.
