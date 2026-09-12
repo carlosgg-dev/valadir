@@ -58,12 +58,6 @@ public class DatabasePausingOtpHasherConfig {
             return delegate.matches(plainOtp, hashedOtp);
         }
 
-        @Override
-        public void decoyMatch() {
-
-            delegate.decoyMatch();
-        }
-
         public void pauseDatabaseBeforeNextMatch() {
 
             pauseBeforeNextMatch.set(true);

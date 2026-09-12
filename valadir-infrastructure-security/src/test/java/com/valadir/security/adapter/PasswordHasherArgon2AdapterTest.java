@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class PasswordHasherArgon2AdapterTest {
 
@@ -39,11 +38,5 @@ class PasswordHasherArgon2AdapterTest {
         var otherPassword = RawPassword.from("Different#Pass99");
 
         assertThat(hasher.matches(otherPassword, hasher.hash(RAW_PASSWORD))).isFalse();
-    }
-
-    @Test
-    void decoyMatch_anyPassword_doesNotThrow() {
-
-        assertThatCode(() -> hasher.decoyMatch(RAW_PASSWORD)).doesNotThrowAnyException();
     }
 }

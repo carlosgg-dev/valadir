@@ -3,7 +3,6 @@ package com.valadir.application.service;
 import com.valadir.application.command.InitiatePasswordResetCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
-import com.valadir.application.port.out.OtpHasher;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Email;
@@ -29,9 +28,6 @@ class InitiatePasswordResetServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private OtpHasher otpHasher;
-
-    @Mock
     private PasswordResetOtpSender passwordResetOtpSender;
 
     @InjectMocks
@@ -49,11 +45,10 @@ class InitiatePasswordResetServiceTest {
         service.initiate(command);
 
         then(passwordResetOtpSender).should().send(activeAccount);
-        then(otpHasher).should(never()).decoyMatch();
     }
 
     @Test
-    void initiate_accountNotFound_decoyMatchAndReturnsSilently() {
+    void initiate_accountNotFound_returnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
         var command = new InitiatePasswordResetCommand(email.value());
@@ -62,12 +57,11 @@ class InitiatePasswordResetServiceTest {
 
         service.initiate(command);
 
-        then(otpHasher).should().decoyMatch();
         then(passwordResetOtpSender).should(never()).send(any());
     }
 
     @Test
-    void initiate_pendingActivationAccount_decoyMatchAndReturnsSilently() {
+    void initiate_pendingActivationAccount_returnsSilently() {
 
         var email = Email.from("bruce.wayne@email.com");
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
@@ -77,7 +71,6 @@ class InitiatePasswordResetServiceTest {
 
         service.initiate(command);
 
-        then(otpHasher).should().decoyMatch();
         then(passwordResetOtpSender).should(never()).send(any());
     }
 

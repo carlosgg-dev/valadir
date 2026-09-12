@@ -294,11 +294,10 @@ class ApplicationWiring {
     @Bean
     InitiatePasswordResetUseCase initiatePasswordResetUseCase(
         AccountRepository accountRepository,
-        OtpHasher otpHasher,
         PasswordResetOtpSender passwordResetOtpSender
     ) {
 
-        return new InitiatePasswordResetService(accountRepository, otpHasher, passwordResetOtpSender);
+        return new InitiatePasswordResetService(accountRepository, passwordResetOtpSender);
     }
 
     @Bean

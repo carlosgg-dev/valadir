@@ -8,8 +8,4 @@ public interface PasswordHasher {
     HashedPassword hash(RawPassword password);
 
     boolean matches(RawPassword rawPassword, HashedPassword hashedPassword);
-
-    // Runs the same hashing work as matches() against a decoy and discards the result.
-    // Call when the target hash does not exist to prevent timing-based account enumeration.
-    void decoyMatch(RawPassword rawPassword);
 }

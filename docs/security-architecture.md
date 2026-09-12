@@ -94,6 +94,42 @@ There is no Flyway/Liquibase in the project, and `docker/postgres/init.sql` only
 before this normalisation landed needs a one-off `UPDATE accounts SET email = lower(email);`, or rows written earlier
 stay unreachable by the normalised lookups.
 
+## Account Enumeration
+
+`register` answers **409 `EMAIL_ALREADY_EXISTS`** for an address that already holds an active account. That is the front
+door, and it publishes the answer in one request, deterministically and without measurement noise. Every other
+email-keyed flow is built not to repeat it: `login` answers one `CREDENTIAL_INTEGRITY_ERROR` whether the address is
+unknown or the password is wrong, `account-activation` and password-reset *verify* collapse their negative branches into
+a single 401, and *resend* and password-reset *initiate* answer 204 on every branch. The failed-attempt counter is
+written for addresses that were never registered, so the CAPTCHA step-up and the lockout escalate identically against a
+phantom account — without that, crossing the threshold would itself be the oracle.
+
+What uniform bodies do not cover is response time, and a decoy Argon2 hash used to sit in three of these flows to close
+it. They were removed, and the reasons are worth stating, because the instinct to add them back is strong.
+
+A decoy equalises only what it imitates. In password-reset *initiate* the branch that finds an account sends its mail
+synchronously — it must, since the flow answers 503 when SMTP is down — so hashing on the empty branch leaves the entire
+SMTP round trip unequalised, a term that is neither bounded nor known and that moves with the deployment's mail path. It
+equalised one half of a difference the caller can still see.
+
+In password-reset *verify* the decoy **created** the channel it was meant to close. `getAccount` hashed when the address
+was unknown, while a missing OTP key returned without hashing, so an unknown address answered *slower* than a registered
+one carrying no live code — which is the probe an attacker actually runs, having no code for an address they are
+testing. Closing that honestly means a decoy behind every negative branch, the absent Redis key included, in `verify`
+and in `account-activation` alike. `account-activation` never had one; it now lacks one by the same criterion rather
+than by oversight.
+
+None of it was worth building, because of how little it hid. A `201` from `register` means the address is either free or
+held by a **pending** account, which the call then replaces. So the one fact the timing concealed is *"a pending
+activation exists for this address"* — a state the purge removes within 72h, which grants nothing and which a single
+call to `register` destroys anyway. Targeted enumeration is answered by the front door in one request; bulk enumeration
+is what the rate-limit rules bound. The decoys covered the second case, which was covered already, and never covered the
+first.
+
+**This makes `register`'s 409 load-bearing.** Closing it — for privacy, for compliance, for any reason — would not merely
+change one status code: it would make account existence a secret again, and the policy above would have to be rebuilt
+before that claim held.
+
 ## Failure Policy
 
 In an authentication system, the failure mode is a security property, not an operational detail. The rule is:

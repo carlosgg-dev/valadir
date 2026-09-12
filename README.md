@@ -20,8 +20,8 @@ infrastructure concerns.
 
 ## Documentation
 
-- [Security Architecture](docs/security-architecture.md) — token strategy, Redis usage, session ownership, and how the
-  system behaves when Postgres, Redis or SMTP are unavailable.
+- [Security Architecture](docs/security-architecture.md) — token strategy, Redis usage, session ownership, account
+  enumeration, and how the system behaves when Postgres, Redis or SMTP are unavailable.
 
 ## Getting Started
 

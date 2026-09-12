@@ -13,7 +13,6 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.DomainException;
-import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.PlainOtp;
@@ -55,7 +54,9 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
             var email = Email.from(command.email());
             var plainOtp = PlainOtp.from(command.plainOtp());
 
-            var foundAccount = getAccount(email);
+            var foundAccount = accountRepository.findByEmail(email)
+                .orElseThrow(this::applicationException);
+
             AccountId foundAccountId = foundAccount.getId();
             MDC.put(MdcKeys.ACCOUNT_ID, foundAccountId.value().toString());
 
@@ -78,19 +79,6 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
         } catch (DomainException e) {
             throw ApplicationException.translate(e);
         }
-    }
-
-    private Account getAccount(Email email) {
-
-        var account = accountRepository.findByEmail(email);
-
-        if (account.isEmpty()) {
-            // Prevent timing-based account enumeration: simulate the OTP hashing cost.
-            otpHasher.decoyMatch();
-            throw applicationException();
-        }
-
-        return account.get();
     }
 
     private ApplicationException applicationException() {

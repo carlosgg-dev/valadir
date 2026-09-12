@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class OtpHasherArgon2AdapterTest {
 
@@ -37,11 +36,5 @@ class OtpHasherArgon2AdapterTest {
     void matches_incorrectOtp_returnsFalse() {
 
         assertThat(hasher.matches(PlainOtp.generate(), hasher.hash(PLAIN_OTP))).isFalse();
-    }
-
-    @Test
-    void decoyMatch_doesNotThrow() {
-
-        assertThatCode(hasher::decoyMatch).doesNotThrowAnyException();
     }
 }
