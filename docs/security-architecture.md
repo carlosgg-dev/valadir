@@ -253,13 +253,18 @@ behind an ordinary authentication failure.
 ## Configuration Integrity
 
 Every guarantee above is a number in `application.yml` — the deadlines, the breaker thresholds, the lockout tiers, the
-fourteen rate-limit rules. A misspelled key does not fail: it falls back to a default in silence, and whatever it fed
+rate-limit rules. A misspelled key does not fail: it falls back to a default in silence, and whatever it fed
 quietly stops holding. Two mechanisms close that, one per source of the value.
 
 What the **versioned file** binds is pinned by `ProductionConfigurationTest`, which binds `application.yml` with
-Spring's own `Binder` and asserts the values in effect together with the full key set. A typo is not a changed value: it
-is a key that stops existing while a stranger appears beside it, which is why the key set is asserted and not only the
-numbers.
+Spring's own `Binder` and asserts the values in effect. A typo is not a changed value: it is a key that stops existing,
+so the binding of an asserted key fails rather than reporting a different number. That covers a key only while something
+asserts it, and the keys nothing asserts fall into two groups: one read through `@Value` leaves a placeholder unresolved
+and no context starts at all, and the rest answer with a framework default. Only four of those defaults are harmful
+rather than merely different — `open-in-view`, `ddl-auto`, `default-property-inclusion` and
+`write-dates-as-timestamps` — and each is asserted by value for that reason. An inventory of every key in the file was
+the earlier answer here; it went red on each legitimate addition, and a guard that asks to be edited to go green is
+eventually edited without being read.
 
 What a **deployment** binds — environment variables, profile overrides — no test can see, so the application refuses to
 start on a configuration that did not bind. The degree of the guard follows the shape of the rule: declarative

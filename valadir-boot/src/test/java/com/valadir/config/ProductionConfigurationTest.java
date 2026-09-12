@@ -43,9 +43,12 @@ class ProductionConfigurationTest {
 
     // By path because they belong to other modules: test resources are not published, so they never
     // reach this classpath.
+    private static final Resource SECURITY_TEST_CONFIGURATION =
+        new FileSystemResource("../valadir-infrastructure-security/src/test/resources/application-test.yml");
+
     private static final List<Resource> TEST_CONFIGURATIONS = List.of(
         BOOT_TEST_CONFIGURATION,
-        new FileSystemResource("../valadir-infrastructure-security/src/test/resources/application-test.yml"),
+        SECURITY_TEST_CONFIGURATION,
         new FileSystemResource("../valadir-infrastructure-persistence/src/test/resources/application.yml"));
 
     private static final Binder PRODUCTION_CONFIGURATION = binderOver(PRODUCTION);
@@ -55,7 +58,7 @@ class ProductionConfigurationTest {
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
 
     @Test
-    void rateLimitRules_productionConfiguration_bindTheFourteenIntendedBuckets() {
+    void rateLimitRules_productionConfiguration_bindEveryIntendedBucketInOrder() {
 
         var rateLimit = PRODUCTION_CONFIGURATION.bind("rate-limit", RateLimitProperties.class).get();
 
@@ -159,87 +162,25 @@ class ProductionConfigurationTest {
     }
 
     @Test
-    void keys_productionConfiguration_areExactlyTheDeclaredOnes() {
+    void harmfulFrameworkDefaults_productionConfiguration_areEachOverridden() {
 
-        // Asserting values only protects the keys they name. This protects the rest: a typo is not a
-        // changed value, it is a key that stops existing while a stranger appears beside it.
-        assertThat(keysOf(PRODUCTION)).containsExactlyInAnyOrder(
-            "server.port",
-            "spring.application.name",
-            "spring.jackson.default-property-inclusion",
-            "spring.jackson.serialization.write-dates-as-timestamps",
+        // Only the keys whose absence is not an error but an answer we do not want, and the binding
+        // below fails the moment one of them is misspelled. The rest of the file needs no second
+        // guardian: a typo under a namespace asserted above breaks that assertion, and a typo in a key
+        // read through @Value leaves a placeholder unresolved, so no context starts at all.
 
-            "spring.datasource.url",
-            "spring.datasource.username",
-            "spring.datasource.password",
-            "spring.datasource.driver-class-name",
-            "spring.datasource.hikari.connection-timeout",
-            "spring.datasource.hikari.data-source-properties.socketTimeout",
+        // Defaults to true, announced only as a log line: lazy loading keeps working in the web layer,
+        // so an N+1 introduced behind a view renders correctly here and degrades in production.
+        assertThat(bool("spring.jpa.open-in-view")).isFalse();
 
-            "spring.jpa.hibernate.ddl-auto",
-            "spring.jpa.properties.hibernate.dialect",
-            "spring.jpa.show-sql",
-            "spring.jpa.open-in-view",
+        // Defaults to none against a real database: the schema silently stops following the entities.
+        assertThat(string("spring.jpa.hibernate.ddl-auto")).isEqualTo("update");
 
-            "spring.data.redis.host",
-            "spring.data.redis.port",
-            "spring.data.redis.password",
-            "spring.data.redis.timeout",
-            "spring.data.redis.connect-timeout",
+        // Defaults to always: every null field reappears in every response body.
+        assertThat(string("spring.jackson.default-property-inclusion")).isEqualTo("non_null");
 
-            "spring.mail.host",
-            "spring.mail.port",
-            "spring.mail.properties.mail.smtp.auth",
-            "spring.mail.properties.mail.smtp.starttls.enable",
-            "spring.mail.properties.mail.smtp.connectiontimeout",
-            "spring.mail.properties.mail.smtp.timeout",
-            "spring.mail.properties.mail.smtp.writetimeout",
-
-            "notifications.mail.from",
-            "notifications.async.core-pool-size",
-            "notifications.async.max-pool-size",
-            "notifications.async.queue-capacity",
-
-            "auth.account-activation.otp.ttl",
-            "auth.password-reset.otp.ttl",
-            "auth.password-reset.verification-token.ttl",
-            "auth.lockout.window",
-            "auth.lockout.challenge-threshold",
-            "auth.lockout.thresholds[].min-failures",
-            "auth.lockout.thresholds[].lockout",
-            "auth.captcha.enabled",
-            "auth.captcha.verify-url",
-            "auth.captcha.secret",
-            "auth.captcha.connect-timeout",
-            "auth.captcha.read-timeout",
-            "auth.jwt.private-key",
-            "auth.jwt.access-token-ttl",
-            "auth.jwt.refresh-token-ttl",
-
-            "resilience4j.circuitbreaker.instances.redis.sliding-window-type",
-            "resilience4j.circuitbreaker.instances.redis.sliding-window-size",
-            "resilience4j.circuitbreaker.instances.redis.minimum-number-of-calls",
-            "resilience4j.circuitbreaker.instances.redis.failure-rate-threshold",
-            "resilience4j.circuitbreaker.instances.redis.wait-duration-in-open-state",
-            "resilience4j.circuitbreaker.instances.redis.permitted-number-of-calls-in-half-open-state",
-            "resilience4j.circuitbreaker.instances.redis.record-exceptions[]",
-            "resilience4j.circuitbreaker.instances.captcha.sliding-window-type",
-            "resilience4j.circuitbreaker.instances.captcha.sliding-window-size",
-            "resilience4j.circuitbreaker.instances.captcha.minimum-number-of-calls",
-            "resilience4j.circuitbreaker.instances.captcha.failure-rate-threshold",
-            "resilience4j.circuitbreaker.instances.captcha.wait-duration-in-open-state",
-            "resilience4j.circuitbreaker.instances.captcha.permitted-number-of-calls-in-half-open-state",
-            "resilience4j.circuitbreaker.instances.captcha.record-exceptions[]",
-
-            "scheduler.pending-activation-account.grace-period",
-            "scheduler.pending-activation-account.purge-cron",
-
-            "rate-limit.enabled",
-            "rate-limit.rules[].path",
-            "rate-limit.rules[].strategy",
-            "rate-limit.rules[].max-requests",
-            "rate-limit.rules[].window"
-        );
+        // Defaults to true: instants serialize as epoch numbers instead of ISO-8601.
+        assertThat(bool("spring.jackson.serialization.write-dates-as-timestamps")).isFalse();
     }
 
     @Test
@@ -261,8 +202,9 @@ class ProductionConfigurationTest {
 
         // An override earns its place only by differing: repeating the production value leaves the
         // ITs measuring this file while believing they pin production, which is how the JWT TTLs
-        // went unnoticed. Only this file, the one layered on top of the production YAML — the other
-        // modules do not have it on their classpath, so what they declare is the only value there is.
+        // went unnoticed. Only this file, the one layered on top of the production YAML: a module
+        // without it on its classpath declares the only value there is, so repetition there is the
+        // requirement rather than the defect, and the rule below is its mirror image.
         var production = propertiesOf(PRODUCTION);
 
         var redundant = propertiesOf(BOOT_TEST_CONFIGURATION).entrySet().stream()
@@ -271,6 +213,21 @@ class ProductionConfigurationTest {
             .toList();
 
         assertThat(redundant).isEmpty();
+    }
+
+    @Test
+    void jwtTtls_securityTestConfiguration_repeatTheProductionOnes() {
+
+        // The opposite requirement to the rule above, for the opposite reason: this module has no
+        // production YAML on its classpath, so its tests can only measure what it declares itself.
+        // Left untied, a TTL changed in production leaves them green against the old number — the
+        // same miss the rule above exists for, one module over. The private key is not tied: a test
+        // key that equalled the production one would be a leaked secret, not a pinned value.
+        var production = propertiesOf(PRODUCTION);
+
+        assertThat(propertiesOf(SECURITY_TEST_CONFIGURATION))
+            .containsEntry("auth.jwt.access-token-ttl", production.get("auth.jwt.access-token-ttl"))
+            .containsEntry("auth.jwt.refresh-token-ttl", production.get("auth.jwt.refresh-token-ttl"));
     }
 
     @Test
@@ -316,6 +273,16 @@ class ProductionConfigurationTest {
     private static Integer integer(String key) {
 
         return PRODUCTION_CONFIGURATION.bind(key, Integer.class).get();
+    }
+
+    private static String string(String key) {
+
+        return PRODUCTION_CONFIGURATION.bind(key, String.class).get();
+    }
+
+    private static Boolean bool(String key) {
+
+        return PRODUCTION_CONFIGURATION.bind(key, Boolean.class).get();
     }
 
     private static Map<String, String> entries(String key) {
