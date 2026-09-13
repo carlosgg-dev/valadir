@@ -56,6 +56,17 @@ public final class ApiRoutes {
             }
         }
 
+        public static final class Account {
+
+            public static final String DELETE = "/account/delete";
+
+            public static final String DELETE_PATH = Auth.BASE + DELETE;
+
+            private Account() {
+
+            }
+        }
+
         private Auth() {
 
         }

@@ -18,10 +18,10 @@ signing key.
 
 ## Redis Usage
 
-| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|--------------------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all and the password reset perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                        |
-| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset and "close every session"), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
+| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|--------------------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all, the password reset and account deletion perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                        |
+| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset, "close every session" and account deletion), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
@@ -47,11 +47,12 @@ as invalid — the user must log in again.
 The system supports multiple active sessions. Each login issues a new refresh token without invalidating existing ones,
 allowing concurrent sessions across different devices. `POST /api/auth/logout/all` closes every one of them, the calling
 device included — a user who suspects the account is compromised should not have to reset their password to sign their
-other devices out. Completing a password reset does the same, as part of completing it.
+other devices out. Completing a password reset does the same, as part of completing it, and so does deleting the
+account.
 
 ## Session Ownership
 
-`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Five flows mutate it, and each upholds one
+`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Six flows mutate it, and each upholds one
 property:
 
 | Flow                      | Property                                     |
@@ -61,6 +62,7 @@ property:
 | Logout                    | revokes **exactly one** session              |
 | Logout all                | revokes **every** session of that account    |
 | Password reset (complete) | revokes **every** session of that account    |
+| Account deletion          | revokes **every** session of that account    |
 
 The set carries the same TTL as a refresh token, refreshed on every login and every rotation. Since all refresh tokens
 live the same span, the member just added is always the last of the set to die, so the set never outlives a live session
@@ -83,6 +85,28 @@ issue path. Its cost is resolution: `iat` travels in whole seconds, so a token m
 revocation cannot be proven newer than the cutoff and is refused. The tie is resolved closed — a sign-in that lands in
 that same second is answered 401 and succeeds on the retry, whereas resolving it open would let that one token live out
 its full lifetime.
+
+## Account Deletion
+
+`POST /api/auth/account/delete` removes the account and its profile for good, and an access token alone does not reach
+it: the request carries the current password, checked by the server. A confirmation typed into the client guards
+against a slip, not against whoever holds a stolen token — without the password, that token could erase the account
+within its 15 minutes, and this is the one action in the system that nothing undoes.
+
+The password is checked against the **login's** failed-attempt counter and honours its lockout, notifying the owner on
+the attempt that crosses a tier. A counter of its own would give the same password a second budget, and a lockout
+reached at one door would leave the other open. The CAPTCHA step-up is deliberately not applied: it tells people from
+bots at an anonymous endpoint, and this caller already holds a session. The lockout tiers bound the guesses exactly as
+they do at login.
+
+Sessions are revoked **before** the rows are deleted, and neither failure is swallowed. A deletion that fails after the
+revocation answers 503 over an account that still exists, which the owner signs back into and deletes again; the
+reverse order would leave live sessions on an account that is gone, beyond any retry's reach. The counter is cleared
+last, so a new account on the same address does not open on failures counted against the old one.
+
+There is no confirmation by email. With a password in place it would guard only against someone holding the password
+but not the mailbox, which a deferred deletion with a grace period answers better — and that is where such an email
+belongs, carrying the "cancel" its reader would act on.
 
 ## Account Identity
 
@@ -385,7 +409,10 @@ Not defects, but things that are expensive to rediscover.
 - **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
   the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
   all, `MALFORMED_REQUEST` included.
-- **A refresh token whose account no longer exists answers 500.** Unreachable today: the only deletion path is the purge
-  of `PENDING_ACTIVATION` accounts, which can never hold a refresh token. If a real account-deletion flow ever lands,
-  the fix is for that use case to call `accountTokensInvalidator.invalidateAll(...)` — as `CompletePasswordReset`
-  already does — **not** to soften the status code. The 500 is the alarm for a genuine integrity breach.
+- **A refresh token whose account no longer exists answers 500.** Account deletion revokes every session before it
+  deletes the rows, so only a race reaches it: a login that completes between the revocation and the deletion mints a
+  session for an account about to disappear. Do not soften the status code — outside that window the 500 is the alarm
+  for a genuine integrity breach.
+- **A password reset verification token outlives the account it was issued for.** Nothing indexes those tokens by
+  account, so the deletion cannot revoke them: completing a reset with one answers 500 `DATA_INTEGRITY_ERROR` until its
+  10-minute TTL runs out. The password reset OTP is orphaned the same way, under a key no account resolves to any more.

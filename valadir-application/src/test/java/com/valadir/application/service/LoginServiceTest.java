@@ -219,7 +219,7 @@ class LoginServiceTest {
     }
 
     @Test
-    void login_lockoutNotificationFails_stillDeniesWithInvalidCredentials() {
+    void login_lockoutNotificationFails_stillThrowsCredentialIntegrityError() {
 
         var email = Email.from("bruce.wayne@email.com");
         var password = PasswordMother.raw();

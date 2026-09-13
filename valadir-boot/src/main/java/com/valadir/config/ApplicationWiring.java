@@ -5,6 +5,7 @@ import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.config.PendingActivationAccountPurgeConfig;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
+import com.valadir.application.port.in.DeleteAccountUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutAllUseCase;
@@ -21,6 +22,7 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.CaptchaVerifier;
+import com.valadir.application.port.out.DeleteAccountPersistence;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
@@ -35,6 +37,7 @@ import com.valadir.application.service.AccountActivationOtpSender;
 import com.valadir.application.service.AccountActivationOtpSenderService;
 import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.CompletePasswordResetService;
+import com.valadir.application.service.DeleteAccountService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutAllService;
@@ -264,6 +267,26 @@ class ApplicationWiring {
     LogoutAllUseCase logoutAllUseCase(AccountTokensInvalidator accountTokensInvalidator) {
 
         return new LogoutAllService(accountTokensInvalidator);
+    }
+
+    @Bean
+    DeleteAccountUseCase deleteAccountUseCase(
+        AccountRepository accountRepository,
+        PasswordHasher passwordHasher,
+        LoginAttemptRepository loginAttemptRepository,
+        AccountLockedNotifier accountLockedNotifier,
+        AccountTokensInvalidator accountTokensInvalidator,
+        DeleteAccountPersistence deleteAccountPersistence
+    ) {
+
+        return new DeleteAccountService(
+            accountRepository,
+            passwordHasher,
+            loginAttemptRepository,
+            accountLockedNotifier,
+            accountTokensInvalidator,
+            deleteAccountPersistence
+        );
     }
 
     @Bean

@@ -1,0 +1,81 @@
+package com.valadir.persistence.adapter;
+
+import com.valadir.application.port.out.DeleteAccountPersistence;
+import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Email;
+import com.valadir.domain.model.User;
+import com.valadir.persistence.config.PersistenceWiring;
+import com.valadir.persistence.mapper.AccountMapper;
+import com.valadir.persistence.mapper.UserMapper;
+import com.valadir.persistence.repository.AccountJpaRepository;
+import com.valadir.persistence.repository.UserJpaRepository;
+import com.valadir.test.containers.PostgresContainerConfig;
+import com.valadir.test.mother.AccountMother;
+import com.valadir.test.mother.UserMother;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+// Runs without a test-managed transaction so the adapter executes with the same
+// transactional semantics as production — a missing @Transactional fails here.
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = Replace.NONE)
+@Import({PostgresContainerConfig.class, PersistenceWiring.class})
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+class DeleteAccountPersistenceJpaAdapterIT {
+
+    @Autowired
+    private AccountJpaRepository accountJpaRepository;
+
+    @Autowired
+    private UserJpaRepository userJpaRepository;
+
+    @Autowired
+    private DeleteAccountPersistence adapter;
+
+    @AfterEach
+    void cleanUp() {
+
+        userJpaRepository.deleteAll();
+        accountJpaRepository.deleteAll();
+    }
+
+    @Test
+    void delete_accountWithProfile_removesBothAndLeavesOtherAccountsUntouched() {
+
+        var deletedAccountId = AccountId.generate();
+        var deletedUser = UserMother.builder().withAccountId(deletedAccountId).build();
+        persist(deletedAccountId, Email.from("bruce.wayne@email.com"), deletedUser);
+
+        var bystanderAccountId = AccountId.generate();
+        var bystanderUser = UserMother.builder().withAccountId(bystanderAccountId).build();
+        persist(bystanderAccountId, Email.from("clark.kent@email.com"), bystanderUser);
+
+        adapter.delete(deletedAccountId);
+
+        assertThat(accountJpaRepository.findById(deletedAccountId.value())).isEmpty();
+        assertThat(userJpaRepository.findById(deletedUser.getId().value())).isEmpty();
+
+        assertThat(accountJpaRepository.findById(bystanderAccountId.value())).isPresent();
+        assertThat(userJpaRepository.findById(bystanderUser.getId().value())).isPresent();
+    }
+
+    private void persist(AccountId accountId, Email email, User user) {
+
+        var account = AccountMother.active()
+            .withId(accountId)
+            .withEmail(email)
+            .build();
+
+        accountJpaRepository.save(AccountMapper.toEntity(account));
+        userJpaRepository.save(UserMapper.toEntity(user));
+    }
+}
