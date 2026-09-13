@@ -38,6 +38,8 @@ import com.valadir.application.port.out.UpdateProfilePersistence;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.application.service.AccountActivationOtpSender;
 import com.valadir.application.service.AccountActivationOtpSenderService;
+import com.valadir.application.service.AccountReauthenticator;
+import com.valadir.application.service.AccountReauthenticatorService;
 import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.DeleteAccountService;
@@ -275,20 +277,28 @@ class ApplicationWiring {
     }
 
     @Bean
-    DeleteAccountUseCase deleteAccountUseCase(
-        AccountRepository accountRepository,
+    AccountReauthenticator accountReauthenticator(
         PasswordHasher passwordHasher,
         LoginAttemptRepository loginAttemptRepository,
-        AccountLockedNotifier accountLockedNotifier,
+        AccountLockedNotifier accountLockedNotifier
+    ) {
+
+        return new AccountReauthenticatorService(passwordHasher, loginAttemptRepository, accountLockedNotifier);
+    }
+
+    @Bean
+    DeleteAccountUseCase deleteAccountUseCase(
+        AccountRepository accountRepository,
+        AccountReauthenticator accountReauthenticator,
+        LoginAttemptRepository loginAttemptRepository,
         AccountTokensInvalidator accountTokensInvalidator,
         DeleteAccountPersistence deleteAccountPersistence
     ) {
 
         return new DeleteAccountService(
             accountRepository,
-            passwordHasher,
+            accountReauthenticator,
             loginAttemptRepository,
-            accountLockedNotifier,
             accountTokensInvalidator,
             deleteAccountPersistence
         );
