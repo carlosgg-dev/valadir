@@ -74,4 +74,21 @@ class UserTest {
         assertThat(user.personalData()).containsExactly(fullName.value());
     }
 
+    @Test
+    void rename_newNames_returnsNewInstanceKeepingItsIdentity() {
+
+        var originalFullName = FullName.from("Bruce Wayne");
+        var original = User.reconstitute(UserId.generate(), AccountId.generate(), originalFullName, GivenName.from("Batman"));
+
+        var fullName = FullName.from("Bruce Thomas Wayne");
+        var givenName = GivenName.from("Matches Malone");
+
+        var renamed = original.rename(fullName, givenName);
+
+        assertThat(renamed.getId()).isEqualTo(original.getId());
+        assertThat(renamed.getAccountId()).isEqualTo(original.getAccountId());
+        assertThat(renamed.getFullName()).isEqualTo(fullName);
+        assertThat(renamed.getGivenName()).isEqualTo(givenName);
+        assertThat(original.getFullName()).isEqualTo(originalFullName);
+    }
 }

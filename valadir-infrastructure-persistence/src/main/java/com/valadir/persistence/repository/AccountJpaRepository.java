@@ -1,6 +1,7 @@
 package com.valadir.persistence.repository;
 
 import com.valadir.domain.model.AccountStatus;
+import com.valadir.domain.model.Language;
 import com.valadir.persistence.entity.AccountEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -26,4 +27,8 @@ public interface AccountJpaRepository extends JpaRepository<AccountEntity, UUID>
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE AccountEntity a SET a.hashedPassword = :hashedPassword WHERE a.id = :id")
     void updatePasswordById(@Param("id") UUID id, @Param("hashedPassword") String hashedPassword);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE AccountEntity a SET a.language = :language WHERE a.id = :id")
+    void updateLanguageById(@Param("id") UUID id, @Param("language") Language language);
 }

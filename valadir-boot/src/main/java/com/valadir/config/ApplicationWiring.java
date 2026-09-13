@@ -6,6 +6,7 @@ import com.valadir.application.config.PendingActivationAccountPurgeConfig;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.DeleteAccountUseCase;
+import com.valadir.application.port.in.GetProfileUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutAllUseCase;
@@ -14,6 +15,7 @@ import com.valadir.application.port.in.PurgeExpiredPendingActivationAccountsUseC
 import com.valadir.application.port.in.RefreshTokenUseCase;
 import com.valadir.application.port.in.RegisterUseCase;
 import com.valadir.application.port.in.ResendAccountActivationCodeUseCase;
+import com.valadir.application.port.in.UpdateProfileUseCase;
 import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccessTokenRevocation;
 import com.valadir.application.port.out.AccountActivationNotifier;
@@ -32,12 +34,14 @@ import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
 import com.valadir.application.port.out.RegisterPersistence;
+import com.valadir.application.port.out.UpdateProfilePersistence;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.application.service.AccountActivationOtpSender;
 import com.valadir.application.service.AccountActivationOtpSenderService;
 import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.DeleteAccountService;
+import com.valadir.application.service.GetProfileService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutAllService;
@@ -48,6 +52,7 @@ import com.valadir.application.service.PurgeExpiredPendingActivationAccountsServ
 import com.valadir.application.service.RefreshTokenService;
 import com.valadir.application.service.RegisterService;
 import com.valadir.application.service.ResendAccountActivationCodeService;
+import com.valadir.application.service.UpdateProfileService;
 import com.valadir.application.service.VerifyPasswordResetOtpService;
 import com.valadir.domain.policy.LoginLockoutPolicy;
 import com.valadir.domain.policy.LoginLockoutThreshold;
@@ -287,6 +292,22 @@ class ApplicationWiring {
             accountTokensInvalidator,
             deleteAccountPersistence
         );
+    }
+
+    @Bean
+    GetProfileUseCase getProfileUseCase(AccountRepository accountRepository, UserRepository userRepository) {
+
+        return new GetProfileService(accountRepository, userRepository);
+    }
+
+    @Bean
+    UpdateProfileUseCase updateProfileUseCase(
+        AccountRepository accountRepository,
+        UserRepository userRepository,
+        UpdateProfilePersistence updateProfilePersistence
+    ) {
+
+        return new UpdateProfileService(accountRepository, userRepository, updateProfilePersistence);
     }
 
     @Bean

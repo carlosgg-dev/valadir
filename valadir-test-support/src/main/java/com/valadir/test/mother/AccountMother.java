@@ -18,7 +18,7 @@ public final class AccountMother {
 
         return new Builder()
             .withId(AccountId.generate())
-            .withEmail(Email.from("bruce.wayne@example.com"))
+            .withEmail(Email.from("bruce.wayne@email.com"))
             .withPassword(PasswordMother.hashed())
             .withRole(Role.USER)
             .withStatus(AccountStatus.ACTIVE)
@@ -29,7 +29,7 @@ public final class AccountMother {
 
         return new Builder()
             .withId(AccountId.generate())
-            .withEmail(Email.from("bruce.wayne@example.com"))
+            .withEmail(Email.from("bruce.wayne@email.com"))
             .withPassword(PasswordMother.hashed())
             .withRole(Role.USER)
             .withStatus(AccountStatus.PENDING_ACTIVATION)

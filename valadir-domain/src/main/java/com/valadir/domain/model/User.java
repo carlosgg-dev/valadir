@@ -30,6 +30,11 @@ public class User {
         return new User(id, accountId, fullName, givenName);
     }
 
+    public User rename(FullName fullName, GivenName givenName) {
+
+        return new User(id, accountId, fullName, givenName);
+    }
+
     public UserId getId() {
 
         return id;

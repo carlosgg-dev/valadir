@@ -42,10 +42,10 @@ public final class ApiRoutes {
 
         public static final class PasswordReset {
 
-            private static final String RESET = "/password-reset";
-            public static final String INITIATE = RESET + "/initiate";
-            public static final String VERIFY = RESET + "/verify";
-            public static final String COMPLETE = RESET + "/complete";
+            private static final String ROOT = "/password-reset";
+            public static final String INITIATE = ROOT + "/initiate";
+            public static final String VERIFY = ROOT + "/verify";
+            public static final String COMPLETE = ROOT + "/complete";
 
             public static final String INITIATE_PATH = Auth.BASE + INITIATE;
             public static final String VERIFY_PATH = Auth.BASE + VERIFY;
@@ -58,8 +58,11 @@ public final class ApiRoutes {
 
         public static final class Account {
 
-            public static final String DELETE = "/account/delete";
+            private static final String ROOT = "/account";
+            public static final String PROFILE = ROOT + "/profile";
+            public static final String DELETE = ROOT + "/delete";
 
+            public static final String PROFILE_PATH = Auth.BASE + PROFILE;
             public static final String DELETE_PATH = Auth.BASE + DELETE;
 
             private Account() {

@@ -81,4 +81,21 @@ class AccountTest {
 
         assertThat(account.isPendingActivation()).isTrue();
     }
+
+    @Test
+    void changeLanguage_otherLanguage_returnsNewInstanceKeepingEverythingElse() {
+
+        var original = Account.reconstitute(ID, EMAIL, PASSWORD, ROLE, AccountStatus.ACTIVE, LANGUAGE);
+        var otherLanguage = Language.EN;
+
+        Account changed = original.changeLanguage(otherLanguage);
+
+        assertThat(changed.getLanguage()).isEqualTo(otherLanguage);
+        assertThat(changed.getId()).isEqualTo(ID);
+        assertThat(changed.getEmail()).isEqualTo(EMAIL);
+        assertThat(changed.getPassword()).isEqualTo(PASSWORD);
+        assertThat(changed.getRole()).isEqualTo(ROLE);
+        assertThat(changed.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+        assertThat(original.getLanguage()).isEqualTo(LANGUAGE);
+    }
 }

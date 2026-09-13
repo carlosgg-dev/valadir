@@ -64,6 +64,11 @@ public class Account {
         return AccountStatus.PENDING_ACTIVATION.equals(status);
     }
 
+    public Account changeLanguage(Language language) {
+
+        return new Account(id, email, password, role, status, language);
+    }
+
     public AccountId getId() {
 
         return id;
