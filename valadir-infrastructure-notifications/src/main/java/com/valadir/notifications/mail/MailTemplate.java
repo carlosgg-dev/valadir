@@ -4,7 +4,8 @@ public enum MailTemplate {
 
     ACCOUNT_ACTIVATION("account-activation"),
     PASSWORD_RESET("password-reset"),
-    ACCOUNT_LOCKED("account-locked");
+    ACCOUNT_LOCKED("account-locked"),
+    PASSWORD_CHANGED("password-changed");
 
     private final String baseName;
 

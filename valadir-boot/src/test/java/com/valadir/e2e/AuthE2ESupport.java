@@ -4,6 +4,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.e2e.support.CaptchaVerifierTestConfig.ControllableCaptchaVerifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountActivationNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountLockedNotifier;
+import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordChangedNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordResetNotifier;
 import com.valadir.persistence.repository.AccountJpaRepository;
 import com.valadir.persistence.repository.UserJpaRepository;
@@ -75,6 +76,9 @@ public abstract class AuthE2ESupport {
     protected CapturingAccountLockedNotifier accountLockedNotifier;
 
     @Autowired
+    protected CapturingPasswordChangedNotifier passwordChangedNotifier;
+
+    @Autowired
     protected ControllableCaptchaVerifier captchaVerifier;
 
     // protected, not package-private: the resilience suite extends this from another package, and a
@@ -91,6 +95,7 @@ public abstract class AuthE2ESupport {
         accountActivationNotifier.reset();
         passwordResetNotifier.reset();
         accountLockedNotifier.reset();
+        passwordChangedNotifier.reset();
         captchaVerifier.reset();
     }
 

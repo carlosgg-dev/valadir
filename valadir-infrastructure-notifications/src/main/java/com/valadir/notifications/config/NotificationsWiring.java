@@ -2,9 +2,11 @@ package com.valadir.notifications.config;
 
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
+import com.valadir.application.port.out.PasswordChangedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.notifications.adapter.AccountActivationNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.AccountLockedNotifierJavaMailAdapter;
+import com.valadir.notifications.adapter.PasswordChangedNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.PasswordResetNotifierJavaMailAdapter;
 import com.valadir.notifications.mail.DurationWording;
 import com.valadir.notifications.mail.MailContentRenderer;
@@ -102,6 +104,12 @@ class NotificationsWiring {
     ) {
 
         return new PasswordResetNotifierJavaMailAdapter(contentRenderer, mailSender, durationWording);
+    }
+
+    @Bean
+    PasswordChangedNotifier passwordChangedNotifier(MailContentRenderer contentRenderer, MimeMailSender mailSender) {
+
+        return new PasswordChangedNotifierJavaMailAdapter(contentRenderer, mailSender);
     }
 
     private static ClassLoaderTemplateResolver templateResolver(TemplateMode mode, String pattern) {

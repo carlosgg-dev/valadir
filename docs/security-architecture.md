@@ -18,10 +18,10 @@ signing key.
 
 ## Redis Usage
 
-| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|--------------------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all, the password reset and account deletion perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                        |
-| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset, "close every session" and account deletion), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
+| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|--------------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all, the password reset, the password change and account deletion perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                    |
+| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset, password change, "close every session" and account deletion), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
@@ -47,13 +47,13 @@ as invalid — the user must log in again.
 The system supports multiple active sessions. Each login issues a new refresh token without invalidating existing ones,
 allowing concurrent sessions across different devices. `POST /api/auth/logout/all` closes every one of them, the calling
 device included — a user who suspects the account is compromised should not have to reset their password to sign their
-other devices out. Completing a password reset does the same, as part of completing it, and so does deleting the
-account.
+other devices out. Completing a password reset does the same, as part of completing it, and so do changing the
+password and deleting the account.
 
 ## Session Ownership
 
-`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Six flows mutate it, and each upholds one
-property:
+`auth:user_tokens:{accountId}` holds the set of live sessions of one account. Seven flows mutate it, and each upholds
+one property:
 
 | Flow                      | Property                                     |
 |---------------------------|----------------------------------------------|
@@ -62,6 +62,7 @@ property:
 | Logout                    | revokes **exactly one** session              |
 | Logout all                | revokes **every** session of that account    |
 | Password reset (complete) | revokes **every** session of that account    |
+| Password change           | revokes **every** session of that account    |
 | Account deletion          | revokes **every** session of that account    |
 
 The set carries the same TTL as a refresh token, refreshed on every login and every rotation. Since all refresh tokens
@@ -107,6 +108,26 @@ last, so a new account on the same address does not open on failures counted aga
 There is no confirmation by email. With a password in place it would guard only against someone holding the password
 but not the mailbox, which a deferred deletion with a grace period answers better — and that is where such an email
 belongs, carrying the "cancel" its reader would act on.
+
+## Password Change
+
+`POST /api/auth/account/password/change` takes the current password and the new one. The current password is what
+proves who asks, as it does for deletion, so there is no confirmation by email; the owner is told afterwards instead,
+best-effort, so a change they did not make does not go unnoticed.
+
+The current password goes through the same re-authentication as deletion: the login's failed-attempt counter, its
+lockout, and no CAPTCHA step-up. It comes **first**, as in every flow that re-authenticates: nothing about the new
+password is processed or answered for a caller who has not proved the current one, and a wrong current password counts
+as a failure whatever new password travels with it.
+
+Sessions are revoked **before** the password is written, and neither failure is swallowed. A revocation that fails
+changes nothing, and the retry starts over. An update that fails leaves the sessions gone and the old password valid:
+the owner signs back in and retries. The reverse order would answer 503 over a password already changed, and the retry,
+still presenting the old password as current, would be counted as a failed attempt. The counter is cleared afterwards:
+its failures were counted against a password that no longer exists.
+
+The calling device is signed out with the rest, and the response is 204 rather than a new token pair: the cutoff
+resolves by the `iat` second, so a pair minted in the same request would be refused by the very cutoff it follows.
 
 ## Account Identity
 
@@ -211,6 +232,10 @@ Which use case decides that a notification is secondary is not the adapter's cal
 notification itself, as the three Redis cleanups do, so the login's outcome does not depend on the `@Async` proxy
 holding: without it, an SMTP failure would answer 503 on the one attempt that crosses the threshold, and only on that
 one — announcing the threshold to whoever is probing it.
+
+`ChangePasswordService` guards the password-changed alert on the same terms. The change is applied by the time the
+alert is sent, so a 503 would tell the owner it failed, and their retry with the old password would count as a failed
+attempt.
 
 ### Bounded failure detection
 

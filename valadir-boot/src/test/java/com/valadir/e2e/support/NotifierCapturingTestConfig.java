@@ -3,6 +3,7 @@ package com.valadir.e2e.support;
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
 import com.valadir.application.port.out.OtpNotification;
+import com.valadir.application.port.out.PasswordChangedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.model.Email;
@@ -45,6 +46,13 @@ public class NotifierCapturingTestConfig {
     CapturingAccountLockedNotifier capturingAccountLockedNotifier() {
 
         return new CapturingAccountLockedNotifier();
+    }
+
+    @Bean
+    @Primary
+    CapturingPasswordChangedNotifier capturingPasswordChangedNotifier() {
+
+        return new CapturingPasswordChangedNotifier();
     }
 
     /**
@@ -170,6 +178,32 @@ public class NotifierCapturingTestConfig {
         public void failNextSend() {
 
             mailbox.failNextSend();
+        }
+
+        public void reset() {
+
+            mailbox.clear();
+        }
+    }
+
+    public static class CapturingPasswordChangedNotifier implements PasswordChangedNotifier {
+
+        private final Mailbox<Language> mailbox = new Mailbox<>();
+
+        @Override
+        public void notifyPasswordChanged(Email email, Language language) {
+
+            mailbox.deliver(email, language);
+        }
+
+        public Optional<Language> lastLanguageFor(String email) {
+
+            return mailbox.lastFor(email);
+        }
+
+        public boolean capturedNothing() {
+
+            return mailbox.isEmpty();
         }
 
         public void reset() {

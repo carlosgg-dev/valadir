@@ -4,6 +4,7 @@ import com.valadir.application.config.AccountActivationConfig;
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.config.PendingActivationAccountPurgeConfig;
 import com.valadir.application.port.in.ActivateAccountUseCase;
+import com.valadir.application.port.in.ChangePasswordUseCase;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.DeleteAccountUseCase;
 import com.valadir.application.port.in.GetProfileUseCase;
@@ -30,6 +31,7 @@ import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.PasswordChangedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.port.out.RefreshTokenRepository;
@@ -41,6 +43,7 @@ import com.valadir.application.service.AccountActivationOtpSenderService;
 import com.valadir.application.service.AccountReauthenticator;
 import com.valadir.application.service.AccountReauthenticatorService;
 import com.valadir.application.service.ActivateAccountService;
+import com.valadir.application.service.ChangePasswordService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.DeleteAccountService;
 import com.valadir.application.service.GetProfileService;
@@ -48,6 +51,8 @@ import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutAllService;
 import com.valadir.application.service.LogoutService;
+import com.valadir.application.service.NewPasswordValidator;
+import com.valadir.application.service.NewPasswordValidatorService;
 import com.valadir.application.service.PasswordResetOtpSender;
 import com.valadir.application.service.PasswordResetOtpSenderService;
 import com.valadir.application.service.PurgeExpiredPendingActivationAccountsService;
@@ -318,6 +323,34 @@ class ApplicationWiring {
     ) {
 
         return new UpdateProfileService(accountRepository, userRepository, updateProfilePersistence);
+    }
+
+    @Bean
+    NewPasswordValidator newPasswordValidator(UserRepository userRepository, PasswordSecurityService passwordSecurityService) {
+
+        return new NewPasswordValidatorService(userRepository, passwordSecurityService);
+    }
+
+    @Bean
+    ChangePasswordUseCase changePasswordUseCase(
+        AccountRepository accountRepository,
+        NewPasswordValidator newPasswordValidator,
+        AccountReauthenticator accountReauthenticator,
+        PasswordHasher passwordHasher,
+        AccountTokensInvalidator accountTokensInvalidator,
+        LoginAttemptRepository loginAttemptRepository,
+        PasswordChangedNotifier passwordChangedNotifier
+    ) {
+
+        return new ChangePasswordService(
+            accountRepository,
+            newPasswordValidator,
+            accountReauthenticator,
+            passwordHasher,
+            accountTokensInvalidator,
+            loginAttemptRepository,
+            passwordChangedNotifier
+        );
     }
 
     @Bean

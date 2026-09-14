@@ -61,9 +61,11 @@ public final class ApiRoutes {
             private static final String ROOT = "/account";
             public static final String PROFILE = ROOT + "/profile";
             public static final String DELETE = ROOT + "/delete";
+            public static final String CHANGE_PASSWORD = ROOT + "/password/change";
 
             public static final String PROFILE_PATH = Auth.BASE + PROFILE;
             public static final String DELETE_PATH = Auth.BASE + DELETE;
+            public static final String CHANGE_PASSWORD_PATH = Auth.BASE + CHANGE_PASSWORD;
 
             private Account() {
 
