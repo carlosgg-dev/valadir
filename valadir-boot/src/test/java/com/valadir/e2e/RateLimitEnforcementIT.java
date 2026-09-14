@@ -38,6 +38,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
     private static final int LOGIN_IP_LIMIT = 10;
     private static final Duration LOGIN_IP_WINDOW = Duration.ofSeconds(60);
     private static final int USER_LIMIT = 100;
+    private static final String USER_RULE_PATH_KEY = "api";
 
     private static final int CONCURRENT_LOGINS = LOGIN_IP_LIMIT + 5;
 
@@ -166,7 +167,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
         // Anonymous traffic resolves no principal: one shared bucket would let a single caller
         // drain the limit of everybody else.
-        assertThat(redisTemplate.keys(RedisKeySpace.forRateLimitUser("*"))).isEmpty();
+        assertThat(redisTemplate.keys(RedisKeySpace.forRateLimitUser("*", "*"))).isEmpty();
 
         Response loggedOut = logout(accessToken, refreshToken);
 
@@ -175,7 +176,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // The key is built from the authenticated accountId, so it only appears if the filter runs
         // after authentication. Placed before it, the /api/** rule would find no principal and skip
         // itself: the per-user limit would be gone with no error and no log.
-        assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(accountIdFor(EMAIL)))).isTrue();
+        assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(USER_RULE_PATH_KEY, accountIdFor(EMAIL)))).isTrue();
         assertThat(numericHeader(loggedOut, LIMIT_HEADER)).isEqualTo(USER_LIMIT);
     }
 

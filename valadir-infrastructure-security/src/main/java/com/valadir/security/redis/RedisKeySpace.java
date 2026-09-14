@@ -59,9 +59,9 @@ public final class RedisKeySpace {
         return RATE_LIMIT_SPACE_PREFIX + "email:" + pathKey + ":" + email;
     }
 
-    public static String forRateLimitUser(String accountId) {
+    public static String forRateLimitUser(String pathKey, String accountId) {
 
-        return RATE_LIMIT_SPACE_PREFIX + "user:" + accountId;
+        return RATE_LIMIT_SPACE_PREFIX + "user:" + pathKey + ":" + accountId;
     }
 
     public static String forLoginAttempts(String email) {

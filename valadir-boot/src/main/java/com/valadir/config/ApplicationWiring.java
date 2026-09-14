@@ -46,6 +46,8 @@ import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.ChangePasswordService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.DeleteAccountService;
+import com.valadir.application.service.EmailHolderResolver;
+import com.valadir.application.service.EmailHolderResolverService;
 import com.valadir.application.service.GetProfileService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
@@ -151,8 +153,14 @@ class ApplicationWiring {
     }
 
     @Bean
+    EmailHolderResolver emailHolderResolver(AccountRepository accountRepository) {
+
+        return new EmailHolderResolverService(accountRepository);
+    }
+
+    @Bean
     RegisterUseCase registerUseCase(
-        AccountRepository accountRepository,
+        EmailHolderResolver emailHolderResolver,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
@@ -160,7 +168,7 @@ class ApplicationWiring {
     ) {
 
         return new RegisterService(
-            accountRepository,
+            emailHolderResolver,
             passwordHasher,
             passwordSecurityService,
             registerPersistence,

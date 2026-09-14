@@ -3,9 +3,7 @@ package com.valadir.application.service;
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.in.RegisterUseCase;
-import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.RegisterPersistence;
-import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
@@ -28,21 +26,21 @@ public class RegisterService implements RegisterUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(RegisterService.class);
 
-    private final AccountRepository accountRepository;
+    private final EmailHolderResolver emailHolderResolver;
     private final PasswordHasher passwordHasher;
     private final PasswordSecurityService passwordSecurityService;
     private final RegisterPersistence registerPersistence;
     private final AccountActivationOtpSender accountActivationOtpSender;
 
     public RegisterService(
-        AccountRepository accountRepository,
+        EmailHolderResolver emailHolderResolver,
         PasswordHasher passwordHasher,
         PasswordSecurityService passwordSecurityService,
         RegisterPersistence registerPersistence,
         AccountActivationOtpSender accountActivationOtpSender
     ) {
 
-        this.accountRepository = accountRepository;
+        this.emailHolderResolver = emailHolderResolver;
         this.passwordHasher = passwordHasher;
         this.passwordSecurityService = passwordSecurityService;
         this.registerPersistence = registerPersistence;
@@ -59,8 +57,7 @@ public class RegisterService implements RegisterUseCase {
             var givenName = GivenName.from(command.givenName());
             var language = Language.forTag(command.language());
 
-            var existingAccountId = accountRepository.findByEmail(email)
-                .map(this::resolveExistingAccountId);
+            var existingAccountId = emailHolderResolver.replaceableHolderFor(email);
 
             var accountId = AccountId.generate();
             var user = User.newProfile(UserId.generate(), accountId, fullName, givenName);
@@ -85,16 +82,5 @@ public class RegisterService implements RegisterUseCase {
         } catch (DomainException e) {
             throw ApplicationException.translate(e);
         }
-    }
-
-    private AccountId resolveExistingAccountId(Account existing) {
-
-        return switch (existing.getStatus()) {
-            case PENDING_ACTIVATION -> existing.getId();
-            case ACTIVE -> {
-                log.warn("Registration attempt with already-registered email, existingAccountId={}", existing.getId().value());
-                throw new ApplicationException("Email already registered", ErrorCode.EMAIL_ALREADY_EXISTS);
-            }
-        };
     }
 }

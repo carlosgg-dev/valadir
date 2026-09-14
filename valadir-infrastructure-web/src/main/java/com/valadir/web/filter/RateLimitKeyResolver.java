@@ -35,7 +35,7 @@ public class RateLimitKeyResolver {
         return switch (rule.strategy()) {
             case IP -> Optional.of(RedisKeySpace.forRateLimitIp(normalizePathSegment(rule.path()), resolveIp(request)));
             case EMAIL -> extractEmail(request).map(email -> RedisKeySpace.forRateLimitEmail(normalizePathSegment(rule.path()), email));
-            case USER -> resolveAccountId().map(RedisKeySpace::forRateLimitUser);
+            case USER -> resolveAccountId().map(accountId -> RedisKeySpace.forRateLimitUser(normalizePathSegment(rule.path()), accountId));
         };
     }
 

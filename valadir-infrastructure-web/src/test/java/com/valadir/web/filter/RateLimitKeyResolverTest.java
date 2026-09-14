@@ -164,7 +164,7 @@ class RateLimitKeyResolverTest {
     }
 
     @Test
-    void resolve_userStrategy_authenticatedReturnsKeyContainingAccountId() {
+    void resolve_userStrategy_authenticatedReturnsKeyContainingAccountIdAndPath() {
 
         authenticate();
         var rule = new RateLimitProperties.Rule(PATH, Strategy.USER, MAX_REQUESTS, WINDOW);
@@ -172,7 +172,7 @@ class RateLimitKeyResolverTest {
 
         Optional<String> key = resolver.resolve(request, rule);
 
-        assertThat(key).hasValue("rate_limit:user:" + ACCOUNT_ID);
+        assertThat(key).hasValue("rate_limit:user:" + NORMALIZED_PATH + ":" + ACCOUNT_ID);
     }
 
     @Test
