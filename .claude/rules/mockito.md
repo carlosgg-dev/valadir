@@ -20,6 +20,15 @@
 ## Verification
 - Use BDDMockito: `then(...).should(...)` over `verify(...)` for consistency with the stubbing style.
 - Verify interactions only when the interaction itself is the behavior under test.
+- A failure test verifies `never` on every side effect after the failure point whose occurrence
+  would itself be the bug: writes, revocations, counter resets, notifications. Queries and pure
+  computations (a lookup, a hash, a validation) are left out — calling them does no harm, and
+  asserting it only pins the implementation.
+- Calls before the failure point are never verified in a failure test: strict stubbing fails on an
+  unused stub, and the asserted exception already proves the flow got there. A void collaborator
+  whose removal nothing else would detect is verified once, in the happy path.
+- Skip the `never` when the failure assertion already makes the call unreachable: a malformed input
+  rejected with its own `ErrorCode` cannot have reached a lookup that would have answered a different one.
 - Avoid verifying every mock call — it couples tests to implementation details.
 - Use `then(...).shouldHaveNoMoreInteractions()` sparingly and only when strict interaction control is required.
 
