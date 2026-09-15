@@ -132,6 +132,21 @@ class PasswordChangeIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.OK.value());
     }
 
+    // Answering the new password's policy first would leave the wrong guess uncounted
+    @Test
+    void changePassword_wrongCurrentPasswordWithNewPasswordFailingPolicy_returns401AndCountsTheFailure() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response loggedIn = login(EMAIL, PASSWORD);
+        changePassword(accessTokenOf(loggedIn), WRONG_PASSWORD, "weak")
+            .then()
+            .statusCode(HttpStatus.UNAUTHORIZED.value())
+            .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
+
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo("1");
+    }
+
     // Every link is unit-tested against a mock of the next: only the running application proves the
     // personal-data rule is actually reached.
     @Test

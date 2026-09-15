@@ -56,12 +56,13 @@ public class ChangePasswordService implements ChangePasswordUseCase {
         try {
             var accountId = AccountId.from(UUID.fromString(command.accountId()));
             var currentPassword = RawPassword.from(command.currentPassword());
-            var newPassword = RawPassword.from(command.newPassword());
 
             var account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
             accountReauthenticator.reauthenticate(account, currentPassword);
+            // After re-authentication: a policy failure answered first would leave a wrong current password uncounted
+            var newPassword = RawPassword.newPassword(command.newPassword());
             newPasswordValidator.validate(account, newPassword);
             var hashedPassword = passwordHasher.hash(newPassword);
 

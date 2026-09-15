@@ -52,7 +52,7 @@ public class RegisterService implements RegisterUseCase {
 
         try {
             var email = Email.from(command.email());
-            var rawPassword = RawPassword.from(command.password());
+            var rawPassword = RawPassword.newPassword(command.password());
             var fullName = FullName.from(command.fullName());
             var givenName = GivenName.from(command.givenName());
             var language = Language.forTag(command.language());

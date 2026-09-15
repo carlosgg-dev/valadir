@@ -354,6 +354,11 @@ public abstract class AuthE2ESupport {
             .getId().toString();
     }
 
+    protected String failedLoginAttemptsFor(String email) {
+
+        return redisTemplate.opsForValue().get(RedisKeySpace.forLoginAttempts(email));
+    }
+
     protected String activationOtpFor(String email) {
 
         return accountActivationNotifier.lastOtpFor(email)

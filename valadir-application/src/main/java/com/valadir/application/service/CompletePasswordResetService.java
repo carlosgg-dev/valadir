@@ -63,7 +63,7 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
                 throw invalidVerificationToken();
             }
 
-            var newPassword = RawPassword.from(command.newPassword());
+            var newPassword = RawPassword.newPassword(command.newPassword());
             newPasswordValidator.validate(account, newPassword);
             var hashedPassword = passwordHasher.hash(newPassword);
 

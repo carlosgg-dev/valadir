@@ -56,7 +56,7 @@ class LoginIT extends AbstractAuthE2EIT {
         assertThat(redisTemplate.opsForSet().isMember(RedisKeySpace.forUserTokens(accountId), fingerprintOf(refreshToken)))
             .isTrue();
 
-        assertThat(failedAttemptsFor(EMAIL)).isNull();
+        assertThat(failedLoginAttemptsFor(EMAIL)).isNull();
     }
 
     @Test
@@ -110,13 +110,14 @@ class LoginIT extends AbstractAuthE2EIT {
 
         registerAndActivate(EMAIL, PASSWORD);
 
-        login(EMAIL, WRONG_PASSWORD)
+        // Fails the policy on purpose: a presented password is matched against its hash, never against the policy
+        login(EMAIL, "weak")
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
             .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()))
             .body("errors", nullValue());
 
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo("1");
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo("1");
 
         // The counter must live exactly as long as the fixed attempt window (auth.lockout.window):
         // without the TTL, failures would accumulate forever and lock accounts unfairly.
@@ -141,7 +142,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // The rejected step-up never reaches the password check: the counter must remain at its current
         // value so that a subsequent attempt using a token will still count as the next failure
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD));
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD));
     }
 
     @Test
@@ -155,7 +156,7 @@ class LoginIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.UNAUTHORIZED.value())
             .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
 
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD + 1));
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD + 1));
 
         login(EMAIL, PASSWORD, CAPTCHA_TOKEN)
             .then()
@@ -164,7 +165,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // Success clears the failure history (attempts and lockout keys): the account starts
         // over instead of dragging 4 failures into the next mistyped password.
-        assertThat(failedAttemptsFor(EMAIL)).isNull();
+        assertThat(failedLoginAttemptsFor(EMAIL)).isNull();
     }
 
     @Test
@@ -181,7 +182,7 @@ class LoginIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.CAPTCHA_REQUIRED.getCode()));
 
         // The error counter does not accumulate (it does not reach the password check)
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD));
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo(String.valueOf(CHALLENGE_THRESHOLD));
 
         // The password was right: if the gate leaked past the rejected challenge, a session
         // would have been minted. No token in Redis proves the credential check never ran.
@@ -213,7 +214,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // The locked-out attempt dies at the gate, before recordFailedAttempt: retries during a
         // lockout must not escalate the counter toward the next tier.
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(FIRST_TIER_FAILURES));
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo(String.valueOf(FIRST_TIER_FAILURES));
 
         // A locked account must not mint a session even when the credentials are right.
         assertNoRefreshTokenIssued();
@@ -249,7 +250,7 @@ class LoginIT extends AbstractAuthE2EIT {
         // Applying a tier must not reset the counter: the window is what carries failures across
         // expired lockouts, so a reset here would leave the 15-failure tier unreachable and cap
         // every attacker at 5 minutes forever.
-        assertThat(failedAttemptsFor(EMAIL)).isEqualTo(String.valueOf(SECOND_TIER_FAILURES));
+        assertThat(failedLoginAttemptsFor(EMAIL)).isEqualTo(String.valueOf(SECOND_TIER_FAILURES));
 
         // The owner notification must carry the escalated duration, not just the Retry-After
         // header: it is what the "your account is locked for N minutes" email tells the user.
@@ -275,7 +276,7 @@ class LoginIT extends AbstractAuthE2EIT {
 
         // Neither a credential failure nor a successful login: the attempt state must stay
         // untouched, so mistyping the password later still starts counting from one.
-        assertThat(failedAttemptsFor(EMAIL)).isNull();
+        assertThat(failedLoginAttemptsFor(EMAIL)).isNull();
     }
 
     private void assertChallengeThenLockoutProgression(String email) {
@@ -319,11 +320,6 @@ class LoginIT extends AbstractAuthE2EIT {
             .then()
             .statusCode(HttpStatus.UNAUTHORIZED.value())
             .body("code", equalTo(ErrorCode.CREDENTIAL_INTEGRITY_ERROR.getCode()));
-    }
-
-    private String failedAttemptsFor(String email) {
-
-        return redisTemplate.opsForValue().get(RedisKeySpace.forLoginAttempts(email));
     }
 
     // KEYS is O(n) and forbidden in production code, but the test Redis holds a handful of

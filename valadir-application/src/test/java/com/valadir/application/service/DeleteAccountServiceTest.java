@@ -146,9 +146,9 @@ class DeleteAccountServiceTest {
     }
 
     @Test
-    void delete_malformedPassword_translatesToApplicationException() {
+    void delete_passwordTooLong_translatesToApplicationException() {
 
-        var command = new DeleteAccountCommand(ACCOUNT.getId().value().toString(), "invalid-password");
+        var command = new DeleteAccountCommand(ACCOUNT.getId().value().toString(), "Aa1!" + "a".repeat(69));
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.delete(command))

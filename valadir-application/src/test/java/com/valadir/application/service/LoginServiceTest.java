@@ -16,6 +16,7 @@ import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.Language;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.policy.LoginAttemptDecision;
 import com.valadir.domain.service.PasswordHasher;
 import com.valadir.test.mother.AccountMother;
@@ -45,7 +46,6 @@ class LoginServiceTest {
     private static final Language ACCOUNT_LANGUAGE = Language.ES;
 
     private static final Account EXISTING_ACCOUNT = AccountMother.active()
-        .withEmail(Email.from("bruce.wayne@email.com"))
         .withLanguage(ACCOUNT_LANGUAGE)
         .build();
 
@@ -193,6 +193,27 @@ class LoginServiceTest {
         then(loginAttemptRepository).should().recordFailedAttempt(email);
         then(accountLockedNotifier).shouldHaveNoInteractions();
         then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(authTokenIssuer).should(never()).issue(any(), any());
+    }
+
+    // A presented password is checked against the stored hash, never against the policy for choosing one
+    @Test
+    void login_wrongPasswordFailingPolicy_recordsAttemptAndThrowsApplicationException() {
+
+        var email = Email.from("bruce.wayne@email.com");
+        var password = RawPassword.from("weak");
+        var command = new LoginCommand(email.value(), password.value(), null);
+
+        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
+        given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.empty());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.login(command))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
+        then(loginAttemptRepository).should().recordFailedAttempt(email);
         then(authTokenIssuer).should(never()).issue(any(), any());
     }
 

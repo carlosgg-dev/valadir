@@ -15,6 +15,7 @@ public record RawPassword(String value) {
     private static final Pattern HAS_UPPER = Pattern.compile(".*[A-Z].*");
     private static final Pattern HAS_SPECIAL = Pattern.compile(".*[@#$%^&+=!_\\-].*");
 
+    // Shape only: a presented password is matched against its hash, so one chosen under an older policy still signs in
     public RawPassword {
 
         if (value == null || value.isBlank()) {
@@ -24,22 +25,33 @@ public record RawPassword(String value) {
         if (value.length() > MAX_PASSWORD_LENGTH) {
             throw new DomainException("Password is too long", ErrorCode.INVALID_PASSWORD);
         }
-
-        if (value.length() < MIN_PASSWORD_LENGTH ||
-            !HAS_NUMBER.matcher(value).matches() ||
-            !HAS_LOWER.matcher(value).matches() ||
-            !HAS_UPPER.matcher(value).matches() ||
-            !HAS_SPECIAL.matcher(value).matches()) {
-
-            throw new DomainException(
-                "The password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
-                ErrorCode.INVALID_PASSWORD
-            );
-        }
     }
 
     public static RawPassword from(String value) {
 
         return new RawPassword(value);
+    }
+
+    public static RawPassword newPassword(String value) {
+
+        var password = new RawPassword(value);
+
+        if (!password.meetsPolicy()) {
+            throw new DomainException(
+                "The password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+                ErrorCode.INVALID_PASSWORD
+            );
+        }
+
+        return password;
+    }
+
+    private boolean meetsPolicy() {
+
+        return value.length() >= MIN_PASSWORD_LENGTH
+            && HAS_NUMBER.matcher(value).matches()
+            && HAS_LOWER.matcher(value).matches()
+            && HAS_UPPER.matcher(value).matches()
+            && HAS_SPECIAL.matcher(value).matches();
     }
 }

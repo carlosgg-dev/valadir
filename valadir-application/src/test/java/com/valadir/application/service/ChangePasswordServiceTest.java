@@ -48,6 +48,7 @@ class ChangePasswordServiceTest {
 
     private static final RawPassword CURRENT_PASSWORD = PasswordMother.raw();
     private static final RawPassword NEW_PASSWORD = RawPassword.from("AnotherP@ss456");
+    private static final String NEW_PASSWORD_FAILING_POLICY = "invalid-password";
     private static final HashedPassword NEW_HASHED_PASSWORD = PasswordMother.hashed();
 
     private static final ChangePasswordCommand COMMAND = new ChangePasswordCommand(
@@ -99,15 +100,43 @@ class ChangePasswordServiceTest {
     }
 
     @Test
-    void change_malformedNewPassword_translatesToApplicationException() {
+    void change_newPasswordFailingPolicy_translatesToApplicationExceptionWithoutChangingAnything() {
 
-        var command = new ChangePasswordCommand(ACCOUNT.getId().value().toString(), CURRENT_PASSWORD.value(), "invalid-password");
+        var command = new ChangePasswordCommand(ACCOUNT.getId().value().toString(), CURRENT_PASSWORD.value(), NEW_PASSWORD_FAILING_POLICY);
+
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.change(command))
             .withCauseInstanceOf(DomainException.class)
             .extracting(ApplicationException::getErrorCode)
             .isEqualTo(ErrorCode.INVALID_PASSWORD);
+
+        then(accountTokensInvalidator).shouldHaveNoInteractions();
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).shouldHaveNoInteractions();
+        then(passwordChangedNotifier).shouldHaveNoInteractions();
+    }
+
+    // Answering the policy first would leave a wrong current password uncounted
+    @Test
+    void change_wrongCurrentPasswordWithNewPasswordFailingPolicy_propagatesTheRefusal() {
+
+        var command = new ChangePasswordCommand(ACCOUNT.getId().value().toString(), CURRENT_PASSWORD.value(), NEW_PASSWORD_FAILING_POLICY);
+        var refusal = new ApplicationException("Invalid credentials", ErrorCode.CREDENTIAL_INTEGRITY_ERROR);
+
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        willThrow(refusal).given(accountReauthenticator).reauthenticate(ACCOUNT, CURRENT_PASSWORD);
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.change(command))
+            .isSameAs(refusal);
+
+        then(newPasswordValidator).shouldHaveNoInteractions();
+        then(accountTokensInvalidator).shouldHaveNoInteractions();
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).shouldHaveNoInteractions();
+        then(passwordChangedNotifier).shouldHaveNoInteractions();
     }
 
     @Test
