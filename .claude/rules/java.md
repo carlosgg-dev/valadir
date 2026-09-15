@@ -65,17 +65,18 @@ Never mix both responsibilities in the same class.
   - **The value object is the guarantee.** It is at least as strict as request validation and never
     leans on it, so a value reaching the domain by any other path meets the same rules.
   - **Bean Validation on a DTO is an optional fast-fail.** Where it validates, it uses the domain's
-    numbers. No annotation is added only to mirror one, and none where it would change the answer:
-    a `@Size` on a password field would turn `invalid_password` into `invalid_field`.
+    numbers and never rejects a value the domain accepts. No annotation is added only to mirror one.
+    The DTO sees the raw value, before the domain trims or normalizes it: `@Email` rejects
+    `"a@b.cd "`, which `Email` trims and accepts.
   - **The schema accepts every value the domain accepts** (length, `NOT NULL`, encoding) and mirrors
     structure, not business rules: no `CHECK` repeating the domain, no `DEFAULT` deciding a value the
     domain decides. Hibernate writes every mapped column, so such a `DEFAULT` never applies from the
-    application and only decides in silence for a manual `INSERT`. `ddl-auto: validate` holds
-    `init.sql` to the entities.
+    application and only decides in silence for a manual `INSERT`. `ddl-auto: validate` checks
+    tables, columns and types against the entities; nullability and lengths are mirrored by hand.
   - **Shape before policy.** Shape (presence, maximum length, format) may be answered before
-    authentication. Policy carries its own `ErrorCode` and applies only where the value is chosen,
-    after re-authentication: a presented password is checked by shape only, so a wrong one answers
-    401 and counts as a failed attempt.
+    authentication. Policy (password composition, personal data) applies only where the value is
+    chosen, and after re-authentication in a flow that has one: a presented password is checked by
+    shape only, so a wrong one answers 401 and counts as a failed attempt.
 - Use `@ControllerAdvice` for centralized exception handling.
 - **The exception type is decided by who supplies the value, not by the layer that rejects it:**
   - **Request value, rejected at runtime** — `DomainException` (or `ApplicationException`) carrying
