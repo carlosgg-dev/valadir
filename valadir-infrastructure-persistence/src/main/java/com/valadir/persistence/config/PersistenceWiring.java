@@ -1,12 +1,14 @@
 package com.valadir.persistence.config;
 
 import com.valadir.application.port.out.AccountRepository;
+import com.valadir.application.port.out.ChangeEmailPersistence;
 import com.valadir.application.port.out.DeleteAccountPersistence;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.application.port.out.UpdateProfilePersistence;
 import com.valadir.application.port.out.UserRepository;
 import com.valadir.persistence.adapter.AccountRepositoryJpaAdapter;
+import com.valadir.persistence.adapter.ChangeEmailPersistenceJpaAdapter;
 import com.valadir.persistence.adapter.DeleteAccountPersistenceJpaAdapter;
 import com.valadir.persistence.adapter.ExpiredPendingActivationAccountCleanerJpaAdapter;
 import com.valadir.persistence.adapter.RegisterPersistenceJpaAdapter;
@@ -42,6 +44,12 @@ public class PersistenceWiring {
     UpdateProfilePersistence updateProfilePersistence(AccountJpaRepository accountJpaRepository, UserJpaRepository userJpaRepository) {
 
         return new UpdateProfilePersistenceJpaAdapter(accountJpaRepository, userJpaRepository);
+    }
+
+    @Bean
+    ChangeEmailPersistence changeEmailPersistence(AccountJpaRepository accountJpaRepository, UserJpaRepository userJpaRepository) {
+
+        return new ChangeEmailPersistenceJpaAdapter(accountJpaRepository, userJpaRepository);
     }
 
     @Bean

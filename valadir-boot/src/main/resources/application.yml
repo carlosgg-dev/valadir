@@ -67,6 +67,9 @@ auth:
       ttl: 15m
     verification-token:
       ttl: 10m
+  email-change:
+    otp:
+      ttl: 15m
   lockout:
     window: 1h  # fixed window for counting failed attempts (does not slide on each attempt)
     challenge-threshold: 3  # failures before a CAPTCHA step-up is required; must stay below the first lockout tier
@@ -195,6 +198,19 @@ rate-limit:
       strategy: IP
       max-requests: 30
       window: 60s
+
+    # authenticated endpoints
+    # --- account/email-change/initiate: OTP spam to arbitrary addresses ---
+    - path: /api/auth/account/email-change/initiate
+      strategy: USER
+      max-requests: 3
+      window: 1h
+
+    # --- account/email-change/complete: OTP brute-force ---
+    - path: /api/auth/account/email-change/complete
+      strategy: USER
+      max-requests: 5
+      window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- authenticated endpoints: per-user global limit ---
     - path: /api/**

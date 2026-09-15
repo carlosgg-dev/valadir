@@ -20,6 +20,7 @@ class ErrorCodeTest {
         "INVALID_ACCOUNT_ACTIVATION_OTP,           invalid_account_activation_otp",
         "INVALID_PASSWORD_RESET_OTP,               invalid_password_reset_otp",
         "INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,invalid_password_reset_verification_token",
+        "INVALID_EMAIL_CHANGE_OTP,                 invalid_email_change_otp",
         "CREDENTIAL_INTEGRITY_ERROR,               credential_integrity_error",
         "INVALID_TOKEN,                            invalid_token",
         "AUTHENTICATION_REQUIRED,                  authentication_required",
@@ -40,6 +41,6 @@ class ErrorCodeTest {
     @Test
     void values_everyConstant_isCoveredByMappingTest() {
 
-        assertThat(ErrorCode.values()).hasSize(21);
+        assertThat(ErrorCode.values()).hasSize(22);
     }
 }

@@ -45,7 +45,7 @@ public class AccountReauthenticatorService implements AccountReauthenticator {
             throw new AccountLockedException(remaining);
         }
 
-        if (!passwordHasher.matches(password, account.getPassword())) {
+        if (!passwordHasher.matches(password, account.getHashedPassword())) {
             loginAttemptRepository.recordFailedAttempt(account.getEmail())
                 .ifPresent(lockout -> notifyAccountLockedQuietly(account, lockout));
 

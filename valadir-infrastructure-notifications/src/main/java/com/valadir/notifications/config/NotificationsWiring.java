@@ -2,10 +2,14 @@ package com.valadir.notifications.config;
 
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
+import com.valadir.application.port.out.EmailChangeNotifier;
+import com.valadir.application.port.out.EmailChangedNotifier;
 import com.valadir.application.port.out.PasswordChangedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
 import com.valadir.notifications.adapter.AccountActivationNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.AccountLockedNotifierJavaMailAdapter;
+import com.valadir.notifications.adapter.EmailChangeNotifierJavaMailAdapter;
+import com.valadir.notifications.adapter.EmailChangedNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.PasswordChangedNotifierJavaMailAdapter;
 import com.valadir.notifications.adapter.PasswordResetNotifierJavaMailAdapter;
 import com.valadir.notifications.mail.DurationWording;
@@ -110,6 +114,22 @@ class NotificationsWiring {
     PasswordChangedNotifier passwordChangedNotifier(MailContentRenderer contentRenderer, MimeMailSender mailSender) {
 
         return new PasswordChangedNotifierJavaMailAdapter(contentRenderer, mailSender);
+    }
+
+    @Bean
+    EmailChangeNotifier emailChangeNotifier(
+        MailContentRenderer contentRenderer,
+        MimeMailSender mailSender,
+        DurationWording durationWording
+    ) {
+
+        return new EmailChangeNotifierJavaMailAdapter(contentRenderer, mailSender, durationWording);
+    }
+
+    @Bean
+    EmailChangedNotifier emailChangedNotifier(MailContentRenderer contentRenderer, MimeMailSender mailSender) {
+
+        return new EmailChangedNotifierJavaMailAdapter(contentRenderer, mailSender);
     }
 
     private static ClassLoaderTemplateResolver templateResolver(TemplateMode mode, String pattern) {

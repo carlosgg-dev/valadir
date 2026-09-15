@@ -31,7 +31,7 @@ class AccountMapperTest {
 
         assertThat(result.getId().value()).isEqualTo(id);
         assertThat(result.getEmail().value()).isEqualTo(email);
-        assertThat(result.getPassword().value()).isEqualTo(hashedPassword);
+        assertThat(result.getHashedPassword().value()).isEqualTo(hashedPassword);
         assertThat(result.getRole()).isEqualTo(Role.USER);
         assertThat(result.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(result.getLanguage()).isEqualTo(LANGUAGE);

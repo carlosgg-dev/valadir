@@ -84,7 +84,7 @@ class LoginServiceTest {
 
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
             .willReturn(new AuthTokenResult(accessToken, refreshToken));
 
@@ -144,7 +144,7 @@ class LoginServiceTest {
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
         given(captchaVerifier.isValid(captchaToken)).willReturn(true);
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
             .willReturn(new AuthTokenResult("access-token", "refresh-token"));
 
@@ -152,7 +152,7 @@ class LoginServiceTest {
 
         // The behavior under test is the delegation itself: a satisfied challenge lets the
         // flow reach the credential check. The login outcome is covered by other tests.
-        then(passwordHasher).should().matches(password, EXISTING_ACCOUNT.getPassword());
+        then(passwordHasher).should().matches(password, EXISTING_ACCOUNT.getHashedPassword());
     }
 
     @Test
@@ -183,7 +183,7 @@ class LoginServiceTest {
 
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -206,7 +206,7 @@ class LoginServiceTest {
 
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -228,7 +228,7 @@ class LoginServiceTest {
 
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
-        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getPassword())).willReturn(false);
+        given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
 
         willThrow(new InfrastructureException("Mail server unavailable"))
@@ -252,7 +252,7 @@ class LoginServiceTest {
 
         given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
-        given(passwordHasher.matches(password, pendingAccount.getPassword())).willReturn(true);
+        given(passwordHasher.matches(password, pendingAccount.getHashedPassword())).willReturn(true);
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.login(command))

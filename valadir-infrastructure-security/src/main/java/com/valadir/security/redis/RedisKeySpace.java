@@ -49,6 +49,11 @@ public final class RedisKeySpace {
         return AUTH_SPACE_PREFIX + "password_reset_verification_token:" + fingerprint.value();
     }
 
+    public static String forEmailChangeRequest(String accountId) {
+
+        return AUTH_SPACE_PREFIX + "email_change:" + accountId;
+    }
+
     public static String forRateLimitIp(String pathKey, String ip) {
 
         return RATE_LIMIT_SPACE_PREFIX + "ip:" + pathKey + ":" + ip;

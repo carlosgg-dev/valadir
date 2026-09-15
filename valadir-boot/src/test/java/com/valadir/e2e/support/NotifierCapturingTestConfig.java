@@ -2,6 +2,8 @@ package com.valadir.e2e.support;
 
 import com.valadir.application.port.out.AccountActivationNotifier;
 import com.valadir.application.port.out.AccountLockedNotifier;
+import com.valadir.application.port.out.EmailChangeNotifier;
+import com.valadir.application.port.out.EmailChangedNotifier;
 import com.valadir.application.port.out.OtpNotification;
 import com.valadir.application.port.out.PasswordChangedNotifier;
 import com.valadir.application.port.out.PasswordResetNotifier;
@@ -53,6 +55,20 @@ public class NotifierCapturingTestConfig {
     CapturingPasswordChangedNotifier capturingPasswordChangedNotifier() {
 
         return new CapturingPasswordChangedNotifier();
+    }
+
+    @Bean
+    @Primary
+    CapturingEmailChangeNotifier capturingEmailChangeNotifier() {
+
+        return new CapturingEmailChangeNotifier();
+    }
+
+    @Bean
+    @Primary
+    CapturingEmailChangedNotifier capturingEmailChangedNotifier() {
+
+        return new CapturingEmailChangedNotifier();
     }
 
     /**
@@ -204,6 +220,53 @@ public class NotifierCapturingTestConfig {
         public boolean capturedNothing() {
 
             return mailbox.isEmpty();
+        }
+
+        public void reset() {
+
+            mailbox.clear();
+        }
+    }
+
+    public static class CapturingEmailChangeNotifier implements EmailChangeNotifier {
+
+        private final Mailbox<OtpNotification> mailbox = new Mailbox<>();
+
+        @Override
+        public void sendConfirmationCode(OtpNotification notification) {
+
+            mailbox.deliver(notification.email(), notification);
+        }
+
+        public Optional<PlainOtp> lastOtpFor(String email) {
+
+            return mailbox.lastFor(email).map(OtpNotification::otp);
+        }
+
+        public boolean capturedNothing() {
+
+            return mailbox.isEmpty();
+        }
+
+        public void reset() {
+
+            mailbox.clear();
+        }
+    }
+
+    public static class CapturingEmailChangedNotifier implements EmailChangedNotifier {
+
+        private final Mailbox<Language> mailbox = new Mailbox<>();
+
+        @Override
+        public void notifyEmailChanged(Email email, Language language) {
+
+            mailbox.deliver(email, language);
+        }
+
+        public Optional<Language> lastLanguageFor(String email) {
+
+            return mailbox.lastFor(email);
         }
 
         public void reset() {

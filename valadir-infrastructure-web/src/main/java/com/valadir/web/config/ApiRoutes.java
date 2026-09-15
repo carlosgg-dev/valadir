@@ -62,10 +62,14 @@ public final class ApiRoutes {
             public static final String PROFILE = ROOT + "/profile";
             public static final String DELETE = ROOT + "/delete";
             public static final String CHANGE_PASSWORD = ROOT + "/password/change";
+            public static final String INITIATE_EMAIL_CHANGE = ROOT + "/email-change/initiate";
+            public static final String COMPLETE_EMAIL_CHANGE = ROOT + "/email-change/complete";
 
             public static final String PROFILE_PATH = Auth.BASE + PROFILE;
             public static final String DELETE_PATH = Auth.BASE + DELETE;
             public static final String CHANGE_PASSWORD_PATH = Auth.BASE + CHANGE_PASSWORD;
+            public static final String INITIATE_EMAIL_CHANGE_PATH = Auth.BASE + INITIATE_EMAIL_CHANGE;
+            public static final String COMPLETE_EMAIL_CHANGE_PATH = Auth.BASE + COMPLETE_EMAIL_CHANGE;
 
             private Account() {
 

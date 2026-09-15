@@ -20,6 +20,7 @@ public class HttpStatusResolver {
             case INVALID_ACCOUNT_ACTIVATION_OTP,
                  INVALID_PASSWORD_RESET_OTP,
                  INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,
+                 INVALID_EMAIL_CHANGE_OTP,
                  CREDENTIAL_INTEGRITY_ERROR,
                  INVALID_TOKEN,
                  AUTHENTICATION_REQUIRED -> HttpStatus.UNAUTHORIZED;

@@ -29,7 +29,7 @@ public class AccountMapper {
         return new AccountEntity(
             account.getId().value(),
             account.getEmail().value(),
-            account.getPassword().value(),
+            account.getHashedPassword().value(),
             account.getRole(),
             account.getStatus(),
             account.getLanguage()

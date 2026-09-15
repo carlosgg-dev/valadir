@@ -1,0 +1,12 @@
+[(#{mail.email-change.heading})]
+
+[(#{mail.email-change.intro})]
+
+    [(${otp})]
+
+[(#{mail.email-change.expiry(${expiry})})]
+
+[(#{mail.common.ignore})]
+
+--
+[(#{mail.common.footer})]

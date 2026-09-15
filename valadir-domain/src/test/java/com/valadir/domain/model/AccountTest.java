@@ -21,7 +21,7 @@ class AccountTest {
         assertThat(account.isActive()).isFalse();
         assertThat(account.getId()).isEqualTo(ID);
         assertThat(account.getEmail()).isEqualTo(EMAIL);
-        assertThat(account.getPassword()).isEqualTo(PASSWORD);
+        assertThat(account.getHashedPassword()).isEqualTo(PASSWORD);
         assertThat(account.getRole()).isEqualTo(ROLE);
         assertThat(account.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(account.getLanguage()).isEqualTo(LANGUAGE);
@@ -34,7 +34,7 @@ class AccountTest {
 
         assertThat(account.getId()).isEqualTo(ID);
         assertThat(account.getEmail()).isEqualTo(EMAIL);
-        assertThat(account.getPassword()).isEqualTo(PASSWORD);
+        assertThat(account.getHashedPassword()).isEqualTo(PASSWORD);
         assertThat(account.getRole()).isEqualTo(ROLE);
         assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(account.getLanguage()).isEqualTo(LANGUAGE);
@@ -93,7 +93,7 @@ class AccountTest {
         assertThat(changed.getLanguage()).isEqualTo(otherLanguage);
         assertThat(changed.getId()).isEqualTo(ID);
         assertThat(changed.getEmail()).isEqualTo(EMAIL);
-        assertThat(changed.getPassword()).isEqualTo(PASSWORD);
+        assertThat(changed.getHashedPassword()).isEqualTo(PASSWORD);
         assertThat(changed.getRole()).isEqualTo(ROLE);
         assertThat(changed.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(original.getLanguage()).isEqualTo(LANGUAGE);

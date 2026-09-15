@@ -24,6 +24,7 @@ class HttpStatusResolverTest {
         "INVALID_ACCOUNT_ACTIVATION_OTP,           UNAUTHORIZED",
         "INVALID_PASSWORD_RESET_OTP,               UNAUTHORIZED",
         "INVALID_PASSWORD_RESET_VERIFICATION_TOKEN,UNAUTHORIZED",
+        "INVALID_EMAIL_CHANGE_OTP,                 UNAUTHORIZED",
         "CREDENTIAL_INTEGRITY_ERROR,               UNAUTHORIZED",
         "INVALID_TOKEN,                            UNAUTHORIZED",
         "AUTHENTICATION_REQUIRED,                  UNAUTHORIZED",
@@ -44,6 +45,6 @@ class HttpStatusResolverTest {
     @Test
     void values_everyErrorCode_isCoveredByStatusTest() {
 
-        assertThat(ErrorCode.values()).hasSize(21);
+        assertThat(ErrorCode.values()).hasSize(22);
     }
 }

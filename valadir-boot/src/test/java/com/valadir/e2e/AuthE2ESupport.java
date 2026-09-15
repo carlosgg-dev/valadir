@@ -4,6 +4,8 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.e2e.support.CaptchaVerifierTestConfig.ControllableCaptchaVerifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountActivationNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingAccountLockedNotifier;
+import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingEmailChangeNotifier;
+import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingEmailChangedNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordChangedNotifier;
 import com.valadir.e2e.support.NotifierCapturingTestConfig.CapturingPasswordResetNotifier;
 import com.valadir.persistence.repository.AccountJpaRepository;
@@ -79,6 +81,12 @@ public abstract class AuthE2ESupport {
     protected CapturingPasswordChangedNotifier passwordChangedNotifier;
 
     @Autowired
+    protected CapturingEmailChangeNotifier emailChangeNotifier;
+
+    @Autowired
+    protected CapturingEmailChangedNotifier emailChangedNotifier;
+
+    @Autowired
     protected ControllableCaptchaVerifier captchaVerifier;
 
     // protected, not package-private: the resilience suite extends this from another package, and a
@@ -96,6 +104,8 @@ public abstract class AuthE2ESupport {
         passwordResetNotifier.reset();
         accountLockedNotifier.reset();
         passwordChangedNotifier.reset();
+        emailChangeNotifier.reset();
+        emailChangedNotifier.reset();
         captchaVerifier.reset();
     }
 
@@ -271,6 +281,39 @@ public abstract class AuthE2ESupport {
             .post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH);
     }
 
+    protected Response initiateEmailChange(String accessToken, String newEmail, String password) {
+
+        var request = RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of(
+                "newEmail", newEmail,
+                "password", password
+            ));
+
+        if (accessToken != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        }
+
+        return request
+            .when()
+            .post(ApiRoutes.Auth.Account.INITIATE_EMAIL_CHANGE_PATH);
+    }
+
+    protected Response completeEmailChange(String accessToken, String code) {
+
+        var request = RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("code", code));
+
+        if (accessToken != null) {
+            request.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+        }
+
+        return request
+            .when()
+            .post(ApiRoutes.Auth.Account.COMPLETE_EMAIL_CHANGE_PATH);
+    }
+
     // --- End of steps
 
     // --- Readers: pull one value out of a response or the test doubles.
@@ -322,6 +365,13 @@ public abstract class AuthE2ESupport {
 
         return passwordResetNotifier.lastOtpFor(email)
             .orElseThrow(() -> new IllegalStateException("No password reset OTP captured for " + email))
+            .value();
+    }
+
+    protected String emailChangeOtpFor(String email) {
+
+        return emailChangeNotifier.lastOtpFor(email)
+            .orElseThrow(() -> new IllegalStateException("No email change OTP captured for " + email))
             .value();
     }
 

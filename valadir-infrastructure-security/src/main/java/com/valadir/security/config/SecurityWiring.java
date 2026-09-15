@@ -3,6 +3,7 @@ package com.valadir.security.config;
 import com.valadir.application.port.out.AccessTokenRevocation;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AuthTokenIssuer;
+import com.valadir.application.port.out.EmailChangeRequestRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
 import com.valadir.application.port.out.OtpRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
@@ -12,6 +13,7 @@ import com.valadir.domain.service.PasswordHasher;
 import com.valadir.security.adapter.AccessTokenRevocationRedisAdapter;
 import com.valadir.security.adapter.AccountTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.AuthTokenIssuerJwtAdapter;
+import com.valadir.security.adapter.EmailChangeRequestRepositoryRedisAdapter;
 import com.valadir.security.adapter.LogoutTokensInvalidatorRedisAdapter;
 import com.valadir.security.adapter.OtpRepositoryRedisAdapter;
 import com.valadir.security.adapter.PasswordHasherArgon2Adapter;
@@ -105,5 +107,14 @@ class SecurityWiring {
     ) {
 
         return new PasswordResetVerificationTokenRepositoryRedisAdapter(redisTemplate, redisCircuitGuard);
+    }
+
+    @Bean
+    EmailChangeRequestRepository emailChangeRequestRepository(
+        RedisTemplate<String, String> redisTemplate,
+        RedisCircuitGuard redisCircuitGuard
+    ) {
+
+        return new EmailChangeRequestRepositoryRedisAdapter(redisTemplate, redisCircuitGuard);
     }
 }

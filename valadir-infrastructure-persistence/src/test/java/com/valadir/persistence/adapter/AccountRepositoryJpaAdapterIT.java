@@ -59,7 +59,7 @@ class AccountRepositoryJpaAdapterIT {
         var retrieved = result.get();
         assertThat(retrieved.getId()).isEqualTo(account.getId());
         assertThat(retrieved.getEmail()).isEqualTo(account.getEmail());
-        assertThat(retrieved.getPassword()).isEqualTo(account.getPassword());
+        assertThat(retrieved.getHashedPassword()).isEqualTo(account.getHashedPassword());
         assertThat(retrieved.getRole()).isEqualTo(account.getRole());
         assertThat(retrieved.getStatus()).isEqualTo(account.getStatus());
         assertThat(retrieved.getLanguage()).isEqualTo(account.getLanguage());
@@ -85,7 +85,7 @@ class AccountRepositoryJpaAdapterIT {
         var retrieved = result.get();
         assertThat(retrieved.getId()).isEqualTo(account.getId());
         assertThat(retrieved.getEmail()).isEqualTo(account.getEmail());
-        assertThat(retrieved.getPassword()).isEqualTo(account.getPassword());
+        assertThat(retrieved.getHashedPassword()).isEqualTo(account.getHashedPassword());
         assertThat(retrieved.getRole()).isEqualTo(account.getRole());
         assertThat(retrieved.getStatus()).isEqualTo(account.getStatus());
     }
@@ -124,8 +124,8 @@ class AccountRepositoryJpaAdapterIT {
         var result = adapter.findById(AccountId.from(saved.getId()));
         assertThat(result)
             .isPresent()
-            .hasValueSatisfying(account -> assertThat(account.getPassword())
+            .hasValueSatisfying(account -> assertThat(account.getHashedPassword())
                 .isEqualTo(newHashedPassword)
-                .isNotEqualTo(existingAccount.getPassword()));
+                .isNotEqualTo(existingAccount.getHashedPassword()));
     }
 }

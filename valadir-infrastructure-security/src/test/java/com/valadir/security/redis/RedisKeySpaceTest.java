@@ -63,6 +63,13 @@ class RedisKeySpaceTest {
     }
 
     @Test
+    void forEmailChangeRequest_returnsExpectedKey() {
+
+        assertThat(RedisKeySpace.forEmailChangeRequest(ACCOUNT_ID))
+            .isEqualTo("auth:email_change:" + ACCOUNT_ID);
+    }
+
+    @Test
     void forRateLimitIp_returnsExpectedKey() {
 
         assertThat(RedisKeySpace.forRateLimitIp(PATH_KEY, IP))

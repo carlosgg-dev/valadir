@@ -1,0 +1,6 @@
+[(#{mail.email-changed.heading})]
+
+[(#{mail.email-changed.body})]
+
+--
+[(#{mail.common.footer})]

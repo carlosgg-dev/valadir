@@ -1,13 +1,16 @@
 package com.valadir.config;
 
 import com.valadir.application.config.AccountActivationConfig;
+import com.valadir.application.config.EmailChangeConfig;
 import com.valadir.application.config.PasswordResetConfig;
 import com.valadir.application.config.PendingActivationAccountPurgeConfig;
 import com.valadir.application.port.in.ActivateAccountUseCase;
 import com.valadir.application.port.in.ChangePasswordUseCase;
+import com.valadir.application.port.in.CompleteEmailChangeUseCase;
 import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.in.DeleteAccountUseCase;
 import com.valadir.application.port.in.GetProfileUseCase;
+import com.valadir.application.port.in.InitiateEmailChangeUseCase;
 import com.valadir.application.port.in.InitiatePasswordResetUseCase;
 import com.valadir.application.port.in.LoginUseCase;
 import com.valadir.application.port.in.LogoutAllUseCase;
@@ -25,7 +28,11 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.AuthTokenIssuer;
 import com.valadir.application.port.out.CaptchaVerifier;
+import com.valadir.application.port.out.ChangeEmailPersistence;
 import com.valadir.application.port.out.DeleteAccountPersistence;
+import com.valadir.application.port.out.EmailChangeNotifier;
+import com.valadir.application.port.out.EmailChangeRequestRepository;
+import com.valadir.application.port.out.EmailChangedNotifier;
 import com.valadir.application.port.out.ExpiredPendingActivationAccountCleaner;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.LogoutTokensInvalidator;
@@ -44,11 +51,13 @@ import com.valadir.application.service.AccountReauthenticator;
 import com.valadir.application.service.AccountReauthenticatorService;
 import com.valadir.application.service.ActivateAccountService;
 import com.valadir.application.service.ChangePasswordService;
+import com.valadir.application.service.CompleteEmailChangeService;
 import com.valadir.application.service.CompletePasswordResetService;
 import com.valadir.application.service.DeleteAccountService;
 import com.valadir.application.service.EmailHolderResolver;
 import com.valadir.application.service.EmailHolderResolverService;
 import com.valadir.application.service.GetProfileService;
+import com.valadir.application.service.InitiateEmailChangeService;
 import com.valadir.application.service.InitiatePasswordResetService;
 import com.valadir.application.service.LoginService;
 import com.valadir.application.service.LogoutAllService;
@@ -358,6 +367,56 @@ class ApplicationWiring {
             accountTokensInvalidator,
             loginAttemptRepository,
             passwordChangedNotifier
+        );
+    }
+
+    @Bean
+    EmailChangeConfig emailChangeConfig(@Value("${auth.email-change.otp.ttl}") Duration otpTtl) {
+
+        return new EmailChangeConfig(otpTtl);
+    }
+
+    @Bean
+    InitiateEmailChangeUseCase initiateEmailChangeUseCase(
+        AccountRepository accountRepository,
+        AccountReauthenticator accountReauthenticator,
+        EmailHolderResolver emailHolderResolver,
+        OtpHasher otpHasher,
+        EmailChangeRequestRepository emailChangeRequestRepository,
+        EmailChangeNotifier emailChangeNotifier,
+        EmailChangeConfig emailChangeConfig
+    ) {
+
+        return new InitiateEmailChangeService(
+            accountRepository,
+            accountReauthenticator,
+            emailHolderResolver,
+            otpHasher,
+            emailChangeRequestRepository,
+            emailChangeNotifier,
+            emailChangeConfig
+        );
+    }
+
+    @Bean
+    CompleteEmailChangeUseCase completeEmailChangeUseCase(
+        EmailChangeRequestRepository emailChangeRequestRepository,
+        OtpHasher otpHasher,
+        AccountRepository accountRepository,
+        EmailHolderResolver emailHolderResolver,
+        ChangeEmailPersistence changeEmailPersistence,
+        LoginAttemptRepository loginAttemptRepository,
+        EmailChangedNotifier emailChangedNotifier
+    ) {
+
+        return new CompleteEmailChangeService(
+            emailChangeRequestRepository,
+            otpHasher,
+            accountRepository,
+            emailHolderResolver,
+            changeEmailPersistence,
+            loginAttemptRepository,
+            emailChangedNotifier
         );
     }
 

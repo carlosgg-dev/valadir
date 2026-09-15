@@ -87,7 +87,7 @@ class RegisterServiceTest {
 
         var savedAccount = accountCaptor.getValue();
         assertThat(savedAccount.getEmail()).isEqualTo(email);
-        assertThat(savedAccount.getPassword()).isEqualTo(hashedPassword);
+        assertThat(savedAccount.getHashedPassword()).isEqualTo(hashedPassword);
         assertThat(savedAccount.getRole()).isEqualTo(Role.USER);
         assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.PENDING_ACTIVATION);
         assertThat(savedAccount.getLanguage()).isEqualTo(Language.ES);

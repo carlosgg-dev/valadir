@@ -77,7 +77,7 @@ public class LoginService implements LoginUseCase {
 
             var account = found.get();
             MDC.put(MdcKeys.ACCOUNT_ID, account.getId().value().toString());
-            if (!passwordHasher.matches(rawPassword, account.getPassword())) {
+            if (!passwordHasher.matches(rawPassword, account.getHashedPassword())) {
                 loginAttemptRepository.recordFailedAttempt(email)
                     .ifPresent(lockout -> notifyAccountLockedQuietly(account, lockout));
 

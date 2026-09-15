@@ -31,4 +31,8 @@ public interface AccountJpaRepository extends JpaRepository<AccountEntity, UUID>
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE AccountEntity a SET a.language = :language WHERE a.id = :id")
     void updateLanguageById(@Param("id") UUID id, @Param("language") Language language);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE AccountEntity a SET a.email = :email WHERE a.id = :id")
+    void updateEmailById(@Param("id") UUID id, @Param("email") String email);
 }

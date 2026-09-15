@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.nullValue;
 class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
     private static final String EMAIL = "bruce.wayne@email.com";
+    private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
+    private static final String NEW_EMAIL = "matches.malone@email.com";
     private static final String PASSWORD = PasswordMother.raw().value();
 
     private static final String LIMIT_HEADER = "X-RateLimit-Limit";
@@ -39,6 +41,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
     private static final Duration LOGIN_IP_WINDOW = Duration.ofSeconds(60);
     private static final int USER_LIMIT = 100;
     private static final String USER_RULE_PATH_KEY = "api";
+    private static final int EMAIL_CHANGE_COMPLETE_LIMIT = 5;
 
     private static final int CONCURRENT_LOGINS = LOGIN_IP_LIMIT + 5;
 
@@ -178,6 +181,45 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // itself: the per-user limit would be gone with no error and no log.
         assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(USER_RULE_PATH_KEY, accountIdFor(EMAIL)))).isTrue();
         assertThat(numericHeader(loggedOut, LIMIT_HEADER)).isEqualTo(USER_LIMIT);
+    }
+
+    @Test
+    void completeEmailChange_repeatedWrongCodes_isBlockedByItsOwnUserRule() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+        registerAndActivate(BYSTANDER_EMAIL, PASSWORD);
+
+        String accessToken = accessTokenOf(login(EMAIL, PASSWORD));
+        String bystanderAccessToken = accessTokenOf(login(BYSTANDER_EMAIL, PASSWORD));
+
+        initiateEmailChange(accessToken, NEW_EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        String code = emailChangeOtpFor(NEW_EMAIL);
+
+        List<Response> upToTheLimit = IntStream.rangeClosed(1, EMAIL_CHANGE_COMPLETE_LIMIT)
+            .mapToObj(attempt -> completeEmailChange(accessToken, otherOtpThan(code)))
+            .toList();
+
+        // Each of these matches /api/** as well: sharing its bucket, every guess would count twice and the
+        // block would land before the limit.
+        assertThat(responsesWithStatus(upToTheLimit, HttpStatus.UNAUTHORIZED)).hasSize(EMAIL_CHANGE_COMPLETE_LIMIT);
+
+        // The right code no longer gets through: what the rule bounds is the number of guesses
+        Response blocked = completeEmailChange(accessToken, code);
+
+        blocked.then()
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
+            .body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
+
+        assertThat(numericHeader(blocked, LIMIT_HEADER)).isEqualTo(EMAIL_CHANGE_COMPLETE_LIMIT);
+
+        // Keyed by principal: another account's guesses start from a budget of their own
+        completeEmailChange(bystanderAccessToken, code)
+            .then()
+            .statusCode(HttpStatus.UNAUTHORIZED.value())
+            .body("code", equalTo(ErrorCode.INVALID_EMAIL_CHANGE_OTP.getCode()));
     }
 
     @Test

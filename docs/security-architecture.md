@@ -18,10 +18,11 @@ signing key.
 
 ## Redis Usage
 
-| Repository               | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-|--------------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `RefreshTokenRepository` | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all, the password reset, the password change and account deletion perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                    |
-| `AccessTokenRevocation`  | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset, password change, "close every session" and account deletion), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
+| Repository                     | Type               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|--------------------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RefreshTokenRepository`       | Whitelist          | Tracks active refresh tokens by fingerprint (`TokenFingerprint`), under `auth:refresh_token:{fingerprint}` and as members of `auth:user_tokens:{accountId}`. Long-lived tokens require explicit server-side revocation, which logout, logout-all, the password reset, the password change and account deletion perform. A token already spent by a rotation is simply absent, so it is refused on its next use; nothing revokes the session that spent it. Both the token key and the set carry a TTL matching the token expiry.                                                    |
+| `AccessTokenRevocation`        | Blacklist + cutoff | Answers whether an access token is refused, for the two reasons it can be. `auth:blacklist:{jti}` holds tokens revoked one at a time (logout), with a TTL equal to the remaining token lifetime. `auth:token_cutoff:{accountId}` holds the instant from which every access token of an account is refused (password reset, password change, "close every session" and account deletion), with a TTL equal to the access token lifetime — past it, nothing it could reject is still alive. Both keys travel in a single `MGET`, so the check still costs one round-trip per request. |
+| `EmailChangeRequestRepository` | Pending change     | Holds the one email change an account has in flight, under `auth:email_change:{accountId}`: the new address and the Argon2 hash of the code sent to it, never the code. `save_email_change_request.lua` writes the fields and their TTL (the OTP lifetime) in one call, so no request outlives its code; a second request replaces the first, and a hash missing either field reads as no request at all.                                                                                                                                                                           |
 
 The access token uses a blacklist (not a whitelist) because it is used on every request — querying a whitelist on each
 call would add unnecessary latency. The refresh token uses a whitelist because its long lifetime would make a blacklist
@@ -64,6 +65,7 @@ one property:
 | Password reset (complete) | revokes **every** session of that account    |
 | Password change           | revokes **every** session of that account    |
 | Account deletion          | revokes **every** session of that account    |
+| Email change (complete)   | **keeps** every session of that account      |
 
 The set carries the same TTL as a refresh token, refreshed on every login and every rotation. Since all refresh tokens
 live the same span, the member just added is always the last of the set to die, so the set never outlives a live session
@@ -129,6 +131,37 @@ its failures were counted against a password that no longer exists.
 The calling device is signed out with the rest, and the response is 204 rather than a new token pair: the cutoff
 resolves by the `iat` second, so a pair minted in the same request would be refused by the very cutoff it follows.
 
+## Email Change
+
+`POST /api/auth/account/email-change/initiate` takes the new address and the current password;
+`POST /api/auth/account/email-change/complete` takes the code mailed to that address. Two steps, because the user
+supplies the two inputs at different moments, and no intermediate token between them, because the session already says
+who asks.
+
+The password goes through the same re-authentication as deletion and password change, and comes first. Only then is the
+new address checked: one held by an **active** account is refused with 409 `EMAIL_ALREADY_EXISTS`, the caller's own
+included. One held by an account **pending activation** is no conflict — that account only claimed the address, and
+whoever proves it takes it over, exactly as a re-registration does.
+
+The code goes to the **new** address and proves that mailbox; the old address keeps signing in until the change
+completes. The request is keyed by account, so a second initiation replaces the first and only the latest code is valid,
+and completion looks it up by the account of the token: a code is worthless in any other account's session.
+
+Completion checks the holder again, because another account may have activated the address in the meantime; one that
+races past that check hits the unique index, which the adapter answers with the same 409. A pending holder is deleted in
+the transaction that writes the new address. The request is then deleted best-effort: one left behind cannot change the
+email twice, since its address now belongs to this very account and resolves as a conflict until its TTL removes it. The
+failed-attempt counter of the old address is cleared, so a new account on it does not open on failures counted against
+this one.
+
+**No session is revoked.** Sessions are keyed by account, not by address, and a proved change of mailbox changes no
+credential. The old address is told afterwards, best-effort and without the new one: an alert naming it would hand
+whoever reads the old mailbox the address the account moved to.
+
+Both routes are limited per user, the only key an authenticated route has: 3 initiations an hour bound how many
+addresses one account can mail codes to, and 5 completions per 15 minutes — the OTP lifetime — bound the guesses
+against one code. Each rule counts in a bucket of its own route, apart from the global per-user limit.
+
 ## Account Identity
 
 Email addresses are normalised to lower case before they are stored or looked up, so `A@x.com` and `a@x.com` resolve to
@@ -170,6 +203,10 @@ activation exists for this address"* — a state the purge removes within 72h, w
 call to `register` destroys anyway. Targeted enumeration is answered by the front door in one request; bulk enumeration
 is what the rate-limit rules bound. The decoys covered the second case, which was covered already, and never covered the
 first.
+
+Email change *initiate* answers the same 409 for an address held by an active account. It opens no new channel: it
+sits behind a session and the account's password, is bounded to three calls an hour, and repeats what `register`
+answers anonymously in one request.
 
 **This makes `register`'s 409 load-bearing.** Closing it — for privacy, for compliance, for any reason — would not merely
 change one status code: it would make account existence a secret again, and the policy above would have to be rebuilt
@@ -215,6 +252,7 @@ more restrictive, never less, and denying a login that has already proved its cr
 | Situation                                           | Behaviour                                                                                                                      |
 |-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | SMTP down while sending an activation/reset **OTP** | The account is **not** activated without an OTP. The pending account is persisted, the error is retryable, and *resend* works. |
+| SMTP down while sending an email change **OTP**     | Nothing changes. The error is retryable, and a new *initiate* replaces the request stored for the lost code.                   |
 | A non-essential email notification fails            | Logged with context; the main flow continues. The lockout notification is `@Async`, and the login guards it besides.           |
 | **Turnstile (CAPTCHA) unreachable**                 | **Fail-open**: the challenged login proceeds.                                                                                  |
 
@@ -236,6 +274,9 @@ one — announcing the threshold to whoever is probing it.
 `ChangePasswordService` guards the password-changed alert on the same terms. The change is applied by the time the
 alert is sent, so a 503 would tell the owner it failed, and their retry with the old password would count as a failed
 attempt.
+
+`CompleteEmailChangeService` guards the email-changed alert and the request cleanup on the same terms: the address is
+already changed when either runs, and a retry would only find the code spent.
 
 ### Bounded failure detection
 

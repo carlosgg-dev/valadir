@@ -84,6 +84,9 @@ class ProductionConfigurationTest {
 
             new Rule("/api/auth/refresh", Strategy.IP, 30, ONE_MINUTE),
 
+            new Rule("/api/auth/account/email-change/initiate", Strategy.USER, 3, ONE_HOUR),
+            new Rule("/api/auth/account/email-change/complete", Strategy.USER, 5, OTP_TTL),
+
             new Rule("/api/**", Strategy.USER, 100, ONE_MINUTE)
         );
     }

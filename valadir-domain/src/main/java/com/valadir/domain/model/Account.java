@@ -4,7 +4,7 @@ public class Account {
 
     private final AccountId id;
     private final Email email;
-    private final HashedPassword password;
+    private final HashedPassword hashedPassword;
     private final Role role;
     private final AccountStatus status;
     private final Language language;
@@ -12,7 +12,7 @@ public class Account {
     private Account(
         AccountId id,
         Email email,
-        HashedPassword password,
+        HashedPassword hashedPassword,
         Role role,
         AccountStatus status,
         Language language
@@ -20,7 +20,7 @@ public class Account {
 
         this.id = id;
         this.email = email;
-        this.password = password;
+        this.hashedPassword = hashedPassword;
         this.role = role;
         this.status = status;
         this.language = language;
@@ -29,12 +29,12 @@ public class Account {
     public static Account newPendingActivation(
         AccountId id,
         Email email,
-        HashedPassword password,
+        HashedPassword hashedPassword,
         Role role,
         Language language
     ) {
 
-        return new Account(id, email, password, role, AccountStatus.PENDING_ACTIVATION, language);
+        return new Account(id, email, hashedPassword, role, AccountStatus.PENDING_ACTIVATION, language);
     }
 
     public static Account reconstitute(
@@ -51,7 +51,7 @@ public class Account {
 
     public Account activate() {
 
-        return new Account(id, email, password, role, AccountStatus.ACTIVE, language);
+        return new Account(id, email, hashedPassword, role, AccountStatus.ACTIVE, language);
     }
 
     public boolean isActive() {
@@ -66,7 +66,7 @@ public class Account {
 
     public Account changeLanguage(Language language) {
 
-        return new Account(id, email, password, role, status, language);
+        return new Account(id, email, hashedPassword, role, status, language);
     }
 
     public AccountId getId() {
@@ -79,9 +79,9 @@ public class Account {
         return email;
     }
 
-    public HashedPassword getPassword() {
+    public HashedPassword getHashedPassword() {
 
-        return password;
+        return hashedPassword;
     }
 
     public Role getRole() {
