@@ -16,7 +16,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, UUID> {
     void deleteByAccountId(UUID accountId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE UserEntity u SET u.fullName = :fullName, u.givenName = :givenName WHERE u.accountId = :accountId")
+    @Query("UPDATE UserEntity u SET u.fullName = :fullName, u.givenName = :givenName, u.updatedAt = CURRENT_TIMESTAMP WHERE u.accountId = :accountId")
     void updateNamesByAccountId(
         @Param("accountId") UUID accountId,
         @Param("fullName") String fullName,

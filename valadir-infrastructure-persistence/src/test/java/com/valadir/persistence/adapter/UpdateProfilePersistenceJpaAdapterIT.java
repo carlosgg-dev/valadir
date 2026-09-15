@@ -2,6 +2,7 @@ package com.valadir.persistence.adapter;
 
 import com.valadir.application.port.out.UpdateProfilePersistence;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.FullName;
 import com.valadir.domain.model.GivenName;
@@ -22,8 +23,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class UpdateProfilePersistenceJpaAdapterIT {
 
+    private static final Instant A_DAY_AGO = Instant.now().minus(Duration.ofDays(1));
+
     @Autowired
     private AccountJpaRepository accountJpaRepository;
 
@@ -43,6 +51,9 @@ class UpdateProfilePersistenceJpaAdapterIT {
 
     @Autowired
     private UpdateProfilePersistence adapter;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -80,6 +91,24 @@ class UpdateProfilePersistenceJpaAdapterIT {
         assertThat(storedBystanderUser.getGivenName()).isEqualTo(bystanderUser.getGivenName().value());
     }
 
+    // The language lives on the account and the names on the profile: each row keeps its own timestamp
+    @Test
+    void update_accountWithProfile_movesUpdatedAtOfTheAccountAndTheProfile() {
+
+        var account = AccountMother.active().build();
+        var user = UserMother.builder().withAccountId(account.getId()).build();
+        persist(account, user);
+        forceUpdatedAt(account.getId(), A_DAY_AGO);
+
+        var newFullName = FullName.from("Bruce Thomas Wayne");
+        var newGivenName = GivenName.from("Matches Malone");
+
+        adapter.update(account.changeLanguage(Language.ES), user.rename(newFullName, newGivenName));
+
+        assertThat(accountJpaRepository.findById(account.getId().value()).orElseThrow().getUpdatedAt()).isAfter(A_DAY_AGO);
+        assertThat(userJpaRepository.findByAccountId(account.getId().value()).orElseThrow().getUpdatedAt()).isAfter(A_DAY_AGO);
+    }
+
     // A PUT replaces the whole profile: a missing given name must clear the stored one, not keep it
     @Test
     void update_withoutGivenName_clearsTheStoredOne() {
@@ -98,5 +127,11 @@ class UpdateProfilePersistenceJpaAdapterIT {
 
         accountJpaRepository.save(AccountMapper.toEntity(account));
         userJpaRepository.save(UserMapper.toEntity(user));
+    }
+
+    private void forceUpdatedAt(AccountId accountId, Instant updatedAt) {
+
+        jdbcTemplate.update("UPDATE accounts SET updated_at = ? WHERE id = ?", Timestamp.from(updatedAt), accountId.value());
+        jdbcTemplate.update("UPDATE users SET updated_at = ? WHERE account_id = ?", Timestamp.from(updatedAt), accountId.value());
     }
 }

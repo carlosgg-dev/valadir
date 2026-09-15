@@ -18,9 +18,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,11 +37,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class AccountRepositoryJpaAdapterIT {
 
+    private static final Instant A_DAY_AGO = Instant.now().minus(Duration.ofDays(1));
+
     @Autowired
     private AccountJpaRepository jpaRepository;
 
     @Autowired
     private AccountRepository adapter;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -113,6 +122,18 @@ class AccountRepositoryJpaAdapterIT {
     }
 
     @Test
+    void activate_pendingActivationAccount_movesUpdatedAt() {
+
+        var pendingAccount = AccountMother.pendingActivation().build();
+        jpaRepository.save(AccountMapper.toEntity(pendingAccount));
+        forceUpdatedAt(pendingAccount.getId(), A_DAY_AGO);
+
+        adapter.activate(pendingAccount.getId());
+
+        assertThat(jpaRepository.findById(pendingAccount.getId().value()).orElseThrow().getUpdatedAt()).isAfter(A_DAY_AGO);
+    }
+
+    @Test
     void updatePassword_existingAccount_updatesHashedPassword() {
 
         var existingAccount = AccountMother.active().build();
@@ -127,5 +148,22 @@ class AccountRepositoryJpaAdapterIT {
             .hasValueSatisfying(account -> assertThat(account.getHashedPassword())
                 .isEqualTo(newHashedPassword)
                 .isNotEqualTo(existingAccount.getHashedPassword()));
+    }
+
+    @Test
+    void updatePassword_existingAccount_movesUpdatedAt() {
+
+        var existingAccount = AccountMother.active().build();
+        jpaRepository.save(AccountMapper.toEntity(existingAccount));
+        forceUpdatedAt(existingAccount.getId(), A_DAY_AGO);
+
+        adapter.updatePassword(existingAccount.getId(), new HashedPassword("$argon2id$newpassword"));
+
+        assertThat(jpaRepository.findById(existingAccount.getId().value()).orElseThrow().getUpdatedAt()).isAfter(A_DAY_AGO);
+    }
+
+    private void forceUpdatedAt(AccountId accountId, Instant updatedAt) {
+
+        jdbcTemplate.update("UPDATE accounts SET updated_at = ? WHERE id = ?", Timestamp.from(updatedAt), accountId.value());
     }
 }

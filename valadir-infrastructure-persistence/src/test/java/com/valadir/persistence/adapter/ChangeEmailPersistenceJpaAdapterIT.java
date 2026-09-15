@@ -4,6 +4,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.ChangeEmailPersistence;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.Email;
 import com.valadir.domain.model.User;
 import com.valadir.persistence.config.PersistenceWiring;
@@ -22,8 +23,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -37,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class ChangeEmailPersistenceJpaAdapterIT {
 
     private static final Email NEW_EMAIL = Email.from("matches.malone@email.com");
+    private static final Instant A_DAY_AGO = Instant.now().minus(Duration.ofDays(1));
 
     @Autowired
     private AccountJpaRepository accountJpaRepository;
@@ -46,6 +53,9 @@ class ChangeEmailPersistenceJpaAdapterIT {
 
     @Autowired
     private ChangeEmailPersistence adapter;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -71,6 +81,19 @@ class ChangeEmailPersistenceJpaAdapterIT {
             .isEqualTo(NEW_EMAIL.value());
         assertThat(accountJpaRepository.findById(bystanderAccount.getId().value()).orElseThrow().getEmail())
             .isEqualTo(bystanderAccount.getEmail().value());
+    }
+
+    @Test
+    void change_freeEmail_movesUpdatedAt() {
+
+        var account = AccountMother.active().build();
+        var user = UserMother.builder().withAccountId(account.getId()).build();
+        persist(account, user);
+        forceUpdatedAt(account.getId(), A_DAY_AGO);
+
+        adapter.change(account.getId(), NEW_EMAIL);
+
+        assertThat(accountJpaRepository.findById(account.getId().value()).orElseThrow().getUpdatedAt()).isAfter(A_DAY_AGO);
     }
 
     @Test
@@ -119,5 +142,10 @@ class ChangeEmailPersistenceJpaAdapterIT {
 
         accountJpaRepository.save(AccountMapper.toEntity(account));
         userJpaRepository.save(UserMapper.toEntity(user));
+    }
+
+    private void forceUpdatedAt(AccountId accountId, Instant updatedAt) {
+
+        jdbcTemplate.update("UPDATE accounts SET updated_at = ? WHERE id = ?", Timestamp.from(updatedAt), accountId.value());
     }
 }
