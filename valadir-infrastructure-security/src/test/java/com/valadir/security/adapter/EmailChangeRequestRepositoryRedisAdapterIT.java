@@ -101,7 +101,17 @@ class EmailChangeRequestRepositoryRedisAdapterIT {
     }
 
     @Test
-    void find_requestMissingTheCode_returnsEmpty() {
+    void find_requestMissingTheEmail_returnsEmpty() {
+
+        var accountId = AccountId.generate();
+
+        redisTemplate.<String, String>opsForHash().put(redisKeyOf(accountId), "hashed_otp", OtpMother.hashed().value());
+
+        assertThat(adapter.find(accountId)).isEmpty();
+    }
+
+    @Test
+    void find_requestMissingTheOtp_returnsEmpty() {
 
         var accountId = AccountId.generate();
 

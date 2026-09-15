@@ -47,6 +47,8 @@ public final class RedisTestUtils {
             case NONE -> Stream.empty();
             case STRING -> Optional.ofNullable(redisOperations.opsForValue().get(key)).stream();
             case SET -> requireNonNull(redisOperations.opsForSet().members(key)).stream();
+            case HASH -> redisOperations.<String, String>opsForHash().entries(key).entrySet().stream()
+                .flatMap(field -> Stream.of(field.getKey(), field.getValue()));
             // A type this codebase does not use would read as nothing, and a secret stored in it
             // would pass the sweep unnoticed.
             default -> throw new IllegalStateException("Unsupported Redis type %s at key %s".formatted(type, key));

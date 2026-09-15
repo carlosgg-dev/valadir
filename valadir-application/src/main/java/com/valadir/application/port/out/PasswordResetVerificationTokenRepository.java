@@ -1,15 +1,13 @@
 package com.valadir.application.port.out;
 
-import com.valadir.domain.model.AccountId;
-
 import java.time.Duration;
 import java.util.Optional;
 
 public interface PasswordResetVerificationTokenRepository {
 
-    void save(String verificationToken, AccountId accountId, Duration ttl);
+    void save(String verificationToken, PasswordResetVerification verification, Duration ttl);
 
-    Optional<AccountId> resolveAccountId(String verificationToken);
+    Optional<PasswordResetVerification> verificationFor(String verificationToken);
 
     void delete(String verificationToken);
 }

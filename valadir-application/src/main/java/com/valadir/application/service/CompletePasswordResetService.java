@@ -6,6 +6,7 @@ import com.valadir.application.port.in.CompletePasswordResetUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.LoginAttemptRepository;
+import com.valadir.application.port.out.PasswordResetVerification;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.mdc.MdcKeys;
@@ -48,13 +49,19 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
     public void complete(CompletePasswordResetCommand command) {
 
         try {
-            var accountId = passwordResetVerificationTokenRepository.resolveAccountId(command.verificationToken())
-                .orElseThrow(() -> new ApplicationException("Invalid or expired password reset verification", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN));
+            PasswordResetVerification verification = passwordResetVerificationTokenRepository.verificationFor(command.verificationToken())
+                .orElseThrow(this::invalidVerificationToken);
 
+            var accountId = verification.accountId();
             MDC.put(MdcKeys.ACCOUNT_ID, accountId.value().toString());
 
             var account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
+
+            // The token proves control of the old address, which no longer proves ownership of the account
+            if (!verification.emailStillBelongsTo(account)) {
+                throw invalidVerificationToken();
+            }
 
             var newPassword = RawPassword.from(command.newPassword());
             newPasswordValidator.validate(account, newPassword);
@@ -77,5 +84,10 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
         } catch (DomainException e) {
             throw ApplicationException.translate(e);
         }
+    }
+
+    private ApplicationException invalidVerificationToken() {
+
+        return new ApplicationException("Invalid or expired password reset verification", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
     }
 }

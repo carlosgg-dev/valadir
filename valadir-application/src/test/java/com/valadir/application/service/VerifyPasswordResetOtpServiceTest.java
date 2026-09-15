@@ -6,6 +6,7 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.PasswordResetVerification;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
@@ -60,8 +61,9 @@ class VerifyPasswordResetOtpServiceTest {
     private static final HashedOtp HASHED_OTP = OtpMother.hashed();
     private static final Duration VERIFICATION_TTL = Duration.ofMinutes(10);
 
+    // Without the email, completing the reset could not tell that the account has moved to another address since
     @Test
-    void verify_validOtp_deletesOtpAndIssuesVerificationToken() {
+    void verify_validOtp_deletesOtpAndIssuesATokenBoundToTheAccountEmail() {
 
         var email = Email.from("bruce.wayne@email.com");
         var account = AccountMother.active().withEmail(email).build();
@@ -75,7 +77,8 @@ class VerifyPasswordResetOtpServiceTest {
         PasswordResetOtpVerificationResult result = service.verify(command);
 
         assertThat(result.verificationToken()).isNotBlank();
-        then(passwordResetVerificationTokenRepository).should().save(result.verificationToken(), account.getId(), VERIFICATION_TTL);
+        then(passwordResetVerificationTokenRepository).should()
+            .save(result.verificationToken(), new PasswordResetVerification(account.getId(), email), VERIFICATION_TTL);
         then(otpRepository).should().delete(account.getId());
     }
 
@@ -149,7 +152,8 @@ class VerifyPasswordResetOtpServiceTest {
 
         assertThatCode(() -> service.verify(command)).doesNotThrowAnyException();
 
-        then(passwordResetVerificationTokenRepository).should().save(any(), eq(account.getId()), eq(VERIFICATION_TTL));
+        then(passwordResetVerificationTokenRepository).should()
+            .save(any(), eq(new PasswordResetVerification(account.getId(), email)), eq(VERIFICATION_TTL));
     }
 
     @Test

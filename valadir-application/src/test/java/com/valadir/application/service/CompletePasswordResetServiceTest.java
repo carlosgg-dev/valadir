@@ -5,11 +5,13 @@ import com.valadir.application.exception.ApplicationException;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.LoginAttemptRepository;
+import com.valadir.application.port.out.PasswordResetVerification;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
+import com.valadir.domain.model.Email;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
@@ -36,14 +38,13 @@ import static org.mockito.Mockito.never;
 @ExtendWith(MockitoExtension.class)
 class CompletePasswordResetServiceTest {
 
-    private static final InfrastructureException INFRA_ERROR = new InfrastructureException("Infrastructure error");
-
-    private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
-
     private static final Account ACCOUNT = AccountMother.active().build();
-
     private static final RawPassword NEW_PASSWORD = PasswordMother.raw();
     private static final HashedPassword NEW_HASHED_PASSWORD = PasswordMother.hashed();
+    private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
+
+    private static final InfrastructureException INFRA_ERROR = new InfrastructureException("Infrastructure error");
+    private static final PasswordResetVerification VERIFICATION = new PasswordResetVerification(ACCOUNT.getId(), ACCOUNT.getEmail());
 
     private static final CompletePasswordResetCommand COMMAND = new CompletePasswordResetCommand(
         VERIFICATION_TOKEN,
@@ -74,7 +75,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_validToken_revokesSessionsBeforeWritingThePasswordAndSpendsTheTokenLast() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
 
@@ -91,7 +92,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_tokenNotFound_throwsApplicationExceptionWithoutChangingAnything() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.complete(COMMAND))
@@ -107,7 +108,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_accountNotFound_throwsApplicationExceptionWithoutChangingAnything() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -121,12 +122,32 @@ class CompletePasswordResetServiceTest {
         then(verificationTokenRepository).should(never()).delete(any());
     }
 
+    // Whoever read the code in the old mailbox must not reset the password once the account has moved on.
+    @Test
+    void complete_emailChangedSinceVerification_throwsWithoutChangingAnything() {
+
+        var staleVerification = new PasswordResetVerification(ACCOUNT.getId(), Email.from("old.address@email.com"));
+
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(staleVerification));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
+
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+    }
+
     @Test
     void complete_insecurePassword_translatesDomainExceptionWithoutChangingAnything() {
 
         var rejection = new DomainException("Password cannot contain your personal data", ErrorCode.INSECURE_PASSWORD);
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         willThrow(rejection).given(newPasswordValidator).validate(ACCOUNT, NEW_PASSWORD);
 
@@ -146,7 +167,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_sessionRevocationFails_propagatesWithoutWritingThePasswordOrSpendingTheToken() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
         willThrow(INFRA_ERROR).given(accountTokensInvalidator).invalidateAll(ACCOUNT.getId());
@@ -164,7 +185,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_passwordUpdateFails_propagatesWithoutSpendingTheToken() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
         willThrow(INFRA_ERROR).given(accountRepository).updatePassword(ACCOUNT.getId(), NEW_HASHED_PASSWORD);
@@ -181,7 +202,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_clearingAttemptsFails_propagatesWithoutSpendingTheToken() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
         willThrow(INFRA_ERROR).given(loginAttemptRepository).clearAttempts(ACCOUNT.getEmail());
@@ -197,7 +218,7 @@ class CompletePasswordResetServiceTest {
     @Test
     void complete_tokenDeletionFails_propagates() {
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(verificationTokenRepository.verificationFor(VERIFICATION_TOKEN)).willReturn(Optional.of(VERIFICATION));
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
         willThrow(INFRA_ERROR).given(verificationTokenRepository).delete(VERIFICATION_TOKEN);

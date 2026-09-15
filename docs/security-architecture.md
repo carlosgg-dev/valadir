@@ -158,6 +158,15 @@ this one.
 credential. The old address is told afterwards, best-effort and without the new one: an alert naming it would hand
 whoever reads the old mailbox the address the account moved to.
 
+A password reset verification token carries the address it was verified for, and completing the reset refuses one the
+account no longer has with the same 401 as an unknown token. Without it, whoever verified a reset code in the old
+mailbox just before the change could still set the password for the token's 10 minutes. That is a lockout, not a
+takeover: they cannot sign in, since login asks for the new address and neither the code nor the alert reveals it. But
+the owner would lose every session and the password, and need a reset on the new address to get back in. The race is
+the very case an email change is made for: a code nobody asked for lands in the old mailbox, and the owner moves away
+from it. The code itself needs no such binding: verification resolves the account by address, and the old one finds
+none.
+
 Both routes are limited per user, the only key an authenticated route has: 3 initiations an hour bound how many
 addresses one account can mail codes to, and 5 completions per 15 minutes — the OTP lifetime — bound the guesses
 against one code. Each rule counts in a bucket of its own route, apart from the global per-user limit.

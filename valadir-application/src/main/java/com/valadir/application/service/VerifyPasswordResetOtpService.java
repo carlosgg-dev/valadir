@@ -7,6 +7,7 @@ import com.valadir.application.port.in.VerifyPasswordResetOtpUseCase;
 import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.OtpHasher;
 import com.valadir.application.port.out.OtpRepository;
+import com.valadir.application.port.out.PasswordResetVerification;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
 import com.valadir.application.result.PasswordResetOtpVerificationResult;
 import com.valadir.common.error.ErrorCode;
@@ -68,7 +69,8 @@ public class VerifyPasswordResetOtpService implements VerifyPasswordResetOtpUseC
             }
 
             var verificationToken = UUID.randomUUID().toString();
-            passwordResetVerificationTokenRepository.save(verificationToken, foundAccountId, passwordResetConfig.verificationTokenTtl());
+            var verification = new PasswordResetVerification(foundAccountId, foundAccount.getEmail());
+            passwordResetVerificationTokenRepository.save(verificationToken, verification, passwordResetConfig.verificationTokenTtl());
 
             deleteOtp(foundAccountId);
 

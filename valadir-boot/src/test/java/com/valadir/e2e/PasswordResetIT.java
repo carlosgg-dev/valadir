@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -24,6 +25,7 @@ class PasswordResetIT extends AbstractAuthE2EIT {
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String BYSTANDER_EMAIL = "clark.kent@email.com";
     private static final String UNKNOWN_EMAIL = "unknown@email.test";
+    private static final String NEW_EMAIL = "the.batman@email.com";
 
     private static final String PASSWORD = "SecureP@ss123";
     private static final String NEW_PASSWORD = "AnotherP@ss456";
@@ -121,7 +123,8 @@ class PasswordResetIT extends AbstractAuthE2EIT {
 
         // The token is what carries the account forward into complete: filed under the wrong owner,
         // it would reset somebody else's password.
-        assertThat(redisTemplate.opsForValue().get(tokenKey)).isEqualTo(accountId);
+        assertThat(redisTemplate.<String, String>opsForHash().entries(tokenKey))
+            .containsExactlyInAnyOrderEntriesOf(Map.of("account_id", accountId, "email", EMAIL));
         assertThat(redisTemplate.getExpire(tokenKey))
             .isBetween(VERIFICATION_TOKEN_TTL.minusMinutes(1).toSeconds(), VERIFICATION_TOKEN_TTL.toSeconds());
 
@@ -308,6 +311,44 @@ class PasswordResetIT extends AbstractAuthE2EIT {
             .body("errors", nullValue());
 
         login(EMAIL, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value());
+    }
+
+    @Test
+    void completePasswordReset_emailChangedSinceVerification_returns401AndKeepsThePassword() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        initiatePasswordReset(EMAIL)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        Response verified = verifyPasswordResetOtp(EMAIL, passwordResetOtpFor(EMAIL))
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+            .response();
+
+        String verificationToken = verificationTokenOf(verified);
+        String accessToken = accessTokenOf(login(EMAIL, PASSWORD));
+
+        initiateEmailChange(accessToken, NEW_EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        completeEmailChange(accessToken, emailChangeOtpFor(NEW_EMAIL))
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        // Verified on the old mailbox, which no longer speaks for the account
+        completePasswordReset(verificationToken, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.UNAUTHORIZED.value())
+            .body("code", equalTo(ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN.getCode()))
+            .body("errors", nullValue());
+
+        login(NEW_EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.OK.value());
     }
