@@ -430,7 +430,7 @@ above, with the retryable 503 and the breaker. A connectivity probe at startup w
 it ran, while turning a Redis restart into a process that refuses to come up: a policy that degrades, replaced by one
 that stops.
 
-One dependency is coupled to startup anyway, and not by choice: `ddl-auto: update` runs the schema update while the
+One dependency is coupled to startup anyway, and not by choice: `ddl-auto: validate` reads the schema while the
 `EntityManagerFactory` is built, so without Postgres there is no context. Redis and SMTP couple nothing — Lettuce and
 JavaMail both connect lazily. Setting `initialization-fail-timeout: 0` on Hikari would read as a decoupling while
 `ddl-auto` still holds the coupling in place, so the coupling is stated here instead of being papered over by a line
@@ -448,8 +448,8 @@ Only two of those five are guards by design, and the difference decides what sur
 `@NotBlank` and the CAPTCHA guard validate where the value enters and hold whatever else moves. The credentials — the
 user and the password, not the URL — are covered by a side effect of needing a schema, and it is the whole of their
 cover: with `ddl-auto: none` both start on an empty value, because Hikari builds its pool lazily and Hibernate is what
-asks for the first connection. Measured, not reasoned. So the day a migration tool lands and `ddl-auto` leaves
-`update`, both lose their net at once. What goes red then is `values_bootTestConfiguration_neverRepeatTheProductionOne`,
+asks for the first connection. Measured, not reasoned. So the day `ddl-auto` is set to `none`, both lose their net
+at once. What goes red then is `values_bootTestConfiguration_neverRepeatTheProductionOne`,
 since `application-test.yml` already overrides `ddl-auto` to `none` and the override would turn redundant — an alarm
 for the change, but not for what the change costs, which is what this paragraph is for. Nothing plays even that role
 for `TURNSTILE_SECRET`, whose guard is conditional on `enabled` and so stops covering it the day the CAPTCHA is

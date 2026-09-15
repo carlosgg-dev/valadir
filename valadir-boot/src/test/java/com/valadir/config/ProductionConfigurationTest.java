@@ -176,8 +176,9 @@ class ProductionConfigurationTest {
         // so an N+1 introduced behind a view renders correctly here and degrades in production.
         assertThat(bool("spring.jpa.open-in-view")).isFalse();
 
-        // Defaults to none against a real database: the schema silently stops following the entities.
-        assertThat(string("spring.jpa.hibernate.ddl-auto")).isEqualTo("update");
+        // Defaults to none against a real database: an entity that drifts from init.sql still starts
+        // and fails only when a query reaches the mismatch.
+        assertThat(string("spring.jpa.hibernate.ddl-auto")).isEqualTo("validate");
 
         // Defaults to always: every null field reappears in every response body.
         assertThat(string("spring.jackson.default-property-inclusion")).isEqualTo("non_null");
@@ -293,7 +294,9 @@ class ProductionConfigurationTest {
         return PRODUCTION_CONFIGURATION.bind(key, Bindable.mapOf(String.class, String.class)).get();
     }
 
-    /** Each key that reads a placeholder, mapped to the variable name behind it. */
+    /**
+     * Each key that reads a placeholder, mapped to the variable name behind it.
+     */
     private static Map<String, String> placeholdersOf(Resource resource) {
 
         return propertiesOf(resource).entrySet().stream()
