@@ -8,6 +8,8 @@ import com.valadir.resilience.support.DatabasePausingOtpHasherConfig;
 import com.valadir.resilience.support.DatabasePausingOtpHasherConfig.DatabasePausingOtpHasher;
 import com.valadir.resilience.support.IsolatedPostgresContainerConfig;
 import com.valadir.resilience.support.IsolatedRedisContainerConfig;
+import com.valadir.resilience.support.RedisPausingPasswordHasherConfig;
+import com.valadir.resilience.support.RedisPausingPasswordHasherConfig.RedisPausingPasswordHasher;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +37,8 @@ import java.util.Objects;
     IsolatedRedisContainerConfig.class,
     NotifierCapturingTestConfig.class,
     CaptchaVerifierTestConfig.class,
-    DatabasePausingOtpHasherConfig.class
+    DatabasePausingOtpHasherConfig.class,
+    RedisPausingPasswordHasherConfig.class
 })
 public abstract class AbstractResilienceIT extends AuthE2ESupport {
 
@@ -45,6 +48,9 @@ public abstract class AbstractResilienceIT extends AuthE2ESupport {
     @Autowired
     protected DatabasePausingOtpHasher otpHasher;
 
+    @Autowired
+    protected RedisPausingPasswordHasher passwordHasher;
+
     @AfterEach
     void restoreInfrastructure() {
 
@@ -52,8 +58,9 @@ public abstract class AbstractResilienceIT extends AuthE2ESupport {
         resumePostgres();
 
         // Disarmed here and not in resetSharedState: that class is shared with the flow E2E and must
-        // not know about a double only this suite installs.
+        // not know about the doubles only this suite installs.
         otpHasher.reset();
+        passwordHasher.reset();
 
         // The verdict of an open circuit is the same as a real failure, but its latency is not, and a
         // recovery case would measure the breaker's half-open window instead of the dependency's.

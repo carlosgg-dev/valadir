@@ -6,18 +6,18 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
-import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
-import com.valadir.domain.model.AccountId;
+import com.valadir.domain.model.Account;
+import com.valadir.domain.model.HashedPassword;
+import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
-import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.PasswordMother;
-import com.valadir.test.mother.UserMother;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,16 +25,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class CompletePasswordResetServiceTest {
+
+    private static final InfrastructureException INFRA_ERROR = new InfrastructureException("Infrastructure error");
+
+    private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
+
+    private static final Account ACCOUNT = AccountMother.active().build();
+
+    private static final RawPassword NEW_PASSWORD = PasswordMother.raw();
+    private static final HashedPassword NEW_HASHED_PASSWORD = PasswordMother.hashed();
+
+    private static final CompletePasswordResetCommand COMMAND = new CompletePasswordResetCommand(
+        VERIFICATION_TOKEN,
+        NEW_PASSWORD.value()
+    );
 
     @Mock
     private PasswordResetVerificationTokenRepository verificationTokenRepository;
@@ -43,13 +57,10 @@ class CompletePasswordResetServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private UserRepository userRepository;
+    private NewPasswordValidator newPasswordValidator;
 
     @Mock
     private PasswordHasher passwordHasher;
-
-    @Mock
-    private PasswordSecurityService passwordSecurityService;
 
     @Mock
     private AccountTokensInvalidator accountTokensInvalidator;
@@ -60,164 +71,139 @@ class CompletePasswordResetServiceTest {
     @InjectMocks
     private CompletePasswordResetService service;
 
-    private static final String VERIFICATION_TOKEN = UUID.randomUUID().toString();
-
     @Test
-    void complete_validToken_updatesPasswordAndRevokesTokens() {
+    void complete_validToken_revokesSessionsBeforeWritingThePasswordAndSpendsTheTokenLast() {
 
-        var newPassword = PasswordMother.raw();
-        var hashedPassword = PasswordMother.hashed();
-        var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).build();
-        var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
+        service.complete(COMMAND);
 
-        service.complete(command);
-
-        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
-        then(accountRepository).should().updatePassword(accountId, hashedPassword);
-        then(loginAttemptRepository).should().clearAttempts(account.getEmail());
-        then(verificationTokenRepository).should().delete(VERIFICATION_TOKEN);
-        then(accountTokensInvalidator).should().invalidateAll(accountId);
+        InOrder order = inOrder(newPasswordValidator, accountTokensInvalidator, accountRepository, loginAttemptRepository, verificationTokenRepository);
+        then(newPasswordValidator).should(order).validate(ACCOUNT, NEW_PASSWORD);
+        then(accountTokensInvalidator).should(order).invalidateAll(ACCOUNT.getId());
+        then(accountRepository).should(order).updatePassword(ACCOUNT.getId(), NEW_HASHED_PASSWORD);
+        then(loginAttemptRepository).should(order).clearAttempts(ACCOUNT.getEmail());
+        then(verificationTokenRepository).should(order).delete(VERIFICATION_TOKEN);
     }
 
     @Test
-    void complete_tokenNotFound_throwsApplicationException() {
-
-        var newPassword = PasswordMother.raw();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+    void complete_tokenNotFound_throwsApplicationExceptionWithoutChangingAnything() {
 
         given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.complete(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
+            .isThrownBy(() -> service.complete(COMMAND))
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.INVALID_PASSWORD_RESET_VERIFICATION_TOKEN);
+
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void complete_accountNotFound_throwsApplicationExceptionWithoutChangingAnything() {
+
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.empty());
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.DATA_INTEGRITY_ERROR);
+
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void complete_insecurePassword_translatesDomainExceptionWithoutChangingAnything() {
+
+        var rejection = new DomainException("Password cannot contain your personal data", ErrorCode.INSECURE_PASSWORD);
+
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        willThrow(rejection).given(newPasswordValidator).validate(ACCOUNT, NEW_PASSWORD);
+
+        assertThatExceptionOfType(ApplicationException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .withCause(rejection)
+            .extracting(ApplicationException::getErrorCode)
+            .isEqualTo(ErrorCode.INSECURE_PASSWORD);
+
+        then(accountTokensInvalidator).should(never()).invalidateAll(any());
+        then(accountRepository).should(never()).updatePassword(any(), any());
+        then(loginAttemptRepository).should(never()).clearAttempts(any());
+        then(verificationTokenRepository).should(never()).delete(any());
+    }
+
+    // Swallowed, it would answer 204 with every session still alive.
+    @Test
+    void complete_sessionRevocationFails_propagatesWithoutWritingThePasswordOrSpendingTheToken() {
+
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
+        willThrow(INFRA_ERROR).given(accountTokensInvalidator).invalidateAll(ACCOUNT.getId());
+
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .isSameAs(INFRA_ERROR);
 
         then(accountRepository).should(never()).updatePassword(any(), any());
         then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
+    // Swallowed, it would answer 204 over the old password with the token already spent.
     @Test
-    void complete_accountNotFound_throwsApplicationException() {
+    void complete_passwordUpdateFails_propagatesWithoutSpendingTheToken() {
 
-        var newPassword = PasswordMother.raw();
-        var accountId = AccountId.generate();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
+        willThrow(INFRA_ERROR).given(accountRepository).updatePassword(ACCOUNT.getId(), NEW_HASHED_PASSWORD);
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.empty());
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .isSameAs(INFRA_ERROR);
 
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.complete(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
-
-        then(accountRepository).should(never()).updatePassword(any(), any());
         then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
+    // Swallowed, it would answer 204 with the lockout still standing and the token already spent.
     @Test
-    void complete_userNotFound_throwsApplicationException() {
+    void complete_clearingAttemptsFails_propagatesWithoutSpendingTheToken() {
 
-        var newPassword = PasswordMother.raw();
-        var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
+        willThrow(INFRA_ERROR).given(loginAttemptRepository).clearAttempts(ACCOUNT.getEmail());
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(userRepository.findByAccountId(accountId)).willReturn(Optional.empty());
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .isSameAs(INFRA_ERROR);
 
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.complete(command))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATA_INTEGRITY_ERROR);
-
-        then(accountRepository).should(never()).updatePassword(any(), any());
-        then(loginAttemptRepository).should(never()).clearAttempts(any());
         then(verificationTokenRepository).should(never()).delete(any());
-        then(accountTokensInvalidator).should(never()).invalidateAll(any());
     }
 
+    // Swallowed, it would answer 204 with the token still spendable.
     @Test
-    void complete_verificationTokenCleanupFails_passwordUpdatedAndExceptionSwallowed() {
+    void complete_tokenDeletionFails_propagates() {
 
-        var newPassword = PasswordMother.raw();
-        var hashedPassword = PasswordMother.hashed();
-        var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).build();
-        var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
+        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(ACCOUNT.getId()));
+        given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
+        given(passwordHasher.hash(NEW_PASSWORD)).willReturn(NEW_HASHED_PASSWORD);
+        willThrow(INFRA_ERROR).given(verificationTokenRepository).delete(VERIFICATION_TOKEN);
 
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
-
-        willThrow(InfrastructureException.class).given(verificationTokenRepository).delete(VERIFICATION_TOKEN);
-
-        assertThatCode(() -> service.complete(command)).doesNotThrowAnyException();
-
-        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
-        then(accountRepository).should().updatePassword(accountId, hashedPassword);
-        then(loginAttemptRepository).should().clearAttempts(any());
-
-        then(accountTokensInvalidator).should(never()).invalidateAll(any());
-    }
-
-    @Test
-    void complete_sessionInvalidationFails_passwordUpdatedAndExceptionSwallowed() {
-
-        var newPassword = PasswordMother.raw();
-        var hashedPassword = PasswordMother.hashed();
-        var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).build();
-        var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
-
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        given(passwordHasher.hash(newPassword)).willReturn(hashedPassword);
-
-        willThrow(InfrastructureException.class).given(accountTokensInvalidator).invalidateAll(accountId);
-
-        assertThatCode(() -> service.complete(command)).doesNotThrowAnyException();
-
-        then(passwordSecurityService).should().validatePassword(newPassword, account.getEmail(), user);
-        then(accountRepository).should().updatePassword(accountId, hashedPassword);
-        then(loginAttemptRepository).should().clearAttempts(any());
-    }
-
-    @Test
-    void complete_insecurePassword_translatesDomainExceptionPreservingErrorCode() {
-
-        var newPassword = PasswordMother.raw();
-        var accountId = AccountId.generate();
-        var account = AccountMother.active().withId(accountId).build();
-        var user = UserMother.builder().withAccountId(accountId).build();
-        var command = new CompletePasswordResetCommand(VERIFICATION_TOKEN, newPassword.value());
-        var domainException = new DomainException("Password is insecure", ErrorCode.INSECURE_PASSWORD);
-
-        given(verificationTokenRepository.resolveAccountId(VERIFICATION_TOKEN)).willReturn(Optional.of(accountId));
-        given(accountRepository.findById(accountId)).willReturn(Optional.of(account));
-        given(userRepository.findByAccountId(accountId)).willReturn(Optional.of(user));
-        willThrow(domainException).given(passwordSecurityService).validatePassword(newPassword, account.getEmail(), user);
-
-        assertThatExceptionOfType(ApplicationException.class)
-            .isThrownBy(() -> service.complete(command))
-            .withCause(domainException)
-            .extracting("errorCode").isEqualTo(ErrorCode.INSECURE_PASSWORD);
-
-        then(accountRepository).should(never()).updatePassword(any(), any());
-        then(loginAttemptRepository).should(never()).clearAttempts(any());
-        then(accountTokensInvalidator).should(never()).invalidateAll(any());
+        assertThatExceptionOfType(InfrastructureException.class)
+            .isThrownBy(() -> service.complete(COMMAND))
+            .isSameAs(INFRA_ERROR);
     }
 }

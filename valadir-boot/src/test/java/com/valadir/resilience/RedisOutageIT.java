@@ -17,6 +17,7 @@ class RedisOutageIT extends AbstractResilienceIT {
 
     private static final String EMAIL = "bruce@wayne.com";
     private static final String PASSWORD = PasswordMother.raw().value();
+    private static final String NEW_PASSWORD = "AnotherP@ss456";
 
     @Test
     void login_redisDown_deniesWithOpaqueInfrastructureError() {
@@ -106,9 +107,57 @@ class RedisOutageIT extends AbstractResilienceIT {
 
         Response resendResponse = resendActivationCode(EMAIL);
         
-        // The only case here where Redis fails on a write: Postgres is alive, so the account lookup
-        // passes and the OTP save is what breaks. The endpoint answers 204 on its other two branches,
-        // so the 503 marks the account as existing — kept deliberately, see SmtpDegradationIT.
+        // Redis fails on a write here: Postgres is alive, so the account lookup passes and the OTP
+        // save is what breaks. The endpoint answers 204 on its other two branches, so the 503 marks
+        // the account as existing — kept deliberately, see SmtpDegradationIT.
         assertOpaqueInfrastructureFailure(resendResponse);
+    }
+
+    @Test
+    void completePasswordReset_redisDownWhileRevokingSessions_changesNothingAndTheRetryCompletes() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        login(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value());
+
+        String accountId = accountIdFor(EMAIL);
+        List<String> sessionsBeforeTheOutage = sessionFingerprintsFor(accountId);
+
+        initiatePasswordReset(EMAIL)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        Response verified = verifyPasswordResetOtp(EMAIL, passwordResetOtpFor(EMAIL))
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+            .response();
+
+        String verificationToken = verificationTokenOf(verified);
+
+        // Makes the revocation, not the token lookup, the failing call
+        passwordHasher.pauseRedisBeforeNextHash();
+
+        assertOpaqueInfrastructureFailure(completePasswordReset(verificationToken, NEW_PASSWORD));
+
+        resumeRedis();
+
+        // Nothing past the revocation ran
+        assertThat(sessionFingerprintsFor(accountId)).isEqualTo(sessionsBeforeTheOutage);
+
+        login(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value());
+
+        // The token survives for the retry
+        completePasswordReset(verificationToken, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        login(EMAIL, NEW_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value());
     }
 }

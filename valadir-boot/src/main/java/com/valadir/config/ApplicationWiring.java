@@ -476,9 +476,8 @@ class ApplicationWiring {
     CompletePasswordResetUseCase completePasswordResetUseCase(
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         AccountRepository accountRepository,
-        UserRepository userRepository,
+        NewPasswordValidator newPasswordValidator,
         PasswordHasher passwordHasher,
-        PasswordSecurityService passwordSecurityService,
         AccountTokensInvalidator accountTokensInvalidator,
         LoginAttemptRepository loginAttemptRepository
     ) {
@@ -486,9 +485,8 @@ class ApplicationWiring {
         return new CompletePasswordResetService(
             passwordResetVerificationTokenRepository,
             accountRepository,
-            userRepository,
+            newPasswordValidator,
             passwordHasher,
-            passwordSecurityService,
             accountTokensInvalidator,
             loginAttemptRepository
         );

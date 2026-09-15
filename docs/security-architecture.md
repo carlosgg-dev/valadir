@@ -226,6 +226,7 @@ In an authentication system, the failure mode is a security property, not an ope
 | Failure mid **refresh token rotation**                    | Never issue a new pair without atomic revocation of the old one. When in doubt, **deny**.           |
 | Redis down in the **rate limiter**                        | **Deny** the request. Whoever can take Redis down must not gain an unlimited brute-force budget.    |
 | Redis down while reading the **failed-attempt counter**   | **Deny** the login. Lockout and CAPTCHA step-up must not be bypassable by making Redis unavailable. |
+| Failure while a password reset **revokes sessions**       | **Deny** before the password is written. The verification token survives, so the retry completes.   |
 
 All of these surface as **503 `INFRASTRUCTURE_UNAVAILABLE`**, logout included: no flow translates an outage into a
 business error code. A 500 would tell the client not to retry a failure that is precisely worth retrying — the
@@ -267,7 +268,7 @@ concealing it here would cost a real caller their only signal in exchange for hi
 request, bounded by rate limit.
 
 Which use case decides that a notification is secondary is not the adapter's call. `LoginService` guards the lockout
-notification itself, as the three Redis cleanups do, so the login's outcome does not depend on the `@Async` proxy
+notification itself, as the two Redis cleanups do, so the login's outcome does not depend on the `@Async` proxy
 holding: without it, an SMTP failure would answer 503 on the one attempt that crosses the threshold, and only on that
 one — announcing the threshold to whoever is probing it.
 

@@ -7,15 +7,11 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.PasswordResetVerificationTokenRepository;
-import com.valadir.application.port.out.UserRepository;
 import com.valadir.common.error.ErrorCode;
-import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.mdc.MdcKeys;
 import com.valadir.domain.exception.DomainException;
-import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.service.PasswordHasher;
-import com.valadir.domain.service.PasswordSecurityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -26,27 +22,24 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
 
     private final PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
     private final AccountRepository accountRepository;
-    private final UserRepository userRepository;
+    private final NewPasswordValidator newPasswordValidator;
     private final PasswordHasher passwordHasher;
-    private final PasswordSecurityService passwordSecurityService;
     private final AccountTokensInvalidator accountTokensInvalidator;
     private final LoginAttemptRepository loginAttemptRepository;
 
     public CompletePasswordResetService(
         PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository,
         AccountRepository accountRepository,
-        UserRepository userRepository,
+        NewPasswordValidator newPasswordValidator,
         PasswordHasher passwordHasher,
-        PasswordSecurityService passwordSecurityService,
         AccountTokensInvalidator accountTokensInvalidator,
         LoginAttemptRepository loginAttemptRepository
     ) {
 
         this.passwordResetVerificationTokenRepository = passwordResetVerificationTokenRepository;
         this.accountRepository = accountRepository;
-        this.userRepository = userRepository;
+        this.newPasswordValidator = newPasswordValidator;
         this.passwordHasher = passwordHasher;
-        this.passwordSecurityService = passwordSecurityService;
         this.accountTokensInvalidator = accountTokensInvalidator;
         this.loginAttemptRepository = loginAttemptRepository;
     }
@@ -63,13 +56,12 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
             var account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ApplicationException("Account not found", ErrorCode.DATA_INTEGRITY_ERROR));
 
-            var user = userRepository.findByAccountId(accountId)
-                .orElseThrow(() -> new ApplicationException("User not found", ErrorCode.DATA_INTEGRITY_ERROR));
+            var newPassword = RawPassword.from(command.newPassword());
+            newPasswordValidator.validate(account, newPassword);
+            var hashedPassword = passwordHasher.hash(newPassword);
 
-            var rawPassword = RawPassword.from(command.newPassword());
-            passwordSecurityService.validatePassword(rawPassword, account.getEmail(), user);
-
-            var hashedPassword = passwordHasher.hash(rawPassword);
+            // Nothing swallowed: a 204 over live sessions would defeat the reset
+            accountTokensInvalidator.invalidateAll(accountId);
             accountRepository.updatePassword(accountId, hashedPassword);
 
             // Unconditional: reading the counter first would buy nothing, since a reset without prior
@@ -77,24 +69,13 @@ public class CompletePasswordResetService implements CompletePasswordResetUseCas
             // that no longer exists, and the tier would outlive the reset that made them irrelevant.
             loginAttemptRepository.clearAttempts(account.getEmail());
 
-            revokeResetArtifactsQuietly(command.verificationToken(), accountId);
+            // Last: an earlier failure leaves the token valid for the retry
+            passwordResetVerificationTokenRepository.delete(command.verificationToken());
 
             log.info("Password reset completed");
 
         } catch (DomainException e) {
             throw ApplicationException.translate(e);
-        }
-    }
-
-    private void revokeResetArtifactsQuietly(String verificationToken, AccountId accountId) {
-
-        // Redis cleanup is best-effort: password change is the critical operation.
-        // Failure leaves a reusable verification token and active sessions until their TTLs expire.
-        try {
-            passwordResetVerificationTokenRepository.delete(verificationToken);
-            accountTokensInvalidator.invalidateAll(accountId);
-        } catch (InfrastructureException e) {
-            log.error("Password reset succeeded but Redis cleanup failed — sessions may remain active until TTL expires", e);
         }
     }
 }
