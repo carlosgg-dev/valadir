@@ -29,6 +29,15 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"\0", " \0 "})
+    void constructor_blankOnceTrimmed_throwsDomainException(String blankOnceTrimmed) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(blankOnceTrimmed))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REQUIRED_FIELD_MISSING);
+    }
+
     @Test
     void constructor_valueAtMinLength_createsFullName() {
 
@@ -59,6 +68,37 @@ class FullNameTest {
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new FullName(tooLong))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    @Test
+    void constructor_surroundingSpaces_trimsValue() {
+
+        FullName fullName = new FullName("  Bruce Wayne  ");
+        assertThat(fullName.value()).isEqualTo("Bruce Wayne");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Bruce\0Wayne", "Bruce\nWayne", "Bruce\tWayne"})
+    void constructor_controlCharacter_throwsDomainException(String withControlCharacter) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(withControlCharacter))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    @Test
+    void constructor_valueTooShortOnceTrimmed_throwsDomainException() {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(" W"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    @Test
+    void constructor_valueAtMaxLengthOnceTrimmed_createsFullName() {
+
+        FullName fullName = new FullName(" " + "a".repeat(255) + " ");
+        assertThat(fullName.value()).hasSize(255);
     }
 
     @Test

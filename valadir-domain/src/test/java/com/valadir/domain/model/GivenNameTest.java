@@ -28,6 +28,14 @@ class GivenNameTest {
         assertThat(givenName.value()).isNull();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"\0", " \0 "})
+    void constructor_blankOnceTrimmed_storesNull(String blankOnceTrimmed) {
+
+        GivenName givenName = new GivenName(blankOnceTrimmed);
+        assertThat(givenName.value()).isNull();
+    }
+
     @Test
     void constructor_valueAtMaxLength_createsGivenName() {
 
@@ -42,6 +50,29 @@ class GivenNameTest {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new GivenName(tooLong))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    @Test
+    void constructor_surroundingSpaces_trimsValue() {
+
+        GivenName givenName = new GivenName("  Batman  ");
+        assertThat(givenName.value()).isEqualTo("Batman");
+    }
+
+    @Test
+    void constructor_valueAtMaxLengthOnceTrimmed_createsGivenName() {
+
+        GivenName givenName = new GivenName(" " + "a".repeat(100) + " ");
+        assertThat(givenName.value()).hasSize(100);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Bat\0man", "Bat\nman", "Bat\tman"})
+    void constructor_controlCharacter_throwsDomainException(String withControlCharacter) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new GivenName(withControlCharacter))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 

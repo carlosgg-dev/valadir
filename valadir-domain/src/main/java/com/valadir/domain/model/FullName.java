@@ -7,8 +7,14 @@ public record FullName(String value) {
 
     public FullName {
 
+        value = value == null ? null : value.trim();
+
         if (value == null || value.isBlank()) {
             throw new DomainException("Full name is required", ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+
+        if (value.chars().anyMatch(Character::isISOControl)) {
+            throw new DomainException("Full name must not contain control characters", ErrorCode.INVALID_FIELD);
         }
 
         if (value.length() < 2) {

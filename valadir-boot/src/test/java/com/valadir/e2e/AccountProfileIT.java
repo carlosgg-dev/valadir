@@ -144,6 +144,28 @@ class AccountProfileIT extends AbstractAuthE2EIT {
             .body("language", equalTo(REGISTERED_LANGUAGE));
     }
 
+    // Passes JSON parsing and Bean Validation, so only the domain can refuse the NUL before it reaches the database
+    @Test
+    void updateProfile_fullNameWithControlCharacter_returns400AndKeepsTheProfile() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response loggedIn = login(EMAIL, PASSWORD);
+        String accessToken = accessTokenOf(loggedIn);
+
+        updateProfile(accessToken, updateRequestBody("Bruce\0Wayne", NEW_GIVEN_NAME, NEW_LANGUAGE))
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()));
+
+        getProfile(accessToken)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .body("fullName", equalTo(FULL_NAME))
+            .body("givenName", equalTo(GIVEN_NAME))
+            .body("language", equalTo(REGISTERED_LANGUAGE));
+    }
+
     @Test
     void updateProfile_withoutBearerToken_returns401AndKeepsTheProfile() {
 
