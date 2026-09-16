@@ -27,12 +27,15 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String UNKNOWN_EMAIL = "unknown@email.test";
     private static final String PASSWORD = PasswordMother.raw().value();
 
-    // The same address as EMAIL, told apart only by case and the spaces an autocomplete leaves around it
-    private static final String EMAIL_IN_ANOTHER_SPELLING = " Bruce.Wayne@Email.com ";
+    // The same address as EMAIL, told apart only by case
+    private static final String MIXED_CASE_EMAIL = "Bruce.Wayne@Email.com";
     private static final String UPPERCASE_EMAIL = "BRUCE.WAYNE@EMAIL.COM";
 
-    // Rejected by Email.from: a domain needs at least two labels
+    // Passes @Email, rejected by Email.from
     private static final String EMAIL_WITHOUT_DOT_IN_DOMAIN = "bruce.wayne@email";
+
+    // @Email sees the raw value, so the spaces an autocomplete leaves are refused although Email trims them
+    private static final String PADDED_EMAIL = " bruce.wayne@email.com ";
 
     // Rejected before hashing: fails the RawPassword policy
     private static final String TOO_SHORT_PASSWORD = "Short1@";
@@ -73,15 +76,28 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void register_emailRejectedByDomain_returns400WithoutFieldErrors() {
+    void register_emailPassingBeanValidationButRejectedByDomain_returns400WithoutFieldErrors() {
 
-        // Request validation only checks presence, so the format is answered by Email.from alone.
-        // The null errors array is what tells it apart from the INVALID_FIELD Bean Validation returns.
+        // Jakarta's @Email accepts a domain without a dot, Email.from does not: this is the only
+        // way in to the DomainException branch of the use case. The null errors array is what
+        // tells it apart from the INVALID_FIELD Bean Validation returns.
         register(EMAIL_WITHOUT_DOT_IN_DOMAIN, PASSWORD)
             .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
             .body("errors", nullValue());
+
+        assertThat(accountJpaRepository.count()).isZero();
+    }
+
+    @Test
+    void register_emailPaddedWithSpaces_returns400NamingTheField() {
+
+        register(PADDED_EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
+            .body("errors[0].field", equalTo("email"));
 
         assertThat(accountJpaRepository.count()).isZero();
     }
@@ -187,9 +203,9 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void register_emailInAnotherSpelling_reachesTheSameAccount() {
+    void register_emailInAnotherCase_reachesTheSameAccount() {
 
-        register(EMAIL_IN_ANOTHER_SPELLING, PASSWORD)
+        register(MIXED_CASE_EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.CREATED.value());
 

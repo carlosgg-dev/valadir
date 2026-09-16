@@ -1,9 +1,11 @@
 package com.valadir.web.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public record InitiateEmailChangeRequest(
-    @NotBlank String newEmail,
+    @NotBlank @Email @Size(max = 255) String newEmail,
     @NotBlank String password) {
 
 }

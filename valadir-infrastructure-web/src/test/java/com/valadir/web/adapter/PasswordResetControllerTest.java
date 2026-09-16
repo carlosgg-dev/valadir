@@ -19,6 +19,8 @@ import com.valadir.web.dto.request.InitiatePasswordResetRequest;
 import com.valadir.web.dto.request.VerifyPasswordResetOtpRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -78,10 +80,25 @@ class PasswordResetControllerTest {
         then(initiatePasswordResetUseCase).should().initiate(command);
     }
 
-    @Test
-    void initiatePasswordReset_blankEmail_returns400() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void initiatePasswordReset_blankEmail_returns400(String email) throws Exception {
 
-        var request = new InitiatePasswordResetRequest("");
+        var request = new InitiatePasswordResetRequest(email);
+
+        mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.INITIATE_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
+
+        then(initiatePasswordResetUseCase).should(never()).initiate(any(InitiatePasswordResetCommand.class));
+    }
+
+    @Test
+    void initiatePasswordReset_invalidEmail_returns400() throws Exception {
+
+        var request = new InitiatePasswordResetRequest("invalid-email");
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.INITIATE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -112,10 +129,11 @@ class PasswordResetControllerTest {
             .andExpect(jsonPath("$.verificationToken").value(verificationToken));
     }
 
-    @Test
-    void verifyPasswordResetOtp_blankEmail_returns400() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void verifyPasswordResetOtp_blankEmail_returns400(String email) throws Exception {
 
-        var request = new VerifyPasswordResetOtpRequest("", "718304");
+        var request = new VerifyPasswordResetOtpRequest(email, "718304");
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -127,9 +145,24 @@ class PasswordResetControllerTest {
     }
 
     @Test
-    void verifyPasswordResetOtp_blankCode_returns400() throws Exception {
+    void verifyPasswordResetOtp_invalidEmail_returns400() throws Exception {
 
-        var request = new VerifyPasswordResetOtpRequest("bruce.wayne@email.com", "");
+        var request = new VerifyPasswordResetOtpRequest("invalid-email", "718304");
+
+        mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
+
+        then(verifyPasswordResetOtpUseCase).should(never()).verify(any(VerifyPasswordResetOtpCommand.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void verifyPasswordResetOtp_blankCode_returns400(String code) throws Exception {
+
+        var request = new VerifyPasswordResetOtpRequest("bruce.wayne@email.com", code);
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.VERIFY_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -157,10 +190,11 @@ class PasswordResetControllerTest {
         then(completePasswordResetUseCase).should().complete(command);
     }
 
-    @Test
-    void completePasswordReset_blankVerificationToken_returns400() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void completePasswordReset_blankVerificationToken_returns400(String verificationToken) throws Exception {
 
-        var request = new CompletePasswordResetRequest("", "S3cur3P@ss!");
+        var request = new CompletePasswordResetRequest(verificationToken, "S3cur3P@ss!");
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -171,10 +205,11 @@ class PasswordResetControllerTest {
         then(completePasswordResetUseCase).should(never()).complete(any(CompletePasswordResetCommand.class));
     }
 
-    @Test
-    void completePasswordReset_blankPassword_returns400() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    void completePasswordReset_blankPassword_returns400(String password) throws Exception {
 
-        var request = new CompletePasswordResetRequest("verification-token", "");
+        var request = new CompletePasswordResetRequest("verification-token", password);
 
         mockMvc.perform(post(ApiRoutes.Auth.PasswordReset.COMPLETE_PATH)
                             .contentType(MediaType.APPLICATION_JSON)
