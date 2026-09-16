@@ -99,3 +99,10 @@ Never mix both responsibilities in the same class.
   `IllegalArgumentException` branch, so one reaching a request falls through to the `Exception`
   catch-all and answers `internal_server_error` — a bad input reported as a 500 instead of a 400.
   Moving such a class onto a request path means converting its guards to an `ErrorCode` first.
+- **The error body is our own envelope, not `ProblemDetail`.** Every failure answers a `code`, plus an
+  `errors` array when Bean Validation named the fields, and nothing else. RFC 9457 would add four fields
+  that restate the status line and one, `detail`, that carries prose — the framework's own sentence, or a
+  message bundle interpolated for the request's locale — which is the leak the `code` exists to avoid;
+  `code` itself is an extension property there either way. Four of the error paths are written outside MVC
+  (authentication, access denied, rate limiting, infrastructure failure) and no framework format reaches
+  them, so one envelope every path can produce is worth more than a standard one only some can.
