@@ -49,21 +49,21 @@ class RefreshTokenRepositoryRedisAdapterIT {
     }
 
     @Test
-    void validate_existingToken_returnsAccountId() {
+    void accountIdFor_existingToken_returnsAccountId() {
 
         var accountId = AccountId.generate();
         var token = UUID.randomUUID().toString();
 
         adapter.save(token, accountId);
-        Optional<AccountId> result = adapter.validate(token);
+        Optional<AccountId> result = adapter.accountIdFor(token);
 
         assertThat(result).contains(accountId);
     }
 
     @Test
-    void validate_nonExistingToken_returnsEmpty() {
+    void accountIdFor_nonExistingToken_returnsEmpty() {
 
-        Optional<AccountId> result = adapter.validate(UUID.randomUUID().toString());
+        Optional<AccountId> result = adapter.accountIdFor(UUID.randomUUID().toString());
 
         assertThat(result).isEmpty();
     }

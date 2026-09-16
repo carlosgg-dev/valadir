@@ -41,7 +41,7 @@ public class AccountReauthenticatorService implements AccountReauthenticator {
     @Override
     public void reauthenticate(Account account, RawPassword password) {
 
-        if (loginAttemptRepository.evaluate(account.getEmail()) instanceof LoginAttemptDecision.LockedOut(Duration remaining)) {
+        if (loginAttemptRepository.decisionFor(account.getEmail()) instanceof LoginAttemptDecision.LockedOut(Duration remaining)) {
             throw new AccountLockedException(remaining);
         }
 

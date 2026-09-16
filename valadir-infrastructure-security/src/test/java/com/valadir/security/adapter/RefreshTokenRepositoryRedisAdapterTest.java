@@ -29,12 +29,12 @@ class RefreshTokenRepositoryRedisAdapterTest {
     private JwtProperties jwtProperties;
 
     @Test
-    void validate_redisError_throwsInfrastructureException() {
+    void accountIdFor_redisError_throwsInfrastructureException() {
 
         var adapter = new RefreshTokenRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), jwtProperties);
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.validate(NEW_TOKEN))
+            .isThrownBy(() -> adapter.accountIdFor(NEW_TOKEN))
             .withCauseInstanceOf(DataAccessException.class);
     }
 

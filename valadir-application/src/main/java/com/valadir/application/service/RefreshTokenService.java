@@ -32,7 +32,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
     @Override
     public AuthTokenResult refresh(RefreshTokenCommand command) {
 
-        return refreshTokenRepository.validate(command.refreshToken())
+        return refreshTokenRepository.accountIdFor(command.refreshToken())
             .map(accountId -> rotateToken(command.refreshToken(), accountId))
             .orElseThrow(() -> new ApplicationException("Invalid refresh token", ErrorCode.INVALID_TOKEN));
     }

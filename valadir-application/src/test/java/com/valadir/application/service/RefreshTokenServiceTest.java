@@ -51,7 +51,7 @@ class RefreshTokenServiceTest {
         var newRefreshToken = "new-refresh";
         var expectedResult = new AuthTokenResult(newAccessToken, newRefreshToken);
 
-        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
+        given(refreshTokenRepository.accountIdFor(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
         given(accountRepository.findById(ACCOUNT_ID)).willReturn(Optional.of(ACCOUNT));
         given(authTokenIssuer.issue(ACCOUNT_ID, ACCOUNT.getRole())).willReturn(expectedResult);
         given(refreshTokenRepository.rotate(oldRefreshToken, newRefreshToken, ACCOUNT_ID)).willReturn(true);
@@ -69,7 +69,7 @@ class RefreshTokenServiceTest {
         var newRefreshToken = "new-refresh";
         var command = new RefreshTokenCommand(oldRefreshToken);
 
-        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
+        given(refreshTokenRepository.accountIdFor(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
         given(accountRepository.findById(ACCOUNT_ID)).willReturn(Optional.of(ACCOUNT));
         given(authTokenIssuer.issue(ACCOUNT_ID, ACCOUNT.getRole())).willReturn(new AuthTokenResult("new-access", newRefreshToken));
         given(refreshTokenRepository.rotate(oldRefreshToken, newRefreshToken, ACCOUNT_ID)).willReturn(false);
@@ -85,7 +85,7 @@ class RefreshTokenServiceTest {
         var oldRefreshToken = "old-refresh-token";
         var command = new RefreshTokenCommand(oldRefreshToken);
 
-        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
+        given(refreshTokenRepository.accountIdFor(oldRefreshToken)).willReturn(Optional.of(ACCOUNT_ID));
         given(accountRepository.findById(ACCOUNT_ID)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -102,7 +102,7 @@ class RefreshTokenServiceTest {
         var oldRefreshToken = "old-refresh-token";
         var command = new RefreshTokenCommand(oldRefreshToken);
 
-        given(refreshTokenRepository.validate(oldRefreshToken)).willReturn(Optional.empty());
+        given(refreshTokenRepository.accountIdFor(oldRefreshToken)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
             .isThrownBy(() -> service.refresh(command))

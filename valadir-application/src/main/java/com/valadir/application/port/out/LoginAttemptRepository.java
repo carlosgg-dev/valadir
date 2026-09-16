@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface LoginAttemptRepository {
 
-    LoginAttemptDecision evaluate(Email email);
+    LoginAttemptDecision decisionFor(Email email);
 
     Optional<Duration> recordFailedAttempt(Email email);
 

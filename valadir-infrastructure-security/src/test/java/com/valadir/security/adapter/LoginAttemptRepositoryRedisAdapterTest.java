@@ -51,7 +51,7 @@ class LoginAttemptRepositoryRedisAdapterTest {
     private ValueOperations<String, String> valueOperations;
 
     @Test
-    void evaluate_activeLockoutTtl_returnsLockedOutWithRemainingTtl() {
+    void decisionFor_activeLockoutTtl_returnsLockedOutWithRemainingTtl() {
 
         var remaining = Duration.ofSeconds(25);
 
@@ -59,13 +59,13 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
-        assertThat(adapter.evaluate(EMAIL))
+        assertThat(adapter.decisionFor(EMAIL))
             .isInstanceOfSatisfying(LoginAttemptDecision.LockedOut.class,
                                     lockedOut -> assertThat(lockedOut.remaining()).isEqualTo(remaining));
     }
 
     @Test
-    void evaluate_noLockoutWithStoredCount_returnsPolicyDecisionForCount() {
+    void decisionFor_noLockoutWithStoredCount_returnsPolicyDecisionForCount() {
 
         long noLockoutTtl = -2; // Redis getExpire returns -2 when the lockout key does not exist
         long storedCount = 2;
@@ -76,11 +76,11 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
-        assertThat(adapter.evaluate(EMAIL)).isEqualTo(POLICY.decideByCount(storedCount));
+        assertThat(adapter.decisionFor(EMAIL)).isEqualTo(POLICY.decideByCount(storedCount));
     }
 
     @Test
-    void evaluate_nullTtlAndNoStoredCount_returnsPolicyDecisionForZero() {
+    void decisionFor_nullTtlAndNoStoredCount_returnsPolicyDecisionForZero() {
 
         given(redisOperations.getExpire(anyString(), any(TimeUnit.class))).willReturn(null);
         given(redisOperations.opsForValue()).willReturn(valueOperations);
@@ -88,11 +88,11 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(redisOperations, buildClosedCircuitGuard(), POLICY);
 
-        assertThat(adapter.evaluate(EMAIL)).isEqualTo(POLICY.decideByCount(0));
+        assertThat(adapter.decisionFor(EMAIL)).isEqualTo(POLICY.decideByCount(0));
     }
 
     @Test
-    void evaluate_nonNumericStoredCount_propagatesNumberFormatException() {
+    void decisionFor_nonNumericStoredCount_propagatesNumberFormatException() {
 
         long noLockoutTtl = -2;
 
@@ -104,16 +104,16 @@ class LoginAttemptRepositoryRedisAdapterTest {
 
         // Pins the fail-open boundary: corrupted state must surface, not be masked as Allowed
         assertThatExceptionOfType(NumberFormatException.class)
-            .isThrownBy(() -> adapter.evaluate(EMAIL));
+            .isThrownBy(() -> adapter.decisionFor(EMAIL));
     }
 
     @Test
-    void evaluate_redisError_failsClosedInsteadOfAllowing() {
+    void decisionFor_redisError_failsClosedInsteadOfAllowing() {
 
         var adapter = new LoginAttemptRepositoryRedisAdapter(RedisTestUtils.errorTemplate(), buildClosedCircuitGuard(), POLICY);
 
         assertThatExceptionOfType(InfrastructureException.class)
-            .isThrownBy(() -> adapter.evaluate(EMAIL))
+            .isThrownBy(() -> adapter.decisionFor(EMAIL))
             .withCauseInstanceOf(DataAccessException.class);
     }
 

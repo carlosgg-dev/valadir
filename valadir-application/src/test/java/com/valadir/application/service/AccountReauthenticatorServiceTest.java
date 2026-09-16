@@ -57,7 +57,7 @@ class AccountReauthenticatorServiceTest {
 
         var password = PasswordMother.raw();
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
         given(passwordHasher.matches(password, ACCOUNT.getHashedPassword())).willReturn(true);
 
         assertThatNoException().isThrownBy(() -> reauthenticator.reauthenticate(ACCOUNT, password));
@@ -72,7 +72,7 @@ class AccountReauthenticatorServiceTest {
 
         var password = PasswordMother.raw();
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.ChallengeRequired());
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.ChallengeRequired());
         given(passwordHasher.matches(password, ACCOUNT.getHashedPassword())).willReturn(true);
 
         assertThatNoException().isThrownBy(() -> reauthenticator.reauthenticate(ACCOUNT, password));
@@ -83,7 +83,7 @@ class AccountReauthenticatorServiceTest {
 
         var password = PasswordMother.raw();
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
         given(passwordHasher.matches(password, ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(ACCOUNT.getEmail())).willReturn(Optional.empty());
 
@@ -101,7 +101,7 @@ class AccountReauthenticatorServiceTest {
         var password = PasswordMother.raw();
         var lockout = Duration.ofMinutes(5);
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
         given(passwordHasher.matches(password, ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(ACCOUNT.getEmail())).willReturn(Optional.of(lockout));
 
@@ -119,7 +119,7 @@ class AccountReauthenticatorServiceTest {
         var password = PasswordMother.raw();
         var lockout = Duration.ofMinutes(5);
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.Allowed());
         given(passwordHasher.matches(password, ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(ACCOUNT.getEmail())).willReturn(Optional.of(lockout));
 
@@ -139,7 +139,7 @@ class AccountReauthenticatorServiceTest {
         var remainingLockout = Duration.ofSeconds(30);
         var password = PasswordMother.raw();
 
-        given(loginAttemptRepository.evaluate(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.LockedOut(remainingLockout));
+        given(loginAttemptRepository.decisionFor(ACCOUNT.getEmail())).willReturn(new LoginAttemptDecision.LockedOut(remainingLockout));
 
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> reauthenticator.reauthenticate(ACCOUNT, password))

@@ -36,7 +36,7 @@ public class RefreshTokenRepositoryRedisAdapter implements RefreshTokenRepositor
     }
 
     @Override
-    public Optional<AccountId> validate(String token) {
+    public Optional<AccountId> accountIdFor(String token) {
 
         var fingerprint = TokenFingerprint.of(token);
 

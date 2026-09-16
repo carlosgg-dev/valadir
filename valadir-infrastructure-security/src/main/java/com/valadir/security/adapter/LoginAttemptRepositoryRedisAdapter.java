@@ -41,7 +41,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
     }
 
     @Override
-    public LoginAttemptDecision evaluate(Email email) {
+    public LoginAttemptDecision decisionFor(Email email) {
 
         return circuitGuard.call("login attempt evaluation failed", () -> {
             Long ttl = redisOperations.getExpire(lockoutKey(email), TimeUnit.SECONDS);

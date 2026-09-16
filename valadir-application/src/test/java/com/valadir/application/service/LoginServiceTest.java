@@ -82,7 +82,7 @@ class LoginServiceTest {
         var refreshToken = "refresh-token";
         var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(true);
         given(authTokenIssuer.issue(EXISTING_ACCOUNT.getId(), EXISTING_ACCOUNT.getRole()))
@@ -106,7 +106,7 @@ class LoginServiceTest {
         var remainingLockout = Duration.ofSeconds(30);
         var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.LockedOut(remainingLockout));
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.LockedOut(remainingLockout));
 
         assertThatExceptionOfType(AccountLockedException.class)
             .isThrownBy(() -> service.login(command))
@@ -123,7 +123,7 @@ class LoginServiceTest {
         var captchaToken = "invalid-token";
         var command = new LoginCommand(email.value(), password.value(), captchaToken);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
         given(captchaVerifier.isValid(captchaToken)).willReturn(false);
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -141,7 +141,7 @@ class LoginServiceTest {
         var captchaToken = "valid-token";
         var command = new LoginCommand(email.value(), password.value(), captchaToken);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.ChallengeRequired());
         given(captchaVerifier.isValid(captchaToken)).willReturn(true);
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(true);
@@ -162,7 +162,7 @@ class LoginServiceTest {
         var password = PasswordMother.raw();
         var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.empty());
 
         assertThatExceptionOfType(ApplicationException.class)
@@ -181,7 +181,7 @@ class LoginServiceTest {
         var password = PasswordMother.raw();
         var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.empty());
@@ -204,7 +204,7 @@ class LoginServiceTest {
         var password = RawPassword.from("weak");
         var command = new LoginCommand(email.value(), password.value(), null);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.empty());
@@ -225,7 +225,7 @@ class LoginServiceTest {
         var command = new LoginCommand(email.value(), password.value(), null);
         var lockout = Duration.ofMinutes(5);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
@@ -247,7 +247,7 @@ class LoginServiceTest {
         var command = new LoginCommand(email.value(), password.value(), null);
         var lockout = Duration.ofMinutes(5);
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(EXISTING_ACCOUNT));
         given(passwordHasher.matches(password, EXISTING_ACCOUNT.getHashedPassword())).willReturn(false);
         given(loginAttemptRepository.recordFailedAttempt(email)).willReturn(Optional.of(lockout));
@@ -271,7 +271,7 @@ class LoginServiceTest {
         var command = new LoginCommand(email.value(), password.value(), null);
         var pendingAccount = AccountMother.pendingActivation().withEmail(email).build();
 
-        given(loginAttemptRepository.evaluate(email)).willReturn(new LoginAttemptDecision.Allowed());
+        given(loginAttemptRepository.decisionFor(email)).willReturn(new LoginAttemptDecision.Allowed());
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(pendingAccount));
         given(passwordHasher.matches(password, pendingAccount.getHashedPassword())).willReturn(true);
 

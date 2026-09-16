@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public interface RefreshTokenRepository {
 
-    Optional<AccountId> validate(String token);
+    Optional<AccountId> accountIdFor(String token);
 
     void save(String token, AccountId accountId);
 

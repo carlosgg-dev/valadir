@@ -102,7 +102,7 @@ public class LoginService implements LoginUseCase {
 
     private void enforceAttemptDecision(Email email, String captchaToken) {
 
-        switch (loginAttemptRepository.evaluate(email)) {
+        switch (loginAttemptRepository.decisionFor(email)) {
             case LoginAttemptDecision.LockedOut(Duration remaining) -> throw new AccountLockedException(remaining);
             case LoginAttemptDecision.ChallengeRequired() when !captchaVerifier.isValid(captchaToken) ->
                 throw new ApplicationException("Captcha verification required", ErrorCode.CAPTCHA_REQUIRED);

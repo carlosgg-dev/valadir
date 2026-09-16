@@ -58,12 +58,12 @@ class LoginAttemptRepositoryRedisAdapterIT {
     }
 
     @Test
-    void evaluate_withActiveLockout_returnsLockedOutWithRemainingTtl() {
+    void decisionFor_withActiveLockout_returnsLockedOutWithRemainingTtl() {
 
         String lockoutKey = RedisKeySpace.forLoginLockout(EMAIL.value());
         redisTemplate.opsForValue().set(lockoutKey, RedisKeySpace.LOGIN_LOCKOUT_VALUE, Duration.ofSeconds(30));
 
-        LoginAttemptDecision decision = adapter.evaluate(EMAIL);
+        LoginAttemptDecision decision = adapter.decisionFor(EMAIL);
 
         assertThat(decision).isInstanceOf(LoginAttemptDecision.LockedOut.class);
         Duration remaining = ((LoginAttemptDecision.LockedOut) decision).remaining();
@@ -83,18 +83,18 @@ class LoginAttemptRepositoryRedisAdapterIT {
     }
 
     @Test
-    void evaluate_afterRecordedFailures_returnsPolicyDecisionForStoredCount() {
+    void decisionFor_afterRecordedFailures_returnsPolicyDecisionForStoredCount() {
 
         int recordedFailures = CHALLENGE_THRESHOLD;
         IntStream.range(0, recordedFailures).forEach(i -> adapter.recordFailedAttempt(EMAIL));
 
-        assertThat(adapter.evaluate(EMAIL)).isEqualTo(POLICY.decideByCount(recordedFailures));
+        assertThat(adapter.decisionFor(EMAIL)).isEqualTo(POLICY.decideByCount(recordedFailures));
     }
 
     @Test
-    void evaluate_noAttempts_returnsAllowed() {
+    void decisionFor_noAttempts_returnsAllowed() {
 
-        assertThat(adapter.evaluate(EMAIL)).isInstanceOf(LoginAttemptDecision.Allowed.class);
+        assertThat(adapter.decisionFor(EMAIL)).isInstanceOf(LoginAttemptDecision.Allowed.class);
     }
 
     @Test
@@ -147,11 +147,11 @@ class LoginAttemptRepositoryRedisAdapterIT {
         adapter.recordFailedAttempt(EMAIL);
         adapter.recordFailedAttempt(EMAIL);
 
-        assertThat(adapter.evaluate(EMAIL)).isInstanceOf(LoginAttemptDecision.LockedOut.class);
+        assertThat(adapter.decisionFor(EMAIL)).isInstanceOf(LoginAttemptDecision.LockedOut.class);
 
         adapter.clearAttempts(EMAIL);
 
-        assertThat(adapter.evaluate(EMAIL)).isInstanceOf(LoginAttemptDecision.Allowed.class);
+        assertThat(adapter.decisionFor(EMAIL)).isInstanceOf(LoginAttemptDecision.Allowed.class);
         assertThat(redisTemplate.opsForValue().get(attemptsKey)).isNull();
     }
 }
