@@ -3,13 +3,25 @@ package com.valadir.domain.model;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
-import java.util.Arrays;
+import java.net.IDN;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public record Email(String value) {
 
+    // The accounts.email column: the domain never produces a value the schema cannot store
     private static final int MAX_LENGTH = 255;
+    // RFC 5321
     private static final int MAX_LOCAL_PART_LENGTH = 64;
+    // RFC 1035, and punycode can make an IDN domain several times longer than what was typed
+    private static final int MAX_ENCODED_DOMAIN_LENGTH = 255;
+    private static final int MIN_DOMAIN_LABELS = 2;
+
+    // RFC 5322 atext, the atoms of an unquoted local part: anything else fails mail composition or changes the address the mail leaves for
+    private static final Pattern LOCAL_PART_ATOM = Pattern.compile("[a-z0-9!#$%&'*+/=?^_`{|}~\\P{ASCII}-]+");
+
+    // A hostname, not an address: symbols like _ and ! name no host
+    private static final Pattern LABEL = Pattern.compile("[\\p{L}\\p{M}\\p{N}-]+");
 
     public Email {
 
@@ -17,6 +29,7 @@ public record Email(String value) {
         requirePresent(value);
         rejectWhitespace(value);
         rejectNonPrintingCharacters(value);
+        rejectSupplementaryCharacters(value);
         requireMaxLength(value);
         requireValidStructure(value);
     }
@@ -60,6 +73,14 @@ public record Email(String value) {
         }
     }
 
+    // Nothing beyond the basic plane names a host or a mailbox, and stating it here is what keeps the format patterns plain
+    private static void rejectSupplementaryCharacters(String value) {
+
+        if (value.codePoints().anyMatch(codePoint -> !Character.isBmpCodePoint(codePoint))) {
+            throw new DomainException("Email must not contain supplementary characters", ErrorCode.INVALID_FIELD);
+        }
+    }
+
     private static void requireMaxLength(String value) {
 
         if (value.length() > MAX_LENGTH) {
@@ -73,24 +94,65 @@ public record Email(String value) {
         String[] parts = value.split("@", -1);
 
         if (parts.length != 2) {
-            throw new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
+            throw invalidFormat();
         }
 
-        String localPart = parts[0];
-        String domain = parts[1];
+        requireValidLocalPart(parts[0]);
+        requireValidDomain(parts[1]);
+    }
+
+    private static void requireValidLocalPart(String localPart) {
 
         if (localPart.length() > MAX_LOCAL_PART_LENGTH) {
             throw new DomainException("Email local part must not exceed " + MAX_LOCAL_PART_LENGTH + " characters", ErrorCode.INVALID_FIELD);
         }
 
-        if (hasEmptySegment(localPart) || hasEmptySegment(domain) || !domain.contains(".")) {
-            throw new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
+        // A leading, trailing or doubled dot leaves an empty atom, which no atom of one character or more matches
+        String[] atoms = localPart.split("\\.", -1);
+        for (String atom : atoms) {
+            if (!LOCAL_PART_ATOM.matcher(atom).matches()) {
+                throw invalidFormat();
+            }
         }
     }
 
-    // A leading, trailing or doubled dot leaves an empty segment; -1 keeps the trailing one, which split drops by default
-    private static boolean hasEmptySegment(String part) {
+    private static void requireValidDomain(String domain) {
 
-        return Arrays.asList(part.split("\\.", -1)).contains("");
+        String[] labels = domain.split("\\.", -1);
+
+        // A single label is a host on the local network, never a public mailbox
+        if (labels.length < MIN_DOMAIN_LABELS) {
+            throw invalidFormat();
+        }
+
+        for (String label : labels) {
+            requireValidLabel(label);
+        }
+
+        if (!fitsDnsLimits(domain)) {
+            throw invalidFormat();
+        }
+    }
+
+    private static void requireValidLabel(String label) {
+
+        if (label.startsWith("-") || label.endsWith("-") || !LABEL.matcher(label).matches()) {
+            throw invalidFormat();
+        }
+    }
+
+    // IDN.toASCII refuses a label over 63 characters once encoded, and the encoded name has its own limit of 255
+    private static boolean fitsDnsLimits(String domain) {
+
+        try {
+            return IDN.toASCII(domain).length() <= MAX_ENCODED_DOMAIN_LENGTH;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private static DomainException invalidFormat() {
+
+        return new DomainException("Invalid email format", ErrorCode.INVALID_FIELD);
     }
 }

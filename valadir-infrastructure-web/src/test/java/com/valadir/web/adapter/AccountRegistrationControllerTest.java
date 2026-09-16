@@ -150,20 +150,6 @@ class AccountRegistrationControllerTest {
     }
 
     @Test
-    void register_invalidEmail_returns400() throws Exception {
-
-        var request = new RegisterRequest("invalid-email", "S3cur3P@ss!", "Bruce Wayne", "Batman");
-
-        mockMvc.perform(post(ApiRoutes.Auth.Registration.REGISTER_PATH)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()));
-
-        then(registerUseCase).should(never()).register(any(RegisterCommand.class));
-    }
-
-    @Test
     void register_blankPassword_returns400() throws Exception {
 
         var request = new RegisterRequest("bruce.wayne@emailValue.com", "", "Bruce Wayne", "Batman");

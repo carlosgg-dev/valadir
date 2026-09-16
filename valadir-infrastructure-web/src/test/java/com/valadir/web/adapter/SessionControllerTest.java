@@ -124,17 +124,6 @@ class SessionControllerTest {
     }
 
     @Test
-    void login_invalidEmail_returns400() throws Exception {
-
-        mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new LoginRequest("invalid-email", "S3cur3P@ss!", null))))
-            .andExpect(status().isBadRequest());
-
-        then(loginUseCase).should(never()).login(any(LoginCommand.class));
-    }
-
-    @Test
     void login_blankPassword_returns400() throws Exception {
 
         mockMvc.perform(post(ApiRoutes.Auth.Session.LOGIN_PATH)

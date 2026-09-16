@@ -14,7 +14,6 @@ import com.valadir.web.dto.request.InitiateEmailChangeRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -76,9 +75,9 @@ class EmailChangeControllerTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" ", "not-an-email"})
-    void initiateEmailChange_invalidNewEmail_returns400(String newEmail) throws Exception {
+    @NullSource
+    @ValueSource(strings = {"", " "})
+    void initiateEmailChange_blankNewEmail_returns400(String newEmail) throws Exception {
 
         mockMvc.perform(post(ApiRoutes.Auth.Account.INITIATE_EMAIL_CHANGE_PATH)
                             .with(jwt().jwt(jwt -> jwt.subject(AccountId.generate().value().toString())))

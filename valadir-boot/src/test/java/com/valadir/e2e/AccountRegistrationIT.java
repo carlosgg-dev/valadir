@@ -27,11 +27,11 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String UNKNOWN_EMAIL = "unknown@email.test";
     private static final String PASSWORD = PasswordMother.raw().value();
 
-    // The same address as EMAIL, told apart only by case
-    private static final String MIXED_CASE_EMAIL = "Bruce.Wayne@Email.com";
+    // The same address as EMAIL, told apart only by case and the spaces an autocomplete leaves around it
+    private static final String EMAIL_IN_ANOTHER_SPELLING = " Bruce.Wayne@Email.com ";
     private static final String UPPERCASE_EMAIL = "BRUCE.WAYNE@EMAIL.COM";
 
-    // Passes @Email, rejected by Email.from
+    // Rejected by Email.from: a domain needs at least two labels
     private static final String EMAIL_WITHOUT_DOT_IN_DOMAIN = "bruce.wayne@email";
 
     // Rejected before hashing: fails the RawPassword policy
@@ -73,11 +73,10 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void register_emailPassingBeanValidationButRejectedByDomain_returns400WithoutFieldErrors() {
+    void register_emailRejectedByDomain_returns400WithoutFieldErrors() {
 
-        // Jakarta's @Email accepts a domain without a dot, Email.from does not: this is the only
-        // way in to the DomainException branch of the use case. The null errors array is what
-        // tells it apart from the INVALID_FIELD Bean Validation returns.
+        // Request validation only checks presence, so the format is answered by Email.from alone.
+        // The null errors array is what tells it apart from the INVALID_FIELD Bean Validation returns.
         register(EMAIL_WITHOUT_DOT_IN_DOMAIN, PASSWORD)
             .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
@@ -188,9 +187,9 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     }
 
     @Test
-    void register_emailInAnotherCase_reachesTheSameAccount() {
+    void register_emailInAnotherSpelling_reachesTheSameAccount() {
 
-        register(MIXED_CASE_EMAIL, PASSWORD)
+        register(EMAIL_IN_ANOTHER_SPELLING, PASSWORD)
             .then()
             .statusCode(HttpStatus.CREATED.value());
 
