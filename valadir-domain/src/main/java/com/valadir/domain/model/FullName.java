@@ -5,35 +5,39 @@ import com.valadir.domain.exception.DomainException;
 
 public record FullName(String value) {
 
+    private static final String LABEL = "Full name";
+
+    private static final int MIN_LENGTH = 2;
+    private static final int MAX_LENGTH = 255;
+
     public FullName {
 
-        value = value == null ? null : value.trim();
-
-        if (value == null || value.isBlank()) {
-            throw new DomainException("Full name is required", ErrorCode.REQUIRED_FIELD_MISSING);
-        }
-
-        if (value.chars().anyMatch(Character::isISOControl)) {
-            throw new DomainException("Full name must not contain control characters", ErrorCode.INVALID_FIELD);
-        }
-
-        // A code point scan pairs the surrogates first, so only an unpaired one is left reading as SURROGATE; the driver
-        // would encode it as '?' and store a name nobody typed
-        if (value.codePoints().anyMatch(codePoint -> Character.getType(codePoint) == Character.SURROGATE)) {
-            throw new DomainException("Full name must not contain unpaired surrogates", ErrorCode.INVALID_FIELD);
-        }
-
-        if (value.length() < 2) {
-            throw new DomainException("Invalid full name", ErrorCode.INVALID_FIELD);
-        }
-
-        if (value.length() > 255) {
-            throw new DomainException("Full name must not exceed 255 characters", ErrorCode.INVALID_FIELD);
-        }
+        value = Names.normalize(value);
+        requirePresent(value);
+        Names.rejectHiddenCharacters(value, LABEL);
+        requireLengthWithinBounds(value);
     }
 
     public static FullName from(String value) {
 
         return new FullName(value);
+    }
+
+    private static void requirePresent(String value) {
+
+        if (value == null || value.isBlank()) {
+            throw new DomainException(LABEL + " is required", ErrorCode.REQUIRED_FIELD_MISSING);
+        }
+    }
+
+    private static void requireLengthWithinBounds(String value) {
+
+        if (value.length() < MIN_LENGTH) {
+            throw new DomainException("Invalid full name", ErrorCode.INVALID_FIELD);
+        }
+
+        if (value.length() > MAX_LENGTH) {
+            throw new DomainException(LABEL + " must not exceed " + MAX_LENGTH + " characters", ErrorCode.INVALID_FIELD);
+        }
     }
 }

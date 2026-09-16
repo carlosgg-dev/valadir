@@ -19,6 +19,13 @@ class FullNameTest {
         assertThat(fullName.value()).isEqualTo("Bruce Wayne");
     }
 
+    @Test
+    void constructor_surroundingSpaces_trimsValue() {
+
+        FullName fullName = new FullName("  Bruce Wayne  ");
+        assertThat(fullName.value()).isEqualTo("Bruce Wayne");
+    }
+
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   "})
@@ -30,7 +37,7 @@ class FullNameTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"\0", " \0 "})
+    @ValueSource(strings = {"\0", " \0 ", "\u00A0"})
     void constructor_blankOnceTrimmed_throwsDomainException(String blankOnceTrimmed) {
 
         assertThatExceptionOfType(DomainException.class)
@@ -43,6 +50,14 @@ class FullNameTest {
 
         FullName fullName = new FullName("Wa");
         assertThat(fullName.value()).isEqualTo("Wa");
+    }
+
+    @Test
+    void constructor_valueTooShortOnceTrimmed_throwsDomainException() {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(" W"))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
     @Test
@@ -61,6 +76,13 @@ class FullNameTest {
     }
 
     @Test
+    void constructor_valueAtMaxLengthOnceTrimmed_createsFullName() {
+
+        FullName fullName = new FullName(" " + "a".repeat(255) + " ");
+        assertThat(fullName.value()).hasSize(255);
+    }
+
+    @Test
     void constructor_valueTooLong_throwsDomainException() {
 
         var tooLong = "a".repeat(256);
@@ -70,19 +92,37 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
-    @Test
-    void constructor_surroundingSpaces_trimsValue() {
-
-        FullName fullName = new FullName("  Bruce Wayne  ");
-        assertThat(fullName.value()).isEqualTo("Bruce Wayne");
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"Bruce\0Wayne", "Bruce\nWayne", "Bruce\tWayne"})
     void constructor_controlCharacter_throwsDomainException(String withControlCharacter) {
 
         assertThatExceptionOfType(DomainException.class)
             .isThrownBy(() -> new FullName(withControlCharacter))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    // No-break space, thin space and ideographic space: what a paste leaves behind, and all of them read as one space
+    @ParameterizedTest
+    @ValueSource(strings = {"Bruce\u00A0Wayne", "Bruce\u2009Wayne", "Bruce\u3000Wayne"})
+    void constructor_exoticSpace_foldsItToAPlainSpace(String withExoticSpace) {
+
+        assertThat(new FullName(withExoticSpace).value()).isEqualTo("Bruce Wayne");
+    }
+
+    @Test
+    void constructor_exoticSpaceAtTheEdges_trimsIt() {
+
+        assertThat(new FullName("\u00A0Bruce Wayne\u00A0").value()).isEqualTo("Bruce Wayne");
+    }
+
+    // Zero-width space, zero-width joiner, right-to-left mark and soft hyphen: each renders as nothing, so each makes
+    // a second name that no reader can tell from the first
+    @ParameterizedTest
+    @ValueSource(strings = {"Bruce\u200BWayne", "Bruce\u200DWayne", "Bruce\u200FWayne", "Bruce\u00ADWayne"})
+    void constructor_invisibleFormattingCharacter_throwsDomainException(String withInvisibleCharacter) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new FullName(withInvisibleCharacter))
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
@@ -103,21 +143,6 @@ class FullNameTest {
         var withEmoji = "Bruce " + Character.toString(0x1F600) + " Wayne";
 
         assertThat(new FullName(withEmoji).value()).isEqualTo(withEmoji);
-    }
-
-    @Test
-    void constructor_valueTooShortOnceTrimmed_throwsDomainException() {
-
-        assertThatExceptionOfType(DomainException.class)
-            .isThrownBy(() -> new FullName(" W"))
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
-    }
-
-    @Test
-    void constructor_valueAtMaxLengthOnceTrimmed_createsFullName() {
-
-        FullName fullName = new FullName(" " + "a".repeat(255) + " ");
-        assertThat(fullName.value()).hasSize(255);
     }
 
     @Test

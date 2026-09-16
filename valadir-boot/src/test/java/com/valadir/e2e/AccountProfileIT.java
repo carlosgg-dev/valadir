@@ -167,6 +167,26 @@ class AccountProfileIT extends AbstractAuthE2EIT {
             .body("language", equalTo(REGISTERED_LANGUAGE));
     }
 
+    // Two accounts: with one, a name that only differs by an invisible character is indistinguishable from nothing to compare it to
+    @Test
+    void updateProfile_fullNameWithNoBreakSpace_storesTheSameNameAsTheOtherAccount() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+        registerAndActivate(BYSTANDER_EMAIL, PASSWORD);
+
+        Response loggedIn = login(EMAIL, PASSWORD);
+        String lookalikeOfTheBystandersName = FULL_NAME.replace(" ", " ");
+
+        updateProfile(accessTokenOf(loggedIn), updateRequestBody(lookalikeOfTheBystandersName, NEW_GIVEN_NAME, NEW_LANGUAGE))
+            .then()
+            .statusCode(HttpStatus.OK.value());
+
+        var caller = userJpaRepository.findByAccountId(UUID.fromString(accountIdFor(EMAIL))).orElseThrow();
+        var bystander = userJpaRepository.findByAccountId(UUID.fromString(accountIdFor(BYSTANDER_EMAIL))).orElseThrow();
+
+        assertThat(caller.getFullName()).isEqualTo(bystander.getFullName());
+    }
+
     // Worse than the NUL above: Postgres refuses that one loudly, while the driver rewrites this one and answers success
     @Test
     void updateProfile_fullNameWithLoneSurrogate_returns400AndKeepsTheProfile() {
