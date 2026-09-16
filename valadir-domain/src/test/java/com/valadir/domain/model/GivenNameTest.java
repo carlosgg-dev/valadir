@@ -76,6 +76,25 @@ class GivenNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
+    // A lone high surrogate, a lone low one, and a pair in the wrong order
+    @ParameterizedTest
+    @ValueSource(strings = {"Bat\uD800man", "Bat\uDC00man", "Bat\uDC00\uD800man"})
+    void constructor_unpairedSurrogate_throwsDomainException(String withUnpairedSurrogate) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new GivenName(withUnpairedSurrogate))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
+    // What is rejected is half a character, not everything outside the BMP: a well-formed emoji is a name people do use
+    @Test
+    void constructor_surrogatePair_createsGivenName() {
+
+        var withEmoji = "Bat" + Character.toString(0x1F600) + "man";
+
+        assertThat(new GivenName(withEmoji).value()).isEqualTo(withEmoji);
+    }
+
     @Test
     void from_validValue_createsGivenName() {
 

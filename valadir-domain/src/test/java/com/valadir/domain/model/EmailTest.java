@@ -119,6 +119,17 @@ class EmailTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
+    // A lone high surrogate, a lone low one, and a pair in the wrong order. Only the local part let them through:
+    // a surrogate is no letter, mark or digit, so the domain labels already refused it
+    @ParameterizedTest
+    @ValueSource(strings = {"bruce\uD800wayne@email.com", "bruce\uDC00wayne@email.com", "bruce\uDC00\uD800wayne@email.com"})
+    void constructor_unpairedSurrogate_throwsDomainException(String withUnpairedSurrogate) {
+
+        assertThatExceptionOfType(DomainException.class)
+            .isThrownBy(() -> new Email(withUnpairedSurrogate))
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
+    }
+
     // An emoji is a well-formed code point beyond the basic plane: visible, valid, and still no part of an address
     @Test
     void constructor_supplementaryCharacter_throwsDomainException() {

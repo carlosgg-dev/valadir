@@ -29,6 +29,7 @@ public record Email(String value) {
         requirePresent(value);
         rejectWhitespace(value);
         rejectNonPrintingCharacters(value);
+        rejectUnpairedSurrogates(value);
         rejectSupplementaryCharacters(value);
         requireMaxLength(value);
         requireValidStructure(value);
@@ -70,6 +71,15 @@ public record Email(String value) {
         // Code points, not chars: some formatting characters lie beyond the BMP and a char scan only sees their surrogates
         if (value.codePoints().anyMatch(codePoint -> Character.getType(codePoint) == Character.FORMAT)) {
             throw new DomainException("Email must not contain invisible formatting characters", ErrorCode.INVALID_FIELD);
+        }
+    }
+
+    // A code point scan pairs the surrogates first, so only an unpaired one is left reading as SURROGATE; the driver would
+    // encode it as '?' and store an address nobody typed
+    private static void rejectUnpairedSurrogates(String value) {
+
+        if (value.codePoints().anyMatch(codePoint -> Character.getType(codePoint) == Character.SURROGATE)) {
+            throw new DomainException("Email must not contain unpaired surrogates", ErrorCode.INVALID_FIELD);
         }
     }
 

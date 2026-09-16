@@ -17,6 +17,12 @@ public record FullName(String value) {
             throw new DomainException("Full name must not contain control characters", ErrorCode.INVALID_FIELD);
         }
 
+        // A code point scan pairs the surrogates first, so only an unpaired one is left reading as SURROGATE; the driver
+        // would encode it as '?' and store a name nobody typed
+        if (value.codePoints().anyMatch(codePoint -> Character.getType(codePoint) == Character.SURROGATE)) {
+            throw new DomainException("Full name must not contain unpaired surrogates", ErrorCode.INVALID_FIELD);
+        }
+
         if (value.length() < 2) {
             throw new DomainException("Invalid full name", ErrorCode.INVALID_FIELD);
         }

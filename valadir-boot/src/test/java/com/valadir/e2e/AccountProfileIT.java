@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -166,6 +167,33 @@ class AccountProfileIT extends AbstractAuthE2EIT {
             .body("language", equalTo(REGISTERED_LANGUAGE));
     }
 
+    // Worse than the NUL above: Postgres refuses that one loudly, while the driver rewrites this one and answers success
+    @Test
+    void updateProfile_fullNameWithLoneSurrogate_returns400AndKeepsTheProfile() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+
+        Response loggedIn = login(EMAIL, PASSWORD);
+        String accessToken = accessTokenOf(loggedIn);
+
+        // The escape sequence, never a raw surrogate: serializing one would rewrite it before the request left the test
+        String bodyWithLoneSurrogate = String.format(Locale.ROOT, """
+            {"fullName": "Bruce\\uD800Wayne", "givenName": "%s", "language": "%s"}
+            """, NEW_GIVEN_NAME, NEW_LANGUAGE);
+
+        updateProfile(accessToken, bodyWithLoneSurrogate)
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+            .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()));
+
+        getProfile(accessToken)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .body("fullName", equalTo(FULL_NAME))
+            .body("givenName", equalTo(GIVEN_NAME))
+            .body("language", equalTo(REGISTERED_LANGUAGE));
+    }
+
     @Test
     void updateProfile_withoutBearerToken_returns401AndKeepsTheProfile() {
 
@@ -194,7 +222,8 @@ class AccountProfileIT extends AbstractAuthE2EIT {
             .get(ApiRoutes.Auth.Account.PROFILE_PATH);
     }
 
-    private Response updateProfile(String accessToken, Map<String, String> body) {
+    // Object, not Map: a body carrying a JSON escape is sent as it was written, without a serializer in between
+    private Response updateProfile(String accessToken, Object body) {
 
         var request = RestAssured.given()
             .contentType(ContentType.JSON)
