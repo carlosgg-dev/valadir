@@ -3,6 +3,7 @@ package com.valadir.domain.model;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
+import java.text.Normalizer;
 import java.util.function.IntPredicate;
 
 public record RawPassword(String value) {
@@ -16,6 +17,10 @@ public record RawPassword(String value) {
         if (value == null || value.isBlank()) {
             throw new DomainException("Password cannot be empty", ErrorCode.INVALID_PASSWORD);
         }
+
+        // The hash is over bytes, so the two spellings of an accented letter are two secrets and the keyboard decides
+        // which one arrives. Composing here is what makes it the same password on the next device
+        value = Normalizer.normalize(value, Normalizer.Form.NFC);
 
         if (value.length() > MAX_PASSWORD_LENGTH) {
             throw new DomainException("Password is too long", ErrorCode.INVALID_PASSWORD);

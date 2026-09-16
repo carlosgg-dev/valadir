@@ -482,6 +482,9 @@ Not defects, but things that are expensive to rediscover.
   wrong with the value; what is wrong is that it disagrees with the server, and only the server knows that. Demanding a
   non-empty password at startup would not be validating the value, it would be deciding that every deployment
   authenticates to Redis — a policy in a validator's clothing, and wrong on the day one does not.
+- **Every password hash is of the NFC spelling, and that cannot be taken back.** `RawPassword` composes in its
+  constructor, so removing or changing the normalization would lock out every account whose password carries an
+  accented letter, with no `UPDATE` able to repair a one-way hash — only a forced reset for the whole user base.
 - **A 406 carries no body.** Writing the error body runs through the same content negotiation that produced the 406, so
   the client gets the status and nothing else. It is the one HTTP failure where no `ErrorCode` reaches the caller at
   all, `MALFORMED_REQUEST` included.

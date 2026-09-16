@@ -6,6 +6,7 @@ import com.valadir.domain.model.Email;
 import com.valadir.domain.model.RawPassword;
 import com.valadir.domain.model.User;
 
+import java.text.Normalizer;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -18,11 +19,11 @@ public class PasswordSecurityService {
 
     public void validatePassword(RawPassword password, Email email, User user) {
 
-        String pwd = password.value().toLowerCase(Locale.ROOT);
-        boolean containsEmail = pwd.contains(email.value());
+        String pwd = comparableFormOf(password.value());
+        boolean containsEmail = pwd.contains(comparableFormOf(email.value()));
 
         Set<String> nameTerms = user.personalData().stream()
-            .map(term -> term.toLowerCase(Locale.ROOT))
+            .map(PasswordSecurityService::comparableFormOf)
             .flatMap(TERM_SEPARATOR::splitAsStream)
             .filter(term -> term.length() >= MIN_TERM_LENGTH)
             .collect(Collectors.toSet());
@@ -30,5 +31,12 @@ public class PasswordSecurityService {
         if (containsEmail || nameTerms.stream().anyMatch(pwd::contains)) {
             throw new DomainException("Password cannot contain your personal data", ErrorCode.INSECURE_PASSWORD);
         }
+    }
+
+    // One spelling and one case on both sides: the comparison produces the form it needs instead of trusting
+    // whichever one each value object happened to keep
+    private static String comparableFormOf(String value) {
+
+        return Normalizer.normalize(value, Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
     }
 }

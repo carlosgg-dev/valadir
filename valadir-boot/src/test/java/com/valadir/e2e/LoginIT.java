@@ -19,6 +19,12 @@ class LoginIT extends AbstractAuthE2EIT {
     private static final String EMAIL = "bruce.wayne@email.com";
     private static final String UNKNOWN_EMAIL = "unknown@email.test";
     private static final String PASSWORD = "SecureP@ss123";
+
+    // The two spellings a keyboard can send for the same letter, written as escapes: a tool that
+    // normalized this file would turn them into one and the test would pass against its own bug.
+    private static final String NFC_PASSWORD = "SecureP@ss1\u00F1";
+    private static final String NFD_PASSWORD = "SecureP@ss1n\u0303";
+
     private static final String WRONG_PASSWORD = "Wrong@password123";
     private static final String CAPTCHA_TOKEN = "e2e-captcha-token";
 
@@ -57,6 +63,19 @@ class LoginIT extends AbstractAuthE2EIT {
             .isTrue();
 
         assertThat(failedLoginAttemptsFor(EMAIL)).isNull();
+    }
+
+    @Test
+    void login_passwordSpelledInTheOtherNormalForm_signsIn() {
+
+        registerAndActivate(EMAIL, NFC_PASSWORD);
+
+        // Argon2 hashes bytes, so only the real encoder can answer whether the two spellings are one
+        // secret: the user who set the password on one keyboard types it on another and must get in.
+        login(EMAIL, NFD_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .body("accessToken", notNullValue());
     }
 
     @Test

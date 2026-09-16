@@ -29,6 +29,28 @@ class RawPasswordTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
+    // U+00F1 is the ñ as one character, n + U+0303 is an n carrying a combining tilde: one letter on screen, two
+    // sequences to a hash. Written as escapes so a tool that normalized this file cannot turn the two fixtures into
+    // one, which would leave the test passing against the very bug it was written for.
+    @Test
+    void constructor_theSameLetterSpelledTwoWays_createsEqualPasswords() {
+
+        var nfc = "SecureP@ss1\u00F1";
+        var nfd = "SecureP@ss1n\u0303";
+
+        assertThat(new RawPassword(nfd)).isEqualTo(new RawPassword(nfc));
+    }
+
+    @Test
+    void constructor_valueAtMaxLengthOnceComposed_createsRawPassword() {
+
+        // 73 units as typed, 72 once composed: the length that matters is the one that gets hashed
+        var nfd = "a".repeat(71) + "n\u0303";
+
+        RawPassword password = new RawPassword(nfd);
+        assertThat(password.value()).hasSize(72);
+    }
+
     @Test
     void constructor_valueAtMaxLength_createsRawPassword() {
 

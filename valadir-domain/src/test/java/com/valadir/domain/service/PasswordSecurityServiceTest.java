@@ -147,6 +147,17 @@ class PasswordSecurityServiceTest {
         }
     }
 
+    // U+00F1 is the ñ as one character, n + U+0303 an n carrying a combining tilde: one letter on screen, two
+    // sequences to a comparison. The password arrives composed by RawPassword and the name by nothing, so this is the
+    // side the service has to compose itself. Only one row: with the name composed instead, RawPassword alone would
+    // make the two meet and the case would pass without the service doing anything.
+    // Written as escapes, so a tool that normalized this file cannot turn the pair into one spelling.
+    @Test
+    void validatePassword_personalDataSpelledInTheOtherNormalForm_throwsDomainException() {
+
+        assertInsecurePassword("Pe\u00F1a@2026", EMAIL, "Pen\u0303a Wayne", "Batman");
+    }
+
     private void assertSecurePassword(String pwd, String email, String fullName, String givenName) {
 
         assertThatCode(() -> validate(pwd, email, fullName, givenName)).doesNotThrowAnyException();
