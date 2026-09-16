@@ -64,10 +64,16 @@ Never mix both responsibilities in the same class.
 - **One validation rule across request, domain and schema, applied in degrees:**
   - **The value object is the guarantee.** It is at least as strict as request validation and never
     leans on it, so a value reaching the domain by any other path meets the same rules.
-  - **Bean Validation on a DTO is an optional fast-fail.** Where it validates, it uses the domain's
-    numbers and never rejects a value the domain accepts. No annotation is added only to mirror one.
-    The DTO sees the raw value, before the domain trims or normalizes it: `@Email` rejects
-    `"a@b.cd "`, which `Email` trims and accepts.
+  - **Bean Validation on a DTO is a fast-fail, and it is what names the field.** A use case stops at
+    the first value object that refuses and names nothing, so the annotation is what lets a form mark
+    the input that was wrong. Where it validates, it uses the domain's numbers and never states a rule
+    the domain does not have. A rule the domain owns that no built-in constraint can express (password
+    composition, invisible characters, unpaired surrogates) stays in the value object alone: an
+    annotation restating it is a second copy that drifts.
+  - **The DTO sees the raw value, so it is stricter on surrounding whitespace.** `@Email` rejects
+    `"a@b.cd "`, which `Email` trims and accepts. That is the one accepted exception to the rule above,
+    and it is deliberate: the domain normalizes as a convenience for any caller, not as a promise the
+    API makes to a client that pads its input.
   - **The schema accepts every value the domain accepts** (length, `NOT NULL`, encoding) and mirrors
     structure, not business rules: no `CHECK` repeating the domain, no `DEFAULT` deciding a value the
     domain decides. Hibernate writes every mapped column, so such a `DEFAULT` never applies from the
