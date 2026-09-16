@@ -3,17 +3,12 @@ package com.valadir.domain.model;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
-import java.util.regex.Pattern;
+import java.util.function.IntPredicate;
 
 public record RawPassword(String value) {
 
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 72;
-
-    private static final Pattern HAS_NUMBER = Pattern.compile(".*\\d.*");
-    private static final Pattern HAS_LOWER = Pattern.compile(".*[a-z].*");
-    private static final Pattern HAS_UPPER = Pattern.compile(".*[A-Z].*");
-    private static final Pattern HAS_SPECIAL = Pattern.compile(".*[@#$%^&+=!_\\-].*");
 
     // Shape only: a presented password is matched against its hash, so one chosen under an older policy still signs in
     public RawPassword {
@@ -49,9 +44,15 @@ public record RawPassword(String value) {
     private boolean meetsPolicy() {
 
         return value.length() >= MIN_PASSWORD_LENGTH
-            && HAS_NUMBER.matcher(value).matches()
-            && HAS_LOWER.matcher(value).matches()
-            && HAS_UPPER.matcher(value).matches()
-            && HAS_SPECIAL.matcher(value).matches();
+            && contains(Character::isDigit)
+            && contains(Character::isLowerCase)
+            && contains(Character::isUpperCase)
+            && contains(codePoint -> !Character.isLetterOrDigit(codePoint));
+    }
+
+    // Code points, not chars: a letter beyond the basic plane reaches a char scan as two surrogates that are neither
+    private boolean contains(IntPredicate characterClass) {
+
+        return value.codePoints().anyMatch(characterClass);
     }
 }

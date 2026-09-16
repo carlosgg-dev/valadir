@@ -68,12 +68,40 @@ class RawPasswordTest {
     }
 
     @ParameterizedTest
+    @ValueSource(ints = {0x000A, 0x000D, 0x0085, 0x2028, 0x2029})
+    void newPassword_valueSplitByALineTerminator_createsRawPassword(int lineTerminator) {
+
+        var value = "Secret1!" + Character.toString(lineTerminator) + "abc";
+
+        RawPassword password = RawPassword.newPassword(value);
+        assertThat(password.value()).isEqualTo(value);
+    }
+
+    @Test
+    void newPassword_caseCarriedOnlyByAccentedLetters_createsRawPassword() {
+
+        var accented = "ñÁ1!ñÁ1!";
+
+        RawPassword password = RawPassword.newPassword(accented);
+        assertThat(password.value()).isEqualTo(accented);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Secret1*abc", "Secret1.abc", "Secret1 abc"})
+    void newPassword_specialCharacterIsAnythingButALetterOrADigit_createsRawPassword(String value) {
+
+        RawPassword password = RawPassword.newPassword(value);
+        assertThat(password.value()).isEqualTo(value);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {
         "Short1!",
         "no_uppercase_1",
         "NO_LOWERCASE_1",
         "NoSpecialChar123",
-        "NoDigit_Letters"
+        "NoDigit_Letters",
+        "Contraseña1"
     })
     void newPassword_policyNotMet_throwsDomainException(String invalidPassword) {
 
