@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -33,6 +34,10 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
 
     // Passes @Email, rejected by Email.from
     private static final String EMAIL_WITHOUT_DOT_IN_DOMAIN = "bruce.wayne@email";
+
+    // Rejected by @Email, so the request is refused before the use case builds anything
+    private static final String MALFORMED_EMAIL = "not-an-email";
+    private static final String BLANK_PASSWORD = "";
 
     // @Email sees the raw value, so the spaces an autocomplete leaves are refused although Email trims them
     private static final String PADDED_EMAIL = " bruce.wayne@email.com ";
@@ -86,6 +91,21 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
             .body("errors", nullValue());
+
+        assertThat(accountJpaRepository.count()).isZero();
+    }
+
+    @Test
+    void register_severalInvalidFields_returns400NamingEachOne() {
+
+        // Two fields in one answer, each with the code its own constraint maps to: a use case would have
+        // stopped at the first. Matched by field, not by position: the order between constraints is not guaranteed.
+        register(MALFORMED_EMAIL, BLANK_PASSWORD)
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+            .body("errors.field", containsInAnyOrder("email", "password"))
+            .body("errors.find { it.field == 'email' }.code", equalTo(ErrorCode.INVALID_FIELD.getCode()))
+            .body("errors.find { it.field == 'password' }.code", equalTo(ErrorCode.REQUIRED_FIELD_MISSING.getCode()));
 
         assertThat(accountJpaRepository.count()).isZero();
     }
