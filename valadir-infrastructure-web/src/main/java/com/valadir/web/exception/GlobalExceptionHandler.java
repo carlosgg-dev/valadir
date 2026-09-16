@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,10 +48,10 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         // Class-level constraints land in getGlobalErrors, not getFieldErrors. Reading only the latter
         // still answers 400 but with an empty list — a rejection with no stated reason.
         Stream<ErrorResponse.FieldError> fieldErrorsStream = e.getBindingResult().getFieldErrors().stream()
-            .map(field -> new ErrorResponse.FieldError(field.getField(), field.getDefaultMessage()));
+            .map(field -> new ErrorResponse.FieldError(field.getField(), codeOf(field)));
 
         Stream<ErrorResponse.FieldError> globalErrorsStream = e.getBindingResult().getGlobalErrors().stream()
-            .map(global -> new ErrorResponse.FieldError(null, global.getDefaultMessage()));
+            .map(global -> new ErrorResponse.FieldError(null, codeOf(global)));
 
         List<ErrorResponse.FieldError> errors = Stream.concat(fieldErrorsStream, globalErrorsStream).toList();
 
@@ -137,6 +138,13 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity
             .status(httpStatusResolver.resolve(ErrorCode.INTERNAL_SERVER_ERROR))
             .body(new ErrorResponse(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
+    }
+
+    // Bean Validation's default message is English prose written for a developer; the field is owed a
+    // code, which is what the domain answers for the same value and what a client can act on
+    private String codeOf(ObjectError error) {
+
+        return errorCodeResolver.resolveConstraint(error.getCode()).getCode();
     }
 
     private static void logAtLevel(HttpStatusCode status, String message, Exception e) {

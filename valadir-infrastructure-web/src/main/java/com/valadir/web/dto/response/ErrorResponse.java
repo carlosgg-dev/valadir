@@ -13,7 +13,7 @@ public record ErrorResponse(
 
     public record FieldError(
         String field,
-        String message) {
+        String code) {
 
     }
 }

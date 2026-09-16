@@ -69,7 +69,7 @@ class GlobalExceptionHandlerTest {
             .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_FIELD.getCode()))
             .andExpect(jsonPath("$.errors").isArray())
             .andExpect(jsonPath("$.errors[0].field").value("name"))
-            .andExpect(jsonPath("$.errors[0].message").exists());
+            .andExpect(jsonPath("$.errors[0].code").value(ErrorCode.REQUIRED_FIELD_MISSING.getCode()));
     }
 
     // Below MockMvc on purpose: reaching this branch through a real class-level constraint would also
@@ -92,7 +92,7 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat((ErrorResponse) response.getBody()).isNotNull().satisfies(body -> {
             assertThat(body.code()).isEqualTo(ErrorCode.INVALID_FIELD.getCode());
-            assertThat(body.errors()).containsExactly(new ErrorResponse.FieldError(null, "values do not match"));
+            assertThat(body.errors()).containsExactly(new ErrorResponse.FieldError(null, ErrorCode.INVALID_FIELD.getCode()));
         });
     }
 
