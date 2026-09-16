@@ -43,6 +43,16 @@ class GivenNameTest {
         assertThat(givenName.value()).isNull();
     }
 
+    // The same letter as one character and as an n carrying a combining tilde, written as escapes so a tool that
+    // normalized this file cannot turn the two fixtures into one
+    @Test
+    void constructor_theSameLetterSpelledTwoWays_composesToASingleValue() {
+
+        var nfd = "Pen\u0303a";
+
+        assertThat(new GivenName(nfd).value()).isEqualTo("Pe\u00F1a");
+    }
+
     @Test
     void constructor_valueAtMaxLength_createsGivenName() {
 

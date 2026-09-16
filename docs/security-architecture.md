@@ -173,13 +173,17 @@ against one code. Each rule counts in a bucket of its own route, apart from the 
 
 ## Account Identity
 
-Email addresses are normalised to lower case before they are stored or looked up, so `A@x.com` and `a@x.com` resolve to
-one single account — and to one single rate-limit bucket. Without normalisation, case variants act as independent
-accounts and as independent brute-force budgets.
+Email addresses are normalised to lower case and composed to NFC before they are stored or looked up, so `A@x.com` and
+`a@x.com` resolve to one single account — and to one single rate-limit bucket. Without normalisation, case variants act
+as independent accounts and as independent brute-force budgets.
+
+The composition covers the same defect for an accented address. Postgres compares bytes, so `peña@x.com` typed on a
+keyboard that decomposes the `ñ` is a different account from the same address typed on one that composes it — and both
+spellings of the domain encode to the same punycode, so the two accounts take their mail from one inbox.
 
 There is no Flyway/Liquibase in the project, and `docker/postgres/init.sql` only creates the schema. A database created
-before this normalisation landed needs a one-off `UPDATE accounts SET email = lower(email);`, or rows written earlier
-stay unreachable by the normalised lookups.
+before this normalisation landed needs a one-off `UPDATE accounts SET email = normalize(lower(email), NFC);`, or rows
+written earlier stay unreachable by the normalised lookups.
 
 ## Account Enumeration
 

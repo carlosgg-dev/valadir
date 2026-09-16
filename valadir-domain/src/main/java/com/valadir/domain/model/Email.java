@@ -4,6 +4,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
 import java.net.IDN;
+import java.text.Normalizer;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -40,11 +41,13 @@ public record Email(String value) {
         return new Email(value);
     }
 
+    // Composed last, and after the lowercase: an account is resolved by bytes, so the two spellings of an accented
+    // letter have to reach the column as one address
     private static String normalize(String value) {
 
         return value == null
             ? null
-            : value.trim().toLowerCase(Locale.ROOT);
+            : Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFC);
     }
 
     private static void requirePresent(String value) {

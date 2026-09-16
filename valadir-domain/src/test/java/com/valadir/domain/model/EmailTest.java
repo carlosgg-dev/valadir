@@ -153,6 +153,26 @@ class EmailTest {
         assertThat(new Email(value).value()).isEqualTo("bruce.wayne@email.com");
     }
 
+    // U+00F1 is the ñ as one character, n + U+0303 is an n carrying a combining tilde: one address on screen, two to a
+    // lookup by bytes. Written as escapes so a tool that normalized this file cannot turn the two fixtures into one,
+    // which would leave the test passing against the very bug it was written for.
+    @Test
+    void constructor_theSameLetterSpelledTwoWays_normalizesToASingleValue() {
+
+        var nfd = "pen\u0303a@espan\u0303a.com";
+
+        assertThat(new Email(nfd).value()).isEqualTo("pe\u00F1a@espa\u00F1a.com");
+    }
+
+    @Test
+    void constructor_localPartAtMaxLengthOnceComposed_createsEmail() {
+
+        // 65 units as typed, 64 once composed: the length that counts is the one that reaches the column
+        var localPart = "a".repeat(63);
+
+        assertThat(new Email(localPart + "n\u0303@domain.com").value()).isEqualTo(localPart + "\u00F1@domain.com");
+    }
+
     @Test
     void constructor_localPartAtMaxLength_createsEmail() {
 

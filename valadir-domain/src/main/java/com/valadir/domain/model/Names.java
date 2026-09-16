@@ -3,6 +3,7 @@ package com.valadir.domain.model;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
 
+import java.text.Normalizer;
 import java.util.regex.Pattern;
 
 /**
@@ -19,12 +20,13 @@ final class Names {
 
     }
 
-    // Every separator folds to a plain space before the trim: a name pasted from a word processor is not a different name
+    // Every separator folds to a plain space before the trim: a name pasted from a word processor is not a different
+    // name. Composed last, so the two spellings of an accented letter are not two profiles nobody can tell apart
     static String normalize(String value) {
 
         return value == null
             ? null
-            : SPACE_SEPARATOR.matcher(value).replaceAll(" ").trim();
+            : Normalizer.normalize(SPACE_SEPARATOR.matcher(value).replaceAll(" ").trim(), Normalizer.Form.NFC);
     }
 
     /**

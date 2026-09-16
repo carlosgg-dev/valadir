@@ -68,6 +68,25 @@ class FullNameTest {
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_FIELD);
     }
 
+    // U+00F1 is the ñ as one character, n + U+0303 is an n carrying a combining tilde: one name on screen, two rows no
+    // reader can tell apart. Written as escapes so a tool that normalized this file cannot turn the two fixtures into
+    // one, which would leave the test passing against the very bug it was written for.
+    @Test
+    void constructor_theSameLetterSpelledTwoWays_composesToASingleValue() {
+
+        var nfd = "Pen\u0303a Wayne";
+
+        assertThat(new FullName(nfd).value()).isEqualTo("Pe\u00F1a Wayne");
+    }
+
+    @Test
+    void constructor_valueAtMaxLengthOnceComposed_createsFullName() {
+
+        // 256 units as typed, 255 once composed: the length that counts is the one that reaches the column
+        FullName fullName = new FullName("a".repeat(254) + "n\u0303");
+        assertThat(fullName.value()).hasSize(255);
+    }
+
     @Test
     void constructor_valueAtMaxLength_createsFullName() {
 

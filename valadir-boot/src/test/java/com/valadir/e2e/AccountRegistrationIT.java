@@ -32,6 +32,11 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
     private static final String MIXED_CASE_EMAIL = "Bruce.Wayne@Email.com";
     private static final String UPPERCASE_EMAIL = "BRUCE.WAYNE@EMAIL.COM";
 
+    // The two spellings a keyboard can send for the same address, written as escapes: a tool that
+    // normalized this file would turn them into one and the test would pass against its own bug.
+    private static final String NFC_EMAIL = "pe\u00F1a@espa\u00F1a.com";
+    private static final String NFD_EMAIL = "pen\u0303a@espan\u0303a.com";
+
     // Passes @Email, rejected by Email.from
     private static final String EMAIL_WITHOUT_DOT_IN_DOMAIN = "bruce.wayne@email";
 
@@ -243,6 +248,33 @@ class AccountRegistrationIT extends AbstractAuthE2EIT {
         // Registering it again in yet another case is a conflict, not a second account: without
         // normalization the unique index would take each spelling for a different address.
         register(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.CONFLICT.value())
+            .body("code", equalTo(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
+
+        assertThat(accountJpaRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void register_emailInAnotherNormalForm_reachesTheSameAccount() {
+
+        register(NFD_EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.CREATED.value());
+
+        // Postgres resolves an account by bytes, so the row has to answer to the spelling the next
+        // keyboard sends.
+        assertThat(accountJpaRepository.findByEmail(NFC_EMAIL)).isPresent();
+
+        activate(NFC_EMAIL, activationOtpFor(NFC_EMAIL))
+            .then()
+            .statusCode(HttpStatus.NO_CONTENT.value());
+
+        assertThat(accountStatusFor(NFC_EMAIL)).isEqualTo(AccountStatus.ACTIVE);
+
+        // Both spellings of the domain encode to the same punycode, so a second account would take
+        // its mail from the first one's inbox.
+        register(NFC_EMAIL, PASSWORD)
             .then()
             .statusCode(HttpStatus.CONFLICT.value())
             .body("code", equalTo(ErrorCode.EMAIL_ALREADY_EXISTS.getCode()));
