@@ -70,7 +70,7 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterIT {
     }
 
     @Test
-    void delete_recentPendingActivationAccount_doesNotDelete() {
+    void delete_recentPendingActivationAccount_doesNotDeleteItNorItsProfile() {
 
         AccountId accountId = savePendingActivationAccountAndUser("recent@email.com", RECENT_CREATED_AT);
 
@@ -78,6 +78,7 @@ class ExpiredPendingActivationAccountCleanerJpaAdapterIT {
 
         assertThat(deleted).isZero();
         assertThat(accountJpaRepository.findById(accountId.value())).isPresent();
+        assertThat(userJpaRepository.findByAccountId(accountId.value())).isPresent();
     }
 
     @Test

@@ -24,8 +24,7 @@ public class DeleteAccountPersistenceJpaAdapter implements DeleteAccountPersiste
     public void delete(AccountId accountId) {
 
         try {
-            // The profile is deleted explicitly, before its account: the schema's cascade guards integrity,
-            // it does not decide what a deletion removes.
+            // Profiles go first: the schema's RESTRICT would refuse an account that still has one
             userJpaRepository.deleteByAccountId(accountId.value());
             accountJpaRepository.deleteById(accountId.value());
 
