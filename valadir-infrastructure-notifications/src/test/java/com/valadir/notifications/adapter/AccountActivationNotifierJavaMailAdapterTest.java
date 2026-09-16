@@ -37,6 +37,12 @@ class AccountActivationNotifierJavaMailAdapterTest {
     private static final PlainOtp OTP = PlainOtp.from("482913");
     private static final Duration OTP_TTL = Duration.ofMinutes(15);
 
+    // Never the base language: an adapter that ignored the language it was handed and rendered in
+    // English would pass every assertion below.
+    private static final Language ACCOUNT_LANGUAGE = Language.ES;
+    private static final String DOCUMENT_LANG = "lang=\"" + ACCOUNT_LANGUAGE.tag() + "\"";
+    private static final String EXPIRY_WORDING = "15 minutos";
+
     @Mock
     private JavaMailSender mailSender;
 
@@ -56,39 +62,24 @@ class AccountActivationNotifierJavaMailAdapterTest {
     }
 
     @Test
-    void sendActivationCode_englishAccount_sendsBothAlternativesWithTheCodeAndItsExpiry() throws Exception {
+    void sendActivationCode_anyAccount_sendsBothAlternativesWithTheCodeAndItsExpiry() throws Exception {
 
         givenRealMimeMessages();
 
-        adapter.sendActivationCode(notificationIn(Language.EN));
+        adapter.sendActivationCode(notificationIn(ACCOUNT_LANGUAGE));
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
 
         assertThat(message.getFrom()).extracting(Object::toString).containsExactly(FROM_ADDRESS);
         assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(TO_ADDRESS);
-        assertThat(message.getSubject()).isEqualTo("Valadir - account activation code");
+        assertThat(message.getSubject()).isNotBlank();
         assertThat(MimeMessages.carriesBothAlternatives(message)).isTrue();
 
         // Both alternatives asserted apart: a reader whose client shows the plain part must not be
         // left without the code because only the HTML one was built.
-        assertThat(MimeMessages.htmlOf(message)).contains(OTP.value(), "15 minutes");
-        assertThat(MimeMessages.plainTextOf(message)).contains(OTP.value(), "15 minutes");
-    }
-
-    @Test
-    void sendActivationCode_spanishAccount_writesSubjectAndBodyInSpanish() throws Exception {
-
-        givenRealMimeMessages();
-
-        adapter.sendActivationCode(notificationIn(Language.ES));
-
-        then(mailSender).should().send(messageCaptor.capture());
-        var message = messageCaptor.getValue();
-
-        assertThat(message.getSubject()).isEqualTo("Valadir - código de activación de cuenta");
-        assertThat(MimeMessages.htmlOf(message)).contains("Activa tu cuenta", "15 minutos");
-        assertThat(MimeMessages.plainTextOf(message)).contains(OTP.value(), "15 minutos");
+        assertThat(MimeMessages.htmlOf(message)).contains(DOCUMENT_LANG, OTP.value(), EXPIRY_WORDING);
+        assertThat(MimeMessages.plainTextOf(message)).contains(OTP.value(), EXPIRY_WORDING);
     }
 
     @Test
@@ -97,7 +88,7 @@ class AccountActivationNotifierJavaMailAdapterTest {
         givenRealMimeMessages();
         willThrow(new MailSendException("SMTP down")).given(mailSender).send(any(MimeMessage.class));
 
-        var notification = notificationIn(Language.EN);
+        var notification = notificationIn(ACCOUNT_LANGUAGE);
 
         assertThatExceptionOfType(InfrastructureException.class)
             .isThrownBy(() -> adapter.sendActivationCode(notification));

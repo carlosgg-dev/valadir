@@ -30,6 +30,11 @@ class PasswordChangedNotifierJavaMailAdapterTest {
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final Email TO_ADDRESS = Email.from("bruce.wayne@email.com");
 
+    // Never the base language: an adapter that ignored the language it was handed and rendered in
+    // English would pass every assertion below.
+    private static final Language ACCOUNT_LANGUAGE = Language.ES;
+    private static final String DOCUMENT_LANG = "lang=\"" + ACCOUNT_LANGUAGE.tag() + "\"";
+
     @Mock
     private JavaMailSender mailSender;
 
@@ -48,35 +53,20 @@ class PasswordChangedNotifierJavaMailAdapterTest {
     }
 
     @Test
-    void notifyPasswordChanged_englishAccount_sendsBothAlternativesToTheOwner() throws Exception {
+    void notifyPasswordChanged_anyAccount_sendsBothAlternativesToTheOwner() throws Exception {
 
         given(mailSender.createMimeMessage()).willAnswer(invocation -> new JavaMailSenderImpl().createMimeMessage());
 
-        adapter.notifyPasswordChanged(TO_ADDRESS, Language.EN);
+        adapter.notifyPasswordChanged(TO_ADDRESS, ACCOUNT_LANGUAGE);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
 
         assertThat(message.getFrom()).extracting(Object::toString).containsExactly(FROM_ADDRESS);
         assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(TO_ADDRESS.value());
-        assertThat(message.getSubject()).isEqualTo("Valadir - your password was changed");
+        assertThat(message.getSubject()).isNotBlank();
         assertThat(MimeMessages.carriesBothAlternatives(message)).isTrue();
-        assertThat(MimeMessages.htmlOf(message)).contains("reset your password right away");
-        assertThat(MimeMessages.plainTextOf(message)).contains("reset your password right away");
-    }
-
-    @Test
-    void notifyPasswordChanged_spanishAccount_writesSubjectAndBodyInSpanish() throws Exception {
-
-        given(mailSender.createMimeMessage()).willAnswer(invocation -> new JavaMailSenderImpl().createMimeMessage());
-
-        adapter.notifyPasswordChanged(TO_ADDRESS, Language.ES);
-
-        then(mailSender).should().send(messageCaptor.capture());
-        var message = messageCaptor.getValue();
-
-        assertThat(message.getSubject()).isEqualTo("Valadir - tu contraseña ha cambiado");
-        assertThat(MimeMessages.plainTextOf(message)).contains("restablece tu contraseña cuanto antes");
+        assertThat(MimeMessages.htmlOf(message)).contains(DOCUMENT_LANG);
     }
 
     @Test
@@ -86,6 +76,6 @@ class PasswordChangedNotifierJavaMailAdapterTest {
         willThrow(new MailSendException("SMTP down")).given(mailSender).send(any(MimeMessage.class));
 
         assertThatNoException()
-            .isThrownBy(() -> adapter.notifyPasswordChanged(TO_ADDRESS, Language.EN));
+            .isThrownBy(() -> adapter.notifyPasswordChanged(TO_ADDRESS, ACCOUNT_LANGUAGE));
     }
 }

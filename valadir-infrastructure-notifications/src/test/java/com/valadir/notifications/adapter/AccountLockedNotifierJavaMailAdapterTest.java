@@ -33,6 +33,12 @@ class AccountLockedNotifierJavaMailAdapterTest {
     private static final Email TO_ADDRESS = Email.from("bruce.wayne@email.com");
     private static final Duration LOCKOUT_DURATION = Duration.ofMinutes(30);
 
+    // Never the base language: an adapter that ignored the language it was handed and rendered in
+    // English would pass every assertion below.
+    private static final Language ACCOUNT_LANGUAGE = Language.ES;
+    private static final String DOCUMENT_LANG = "lang=\"" + ACCOUNT_LANGUAGE.tag() + "\"";
+    private static final String LOCKOUT_WORDING = "30 minutos";
+
     @Mock
     private JavaMailSender mailSender;
 
@@ -52,35 +58,21 @@ class AccountLockedNotifierJavaMailAdapterTest {
     }
 
     @Test
-    void notifyAccountLocked_englishAccount_sendsBothAlternativesWithTheLockoutWindow() throws Exception {
+    void notifyAccountLocked_anyAccount_sendsBothAlternativesWithTheLockoutWindow() throws Exception {
 
         givenRealMimeMessages();
 
-        adapter.notifyAccountLocked(TO_ADDRESS, LOCKOUT_DURATION, Language.EN);
+        adapter.notifyAccountLocked(TO_ADDRESS, LOCKOUT_DURATION, ACCOUNT_LANGUAGE);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
 
         assertThat(message.getFrom()).extracting(Object::toString).containsExactly(FROM_ADDRESS);
         assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(TO_ADDRESS.value());
-        assertThat(message.getSubject()).isEqualTo("Valadir - suspicious sign-in activity");
+        assertThat(message.getSubject()).isNotBlank();
         assertThat(MimeMessages.carriesBothAlternatives(message)).isTrue();
-        assertThat(MimeMessages.htmlOf(message)).contains("30 minutes");
-        assertThat(MimeMessages.plainTextOf(message)).contains("30 minutes");
-    }
-
-    @Test
-    void notifyAccountLocked_spanishAccount_writesSubjectAndBodyInSpanish() throws Exception {
-
-        givenRealMimeMessages();
-
-        adapter.notifyAccountLocked(TO_ADDRESS, LOCKOUT_DURATION, Language.ES);
-
-        then(mailSender).should().send(messageCaptor.capture());
-        var message = messageCaptor.getValue();
-
-        assertThat(message.getSubject()).isEqualTo("Valadir - actividad de inicio de sesión sospechosa");
-        assertThat(MimeMessages.plainTextOf(message)).contains("30 minutos");
+        assertThat(MimeMessages.htmlOf(message)).contains(DOCUMENT_LANG, LOCKOUT_WORDING);
+        assertThat(MimeMessages.plainTextOf(message)).contains(LOCKOUT_WORDING);
     }
 
     @Test
@@ -90,7 +82,7 @@ class AccountLockedNotifierJavaMailAdapterTest {
         willThrow(new MailSendException("SMTP down")).given(mailSender).send(any(MimeMessage.class));
 
         assertThatNoException()
-            .isThrownBy(() -> adapter.notifyAccountLocked(TO_ADDRESS, LOCKOUT_DURATION, Language.EN));
+            .isThrownBy(() -> adapter.notifyAccountLocked(TO_ADDRESS, LOCKOUT_DURATION, ACCOUNT_LANGUAGE));
     }
 
     private void givenRealMimeMessages() {

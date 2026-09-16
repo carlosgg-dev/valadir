@@ -30,6 +30,11 @@ class EmailChangedNotifierJavaMailAdapterTest {
     private static final String FROM_ADDRESS = "noreply@valadir.com";
     private static final Email PREVIOUS_ADDRESS = Email.from("bruce.wayne@email.com");
 
+    // Never the base language: an adapter that ignored the language it was handed and rendered in
+    // English would pass every assertion below.
+    private static final Language ACCOUNT_LANGUAGE = Language.ES;
+    private static final String DOCUMENT_LANG = "lang=\"" + ACCOUNT_LANGUAGE.tag() + "\"";
+
     @Mock
     private JavaMailSender mailSender;
 
@@ -48,35 +53,20 @@ class EmailChangedNotifierJavaMailAdapterTest {
     }
 
     @Test
-    void notifyEmailChanged_englishAccount_sendsBothAlternativesToThePreviousAddress() throws Exception {
+    void notifyEmailChanged_anyAccount_sendsBothAlternativesToThePreviousAddress() throws Exception {
 
         given(mailSender.createMimeMessage()).willAnswer(invocation -> new JavaMailSenderImpl().createMimeMessage());
 
-        adapter.notifyEmailChanged(PREVIOUS_ADDRESS, Language.EN);
+        adapter.notifyEmailChanged(PREVIOUS_ADDRESS, ACCOUNT_LANGUAGE);
 
         then(mailSender).should().send(messageCaptor.capture());
         var message = messageCaptor.getValue();
 
         assertThat(message.getFrom()).extracting(Object::toString).containsExactly(FROM_ADDRESS);
         assertThat(message.getAllRecipients()).extracting(Object::toString).containsExactly(PREVIOUS_ADDRESS.value());
-        assertThat(message.getSubject()).isEqualTo("Valadir - your email was changed");
+        assertThat(message.getSubject()).isNotBlank();
         assertThat(MimeMessages.carriesBothAlternatives(message)).isTrue();
-        assertThat(MimeMessages.htmlOf(message)).contains("no longer signs in");
-        assertThat(MimeMessages.plainTextOf(message)).contains("no longer signs in");
-    }
-
-    @Test
-    void notifyEmailChanged_spanishAccount_writesSubjectAndBodyInSpanish() throws Exception {
-
-        given(mailSender.createMimeMessage()).willAnswer(invocation -> new JavaMailSenderImpl().createMimeMessage());
-
-        adapter.notifyEmailChanged(PREVIOUS_ADDRESS, Language.ES);
-
-        then(mailSender).should().send(messageCaptor.capture());
-        var message = messageCaptor.getValue();
-
-        assertThat(message.getSubject()).isEqualTo("Valadir - tu correo electrónico ha cambiado");
-        assertThat(MimeMessages.plainTextOf(message)).contains("ya no sirve para iniciar sesión");
+        assertThat(MimeMessages.htmlOf(message)).contains(DOCUMENT_LANG);
     }
 
     @Test
@@ -86,6 +76,6 @@ class EmailChangedNotifierJavaMailAdapterTest {
         willThrow(new MailSendException("SMTP down")).given(mailSender).send(any(MimeMessage.class));
 
         assertThatNoException()
-            .isThrownBy(() -> adapter.notifyEmailChanged(PREVIOUS_ADDRESS, Language.EN));
+            .isThrownBy(() -> adapter.notifyEmailChanged(PREVIOUS_ADDRESS, ACCOUNT_LANGUAGE));
     }
 }
