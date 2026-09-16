@@ -346,6 +346,20 @@ status **and the caller has to act differently on each** — the three that answ
 that answer 401 and the two that answer 429. A code no flow can reach is not a contract but an obligation to invent a
 status for it, which is why `AUTHENTICATION_FAILED` was deleted rather than kept: nothing threw it.
 
+**Which rejections reach the resolver is narrower than it reads.** Spring Security refuses an unmatched path before
+routing, so a 404 and a 405 answer 401 `AUTHENTICATION_REQUIRED` and an anonymous caller cannot tell an unknown path
+from a protected one. What reaches the resolver from outside is a wrong `Content-Type` and a body Jackson cannot parse,
+and `MALFORMED_REQUEST` is the truth of both; a 404 of its own is left for an authenticated caller on an unknown
+`/api/**` path and for the `/error` dispatch.
+
+**The 5xx half resolves to one code too, and one framework status would contradict it.** Everything that is not a 4xx
+answers `INTERNAL_SERVER_ERROR`, which is true of every 5xx `ResponseEntityExceptionHandler` can hand us — a missing
+path variable, a body it cannot write, a conversion it cannot perform. The exception is `AsyncRequestTimeoutException`,
+whose 503 would answer `internal_server_error` beside a status saying the opposite. Nothing produces it: no handler
+returns `Callable`, `DeferredResult`, `SseEmitter` or `StreamingResponseBody`, so MVC never starts an async request,
+and the `@Async` notifiers run on a `TaskExecutor` outside the request thread. The first endpoint that starts one is
+what makes that branch worth writing.
+
 **The constant is the contract: the published identifier is the name, lower-cased.** `getCode()` returns
 `name().toLowerCase(Locale.ROOT)`, so `CAPTCHA_REQUIRED` answers `captcha_required` and there is no second table to
 maintain — one grep finds the enum, the log line, the test and the response. The identifier it replaced was a number,
