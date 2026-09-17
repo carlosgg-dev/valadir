@@ -1,8 +1,8 @@
 package com.valadir.security.adapter;
 
+import com.valadir.application.port.out.PasswordHasher;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.service.PasswordHasher;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 public class PasswordHasherArgon2Adapter implements PasswordHasher {

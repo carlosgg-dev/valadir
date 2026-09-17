@@ -1,8 +1,8 @@
 package com.valadir.resilience.support;
 
+import com.valadir.application.port.out.PasswordHasher;
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.service.PasswordHasher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

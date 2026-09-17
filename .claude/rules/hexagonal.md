@@ -4,30 +4,35 @@
 
 | Layer              | Contains                                                                                 | Depends on             |
 |--------------------|------------------------------------------------------------------------------------------|------------------------|
-| **Domain**         | Entities, value objects, aggregates, domain services, domain events, port interfaces     | Nothing outside domain |
-| **Application**    | Use cases, application services, command/query handlers                                  | Domain only            |
+| **Domain**         | Entities, value objects, aggregates, domain services, domain events                      | Nothing outside domain |
+| **Application**    | Use cases, application services, command/query handlers, port interfaces                 | Domain only            |
 | **Infrastructure** | Controllers, repository implementations, messaging adapters, persistence models, mappers | Application + Domain   |
 
 The dependency rule is absolute: outer layers depend on inner layers, never the reverse.
 
 ## Ports
 
-- **Ports are interfaces defined in the domain** — they express what the domain needs,
-  not how it is implemented.
+- **Ports are interfaces defined in the application layer**, under `application.port.in` and
+  `application.port.out` — they express what the use cases need, not how it is implemented.
+  The domain stays free of them: a driving port carries the commands and results of a use case, so it
+  cannot live in the domain without dragging the application boundary in with it — and once one family
+  of ports lives in the application, splitting the other across a second layer buys nothing.
 - **Driven ports** (outbound / secondary): what the application requires from outside
-  (e.g. `UserRepository`, `PasswordEncoder`, `EventPublisher`). Implemented by infrastructure adapters.
+  (e.g. `UserRepository`, `PasswordHasher`, `EventPublisher`). Implemented by infrastructure adapters.
+  A port shared by two infrastructure modules that must not see each other lives in `common`
+  instead (`RateLimiter`); that is the only exception, and it is enforced by the same rule.
 - **Driving ports** (inbound / primary): how the outside world triggers the application
   (e.g. use case interfaces called by controllers). Implemented by the application layer.
 
 ## Adapters
 
-- **Adapters live in infrastructure** and implement domain ports.
-- A persistence adapter implements a domain repository port.
+- **Adapters live in infrastructure** and implement application ports.
+- A persistence adapter implements a repository port.
 - A REST controller is a driving adapter — it calls application use cases and **must not depend
   on the domain layer at all**. It maps the external request into an application command of
   primitives; constructing domain types (value objects included) is the use case's job, never the
   adapter's. Driving adapters speak only to the application boundary.
-- Driven adapters (persistence, security, notifications) implement domain/application ports and
+- Driven adapters (persistence, security, notifications) implement application ports and
   therefore legitimately reference domain types — to map persistence models to domain objects and
   back. This domain access is confined to driven adapters; it never extends to driving adapters.
 - Adapters translate between external representations and domain objects using mappers.
@@ -35,7 +40,7 @@ The dependency rule is absolute: outer layers depend on inner layers, never the 
 
 ## Domain rules
 
-- Domain objects (entities, aggregates, value objects) may depend on domain services and port interfaces.
+- Domain objects (entities, aggregates, value objects) may depend on domain services.
 - Domain objects must never receive or import application services, use case classes,
   or any infrastructure concern.
 - Validation belongs in the domain — enforce invariants in constructors or factory methods,

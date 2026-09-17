@@ -1,4 +1,4 @@
-package com.valadir.domain.service;
+package com.valadir.application.port.out;
 
 import com.valadir.domain.model.HashedPassword;
 import com.valadir.domain.model.RawPassword;

@@ -1,9 +1,13 @@
 package com.valadir.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -139,8 +143,32 @@ class HexagonalArchitectureTest {
         noMethods().that().areDeclaredInClassesThat().haveSimpleNameEndingWith("Mapper")
             .should().haveNameMatching(".*([Jj]pa|[Hh]ibernate).*");
 
+    // A driven port is what an adapter implements, and they all live in one package. The exception is
+    // deliberate: the rate limiter is shared by two infrastructure modules, so its port sits in `common`.
+    @ArchTest
+    static final ArchRule driven_ports_are_declared_in_the_application_layer =
+        classes().that().haveSimpleNameEndingWith("Adapter")
+            .should(implementOnlyInterfacesResidingIn("com.valadir.application.port.out", "com.valadir.common.."));
+
     @ArchTest
     static final ArchRule ports_do_not_contain_the_word_port =
         noClasses().that().resideInAPackage("com.valadir.application.port..")
             .should().haveSimpleNameContaining("Port");
+
+    private static ArchCondition<JavaClass> implementOnlyInterfacesResidingIn(String... packageIdentifiers) {
+
+        var allowedPackages = JavaClass.Predicates.resideInAnyPackage(packageIdentifiers);
+
+        return new ArchCondition<>("implement only interfaces residing in " + String.join(" or ", packageIdentifiers)) {
+
+            @Override
+            public void check(JavaClass adapter, ConditionEvents events) {
+
+                adapter.getRawInterfaces().stream()
+                    .filter(port -> !allowedPackages.test(port))
+                    .map(port -> SimpleConditionEvent.violated(adapter, adapter.getName() + " implements " + port.getName()))
+                    .forEach(events::add);
+            }
+        };
+    }
 }

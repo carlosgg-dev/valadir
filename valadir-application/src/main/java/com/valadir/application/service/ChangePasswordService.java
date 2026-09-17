@@ -7,13 +7,13 @@ import com.valadir.application.port.out.AccountRepository;
 import com.valadir.application.port.out.AccountTokensInvalidator;
 import com.valadir.application.port.out.LoginAttemptRepository;
 import com.valadir.application.port.out.PasswordChangedNotifier;
+import com.valadir.application.port.out.PasswordHasher;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.domain.exception.DomainException;
 import com.valadir.domain.model.Account;
 import com.valadir.domain.model.AccountId;
 import com.valadir.domain.model.RawPassword;
-import com.valadir.domain.service.PasswordHasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

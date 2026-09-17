@@ -2,6 +2,7 @@ package com.valadir.application.service;
 
 import com.valadir.application.command.RegisterCommand;
 import com.valadir.application.exception.ApplicationException;
+import com.valadir.application.port.out.PasswordHasher;
 import com.valadir.application.port.out.RegisterPersistence;
 import com.valadir.common.error.ErrorCode;
 import com.valadir.domain.exception.DomainException;
@@ -14,7 +15,6 @@ import com.valadir.domain.model.GivenName;
 import com.valadir.domain.model.Language;
 import com.valadir.domain.model.Role;
 import com.valadir.domain.model.User;
-import com.valadir.domain.service.PasswordHasher;
 import com.valadir.domain.service.PasswordSecurityService;
 import com.valadir.test.mother.PasswordMother;
 import org.junit.jupiter.api.Test;
