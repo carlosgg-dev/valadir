@@ -18,11 +18,6 @@ public abstract class AuditableEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Instant getCreatedAt() {
-
-        return createdAt;
-    }
-
     public Instant getUpdatedAt() {
 
         return updatedAt;
