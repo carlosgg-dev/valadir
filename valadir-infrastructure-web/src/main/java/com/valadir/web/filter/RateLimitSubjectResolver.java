@@ -1,6 +1,7 @@
 package com.valadir.web.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.valadir.common.email.EmailNormalization;
 import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.web.config.RateLimitProperties;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +12,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.Locale;
 import java.util.Optional;
 
 import static java.util.function.Predicate.not;
@@ -43,8 +43,8 @@ public class RateLimitSubjectResolver {
         return new RateLimitSubject(rule.strategy(), rule.path(), value);
     }
 
-    // Normalized the same way Email does: keying on the raw value would let
-    // a case change reset the counter and slip past every per-email limit.
+    // The same normalization the account is stored under, and through the same code: keying on any
+    // other form would count one address under two buckets and slip past every per-email limit.
     private Optional<String> extractEmail(HttpServletRequest request) {
 
         try {
@@ -52,7 +52,7 @@ public class RateLimitSubjectResolver {
             String email = objectMapper.readTree(request.getInputStream()).path("email").asText(null);
             return Optional.ofNullable(email)
                 .filter(not(String::isBlank))
-                .map(value -> value.trim().toLowerCase(Locale.ROOT));
+                .map(EmailNormalization::canonicalOf);
 
         } catch (IOException e) {
             log.warn("Could not extract email from request body for rate limiting", e);

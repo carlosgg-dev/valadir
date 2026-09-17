@@ -102,6 +102,21 @@ class RateLimitSubjectResolverTest {
         assertThat(subject).hasValue(new RateLimitSubject(RateLimitStrategy.EMAIL, PATH, EMAIL));
     }
 
+    // U+00F1 is the ñ as one character, n + U+0303 is an n carrying a combining tilde: one address on
+    // screen, two to a bucket keyed by bytes. The account resolves to the composed form, so a subject
+    // built from the decomposed one would count the same address twice. Written as escapes so a tool
+    // that normalized this file cannot turn the two fixtures into one.
+    @Test
+    void resolve_emailStrategy_theSameLetterSpelledTwoWays_resolvesToTheStoredForm() throws Exception {
+
+        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        MockHttpServletRequest request = buildRequestWithBody(Map.of("email", "pen\u0303a@espan\u0303a.com", "password", "secret"));
+
+        Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
+
+        assertThat(subject).hasValue(new RateLimitSubject(RateLimitStrategy.EMAIL, PATH, "pe\u00F1a@espa\u00F1a.com"));
+    }
+
     @Test
     void resolve_emailStrategy_missingEmailInBodyReturnsEmpty() throws Exception {
 
