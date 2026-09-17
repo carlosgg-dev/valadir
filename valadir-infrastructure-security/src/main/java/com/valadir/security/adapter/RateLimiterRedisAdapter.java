@@ -1,8 +1,10 @@
 package com.valadir.security.adapter;
 
 import com.valadir.common.ratelimit.RateLimitResult;
+import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.security.redis.RedisCircuitGuard;
+import com.valadir.security.redis.RedisKeySpace;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -26,7 +28,9 @@ public class RateLimiterRedisAdapter implements RateLimiter {
     }
 
     @Override
-    public RateLimitResult consume(String key, int maxRequests, Duration window) {
+    public RateLimitResult consume(RateLimitSubject subject, int maxRequests, Duration window) {
+
+        String key = RedisKeySpace.forRateLimit(subject);
 
         List<?> result = circuitGuard.call("rate limit check failed", () -> Objects.requireNonNull(
             redisOperations.execute(rateLimitScript, List.of(key),

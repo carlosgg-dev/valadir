@@ -1,6 +1,8 @@
 package com.valadir.e2e;
 
 import com.valadir.common.error.ErrorCode;
+import com.valadir.common.ratelimit.RateLimitStrategy;
+import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.mother.PasswordMother;
 import io.restassured.RestAssured;
@@ -40,7 +42,11 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
     private static final int LOGIN_IP_LIMIT = 10;
     private static final Duration LOGIN_IP_WINDOW = Duration.ofSeconds(60);
     private static final int USER_LIMIT = 100;
-    private static final String USER_RULE_PATH_KEY = "api";
+    private static final String USER_RULE_PATH = "/api/**";
+
+    // Whole families rather than one key: these assert that no bucket of the kind was written at all.
+    private static final String ANY_EMAIL_BUCKET = "rate_limit:email:*";
+    private static final String ANY_USER_BUCKET = "rate_limit:user:*";
     private static final int EMAIL_CHANGE_COMPLETE_LIMIT = 5;
 
     private static final int CONCURRENT_LOGINS = LOGIN_IP_LIMIT + 5;
@@ -91,7 +97,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("code", equalTo(ErrorCode.INVALID_FIELD.getCode()));
 
-        assertThat(redisTemplate.keys(RedisKeySpace.forRateLimitEmail("*", "*"))).isEmpty();
+        assertThat(redisTemplate.keys(ANY_EMAIL_BUCKET)).isEmpty();
     }
 
     @Test
@@ -170,7 +176,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
         // Anonymous traffic resolves no principal: one shared bucket would let a single caller
         // drain the limit of everybody else.
-        assertThat(redisTemplate.keys(RedisKeySpace.forRateLimitUser("*", "*"))).isEmpty();
+        assertThat(redisTemplate.keys(ANY_USER_BUCKET)).isEmpty();
 
         Response loggedOut = logout(accessToken, refreshToken);
 
@@ -179,7 +185,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // The key is built from the authenticated accountId, so it only appears if the filter runs
         // after authentication. Placed before it, the /api/** rule would find no principal and skip
         // itself: the per-user limit would be gone with no error and no log.
-        assertThat(redisTemplate.hasKey(RedisKeySpace.forRateLimitUser(USER_RULE_PATH_KEY, accountIdFor(EMAIL)))).isTrue();
+        assertThat(redisTemplate.hasKey(userBucketOf(accountIdFor(EMAIL)))).isTrue();
         assertThat(numericHeader(loggedOut, LIMIT_HEADER)).isEqualTo(USER_LIMIT);
     }
 
@@ -232,6 +238,11 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // No rule matches outside /api. The status is the security config's business; what matters
         // is that nothing was counted, and the base flushed Redis before the test.
         assertThat(redisTemplate.keys("*")).isEmpty();
+    }
+
+    private String userBucketOf(String accountId) {
+
+        return RedisKeySpace.forRateLimit(new RateLimitSubject(RateLimitStrategy.USER, USER_RULE_PATH, accountId));
     }
 
     private List<Response> loginConcurrently(int attempts) {

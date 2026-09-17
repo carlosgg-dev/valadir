@@ -11,7 +11,7 @@ import com.valadir.web.filter.InfrastructureFailureFilter;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
 import com.valadir.web.filter.RateLimitFilter;
-import com.valadir.web.filter.RateLimitKeyResolver;
+import com.valadir.web.filter.RateLimitSubjectResolver;
 import com.valadir.web.filter.RateLimitResponseWriter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -86,9 +86,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    RateLimitKeyResolver rateLimitKeyResolver() {
+    RateLimitSubjectResolver rateLimitSubjectResolver() {
 
-        return new RateLimitKeyResolver(objectMapper);
+        return new RateLimitSubjectResolver(objectMapper);
     }
 
     @Bean
@@ -109,7 +109,7 @@ public class SecurityConfig {
         JwtDecoder jwtDecoder,
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAccessDeniedHandler jwtAccessDeniedHandler,
-        RateLimitKeyResolver rateLimitKeyResolver,
+        RateLimitSubjectResolver rateLimitSubjectResolver,
         SecurityErrorResponseWriter securityErrorResponseWriter,
         HttpStatusResolver httpStatusResolver
     ) throws Exception {
@@ -123,7 +123,7 @@ public class SecurityConfig {
             // Before the rate limiter: both read the account from the same SecurityContext, and the
             // other way round a 429 on /api/** is logged without the account it blocked.
             .addFilterAfter(new MdcSecurityFilter(), BearerTokenAuthenticationFilter.class)
-            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper, httpStatusResolver), rateLimitKeyResolver),
+            .addFilterAfter(new RateLimitFilter(rateLimiter, rateLimitProperties, new RateLimitResponseWriter(objectMapper, httpStatusResolver), rateLimitSubjectResolver),
                             MdcSecurityFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, POST_PUBLIC_ROUTES).permitAll()

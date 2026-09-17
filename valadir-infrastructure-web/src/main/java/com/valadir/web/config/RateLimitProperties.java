@@ -1,5 +1,6 @@
 package com.valadir.web.config;
 
+import com.valadir.common.ratelimit.RateLimitStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,15 +30,9 @@ public record RateLimitProperties(
 
     public record Rule(
         @NotBlank String path,
-        @NotNull Strategy strategy,
+        @NotNull RateLimitStrategy strategy,
         @Positive int maxRequests,
         @NotNull Duration window) {
 
-    }
-
-    public enum Strategy {
-        IP,
-        EMAIL,
-        USER
     }
 }

@@ -31,6 +31,7 @@ class HexagonalArchitectureTest {
     private static final String DOMAIN = "com.valadir.domain..";
     private static final String APPLICATION = "com.valadir.application..";
     private static final String WEB = "com.valadir.web..";
+    private static final String SECURITY = "com.valadir.security..";
 
     private static final String[] INFRASTRUCTURE = {
         "com.valadir.web..",
@@ -93,6 +94,14 @@ class HexagonalArchitectureTest {
     static final ArchRule controllers_do_not_depend_on_the_domain =
         noClasses().that().resideInAPackage(WEB)
             .should().dependOnClassesThat().resideInAPackage(DOMAIN);
+
+    // Two adapters of the same layer, so the dependency rule says nothing about them — but the web
+    // adapter reaching into the security one is what would let it learn that the rate limiter is
+    // backed by Redis. It speaks to the shared port and nothing else.
+    @ArchTest
+    static final ArchRule the_web_adapter_does_not_depend_on_the_security_adapter =
+        noClasses().that().resideInAPackage(WEB)
+            .should().dependOnClassesThat().resideInAPackage(SECURITY);
 
     @ArchTest
     static final ArchRule request_response_dtos_do_not_reference_other_layers =

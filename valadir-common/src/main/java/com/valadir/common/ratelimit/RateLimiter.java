@@ -4,5 +4,5 @@ import java.time.Duration;
 
 public interface RateLimiter {
 
-    RateLimitResult consume(String key, int maxRequests, Duration window);
+    RateLimitResult consume(RateLimitSubject subject, int maxRequests, Duration window);
 }

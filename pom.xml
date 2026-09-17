@@ -365,6 +365,12 @@
                             <excludes>
                                 <exclude>**/*Wiring*</exclude>
                                 <exclude>**/ValadirApplication*</exclude>
+                                <!-- Declaration-only vocabulary of the rate-limit port: a record and an
+                                     enum with no logic of their own, so every instruction JaCoCo counts
+                                     is compiler-generated. The modules on both sides of the port exercise
+                                     them; a test in `common` could only assert the language. -->
+                                <exclude>**/ratelimit/RateLimitSubject*</exclude>
+                                <exclude>**/ratelimit/RateLimitStrategy*</exclude>
                             </excludes>
                             <rules>
                                 <rule>

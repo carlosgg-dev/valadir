@@ -29,11 +29,6 @@
             <groupId>com.valadir</groupId>
             <artifactId>valadir-common</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.valadir</groupId>
-            <artifactId>valadir-infrastructure-security</artifactId>
-        </dependency>
         <!-- -->
 
         <!-- Spring Web MVC -->
@@ -52,6 +47,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- spring-tx: DataAccessException, which GlobalExceptionHandler answers with a 503 when an
+             adapter could not translate the outage itself. Declared here because it used to arrive
+             transitively through the security module. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
         </dependency>
 
         <!-- Bean Validation -->

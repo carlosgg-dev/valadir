@@ -1,9 +1,10 @@
 package com.valadir.web.filter;
 
 import com.valadir.common.ratelimit.RateLimitResult;
+import com.valadir.common.ratelimit.RateLimitStrategy;
+import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
-import com.valadir.web.config.RateLimitProperties.Strategy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,20 +26,20 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimiter rateLimiter;
     private final RateLimitProperties properties;
     private final RateLimitResponseWriter responseWriter;
-    private final RateLimitKeyResolver keyResolver;
+    private final RateLimitSubjectResolver subjectResolver;
     private final AntPathMatcher pathMatcher;
 
     public RateLimitFilter(
         RateLimiter rateLimiter,
         RateLimitProperties properties,
         RateLimitResponseWriter responseWriter,
-        RateLimitKeyResolver keyResolver
+        RateLimitSubjectResolver subjectResolver
     ) {
 
         this.rateLimiter = rateLimiter;
         this.properties = properties;
         this.responseWriter = responseWriter;
-        this.keyResolver = keyResolver;
+        this.subjectResolver = subjectResolver;
         this.pathMatcher = new AntPathMatcher();
     }
 
@@ -73,7 +74,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private HttpServletRequest prepareRequest(HttpServletRequest request, List<RateLimitProperties.Rule> rules) throws IOException {
 
-        boolean needsBodyRead = rules.stream().anyMatch(rule -> rule.strategy() == Strategy.EMAIL);
+        boolean needsBodyRead = rules.stream().anyMatch(rule -> rule.strategy() == RateLimitStrategy.EMAIL);
 
         return needsBodyRead
             ? new CachedBodyRequestWrapper(request)
@@ -87,15 +88,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
         RateLimitResult mostRestrictive = null;
 
         for (RateLimitProperties.Rule rule : rules) {
-            Optional<String> redisKey = keyResolver.resolve(request, rule);
-            if (redisKey.isPresent()) {
+            Optional<RateLimitSubject> subject = subjectResolver.resolve(request, rule);
+            if (subject.isPresent()) {
                 // A limit that cannot be evaluated is not a limit. The InfrastructureException is left to
                 // propagate so the request is refused: letting it through would hand an unlimited
                 // brute-force budget to whoever can degrade Redis.
-                RateLimitResult result = rateLimiter.consume(redisKey.get(), rule.maxRequests(), rule.window());
+                RateLimitResult result = rateLimiter.consume(subject.get(), rule.maxRequests(), rule.window());
 
                 if (!result.allowed()) {
-                    log.warn("Rate limit exceeded: strategy={} key={}", rule.strategy(), redisKey.get());
+                    log.warn("Rate limit exceeded: strategy={} subject={}", rule.strategy(), subject.get().value());
                     responseWriter.writeBlockedResponse(response, result);
                     return true;
                 }

@@ -1,7 +1,7 @@
 package com.valadir.web.config;
 
 import com.valadir.web.config.RateLimitProperties.Rule;
-import com.valadir.web.config.RateLimitProperties.Strategy;
+import com.valadir.common.ratelimit.RateLimitStrategy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -17,7 +17,7 @@ class RateLimitPropertiesTest {
 
     private static final Rule RULE = new Rule(
         "/api/auth/login",
-        Strategy.IP,
+        RateLimitStrategy.IP,
         10,
         Duration.ofSeconds(60)
     );

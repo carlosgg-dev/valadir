@@ -1,7 +1,10 @@
 package com.valadir.security.adapter;
 
 import com.valadir.common.ratelimit.RateLimitResult;
+import com.valadir.common.ratelimit.RateLimitStrategy;
+import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
+import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.containers.RedisContainerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(RedisContainerConfig.class)
 class RateLimiterRedisAdapterIT {
 
-    private static final String KEY = "test:rate_limit:key";
+    private static final RateLimitSubject SUBJECT = new RateLimitSubject(RateLimitStrategy.IP, "/api/auth/login", "10.0.0.1");
+    private static final RateLimitSubject OTHER_SUBJECT = new RateLimitSubject(RateLimitStrategy.IP, "/api/auth/login", "10.0.0.2");
+    private static final String KEY = RedisKeySpace.forRateLimit(SUBJECT);
     private static final int MAX_REQUESTS = 5;
     private static final int WINDOW_SECONDS = 60;
     private static final Duration WINDOW = Duration.ofSeconds(WINDOW_SECONDS);
@@ -47,7 +52,7 @@ class RateLimiterRedisAdapterIT {
     @Test
     void consume_firstRequest_isAllowed() {
 
-        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(1L);
@@ -58,9 +63,9 @@ class RateLimiterRedisAdapterIT {
     @Test
     void consume_atLimit_isAllowed() {
 
-        IntStream.range(0, MAX_REQUESTS - 1).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
+        IntStream.range(0, MAX_REQUESTS - 1).forEach(i -> rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW));
 
-        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(MAX_REQUESTS);
@@ -69,9 +74,9 @@ class RateLimiterRedisAdapterIT {
     @Test
     void consume_overLimit_isBlocked() {
 
-        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
+        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW));
 
-        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isFalse();
         assertThat(result.requestCount()).isEqualTo(MAX_REQUESTS + 1);
@@ -81,7 +86,7 @@ class RateLimiterRedisAdapterIT {
     @Test
     void consume_ttlIsSet() {
 
-        rateLimiter.consume(KEY, MAX_REQUESTS, Duration.ofSeconds(30));
+        rateLimiter.consume(SUBJECT, MAX_REQUESTS, Duration.ofSeconds(30));
 
         Long ttl = redisTemplate.getExpire(KEY);
 
@@ -94,11 +99,11 @@ class RateLimiterRedisAdapterIT {
     @Test
     void consume_ttlRefreshedOnEachRequest() {
 
-        rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
         // Simulates 50 seconds have passed → TTL = 10 seconds
         redisTemplate.expire(KEY, 10, TimeUnit.SECONDS);
 
-        rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
         Long ttl = redisTemplate.getExpire(KEY);
 
         // Sliding window always refreshes TTL to keep the sorted set alive while requests keep coming
@@ -112,7 +117,7 @@ class RateLimiterRedisAdapterIT {
         IntStream.rangeClosed(1, MAX_REQUESTS).forEach(i -> redisTemplate.opsForZSet().add(KEY, String.valueOf(i), pastTimestamp));
         redisTemplate.opsForValue().set(KEY + ":seq", String.valueOf(MAX_REQUESTS));
 
-        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
 
         // Old entries are evicted by ZREMRANGEBYSCORE — only the current request counts
         assertThat(result.allowed()).isTrue();
@@ -120,11 +125,11 @@ class RateLimiterRedisAdapterIT {
     }
 
     @Test
-    void consume_differentKeys_areIndependent() {
+    void consume_differentSubjects_areIndependent() {
 
-        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
+        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW));
 
-        RateLimitResult result = rateLimiter.consume("test:rate_limit:other_key", MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(OTHER_SUBJECT, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.requestCount()).isEqualTo(1L);
@@ -134,13 +139,13 @@ class RateLimiterRedisAdapterIT {
     void consume_windowExpiry_resetsCounter() {
 
         // Reach the limit
-        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW));
-        assertThat(rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW).allowed()).isFalse();
+        IntStream.range(0, MAX_REQUESTS).forEach(i -> rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW));
+        assertThat(rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW).allowed()).isFalse();
 
         redisTemplate.delete(KEY);
         redisTemplate.delete(KEY + ":seq");
 
-        RateLimitResult result = rateLimiter.consume(KEY, MAX_REQUESTS, WINDOW);
+        RateLimitResult result = rateLimiter.consume(SUBJECT, MAX_REQUESTS, WINDOW);
 
         assertThat(result.allowed()).isTrue();
         // Creates the key from 0
