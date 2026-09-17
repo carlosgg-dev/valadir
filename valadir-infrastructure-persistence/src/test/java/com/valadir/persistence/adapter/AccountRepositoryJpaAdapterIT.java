@@ -57,8 +57,8 @@ class AccountRepositoryJpaAdapterIT {
     @Test
     void findById_existingAccount_returnsAccount() {
 
-        // Not the fallback language: the column defaults to EN, so an entity that stopped writing it
-        // would still read back as EN and this test would pass.
+        // Not the default language: EN is what both the mother and the domain fall back to, so a
+        // value that never round-tripped would still read back as EN and this test would pass.
         var account = AccountMother.active().withLanguage(Language.ES).build();
         var saved = jpaRepository.save(AccountMapper.toEntity(account));
 
