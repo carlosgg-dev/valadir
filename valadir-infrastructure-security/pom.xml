@@ -63,7 +63,6 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78</version>
         </dependency>
 
         <!-- Resilience4j: circuit breakers for the Redis and Turnstile adapters. The Spring Boot starter
@@ -98,13 +97,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JUnit 5: Standard testing framework -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Testcontainers JUnit 5 support: Manages container lifecycle in tests -->
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -116,7 +108,6 @@
         <dependency>
             <groupId>com.redis</groupId>
             <artifactId>testcontainers-redis</artifactId>
-            <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
 
