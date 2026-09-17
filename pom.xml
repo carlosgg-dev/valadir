@@ -344,10 +344,12 @@
                         </configuration>
                     </execution>
 
-                    <!-- Coverage gate. Phase, exec file and threshold vary by module via the jacoco.check.* properties:
-                           - domain/application/common: `test`, jacoco-unit.exec, 100% (unit gate).
+                    <!-- Coverage gate. Phase and exec file vary by module via the jacoco.check.* properties;
+                         the demand does not: 100% of branches and instructions everywhere, except
+                         infrastructure-security at 99% of instructions.
+                           - domain/application/common: `test`, jacoco-unit.exec (unit gate).
                              Integration tests are invisible to it -> un-inflatable.
-                           - infrastructure-*/boot: `verify`, jacoco-merged.exec, 90% (union gate).
+                           - infrastructure-*/boot: `verify`, jacoco-merged.exec (union gate).
                              Declared after merge-exec so the merged file already exists at `verify`. -->
                     <execution>
                         <id>coverage-check</id>
