@@ -47,12 +47,14 @@
         <surefireArgLine/>
         <failsafeArgLine/>
 
-        <!-- Coverage gate defaults = strict unit gate (domain/application/common):
-             `test` phase, unit-only exec, 100% branch+instruction. Infrastructure and
-             boot modules override these to the union gate (`verify`, merged exec, 90%). -->
+        <!-- Coverage gate defaults = strict unit gate (domain/application/common): `test` phase,
+             unit-only exec. Infrastructure and boot modules move it to the union gate (`verify`,
+             merged exec). The two gates differ in when they run and what they read, never in what
+             they demand: every module answers for all of its code. -->
         <jacoco.check.phase>test</jacoco.check.phase>
         <jacoco.check.dataFile>${project.build.directory}/jacoco-unit.exec</jacoco.check.dataFile>
-        <jacoco.coverage.minimum>1.00</jacoco.coverage.minimum>
+        <jacoco.instruction.minimum>1.00</jacoco.instruction.minimum>
+        <jacoco.branch.minimum>1.00</jacoco.branch.minimum>
     </properties>
 
     <dependencies>
@@ -339,10 +341,11 @@
                         </goals>
                         <configuration>
                             <dataFile>${jacoco.check.dataFile}</dataFile>
-                            <!-- Spring wiring and entry point: no unit-testable logic -->
+                            <!-- Composition roots and entry point: every method is a `new` with no
+                                 decision of its own, so a test over them would assert nothing.
+                                 Excluded by what they are, never by how they are named. -->
                             <excludes>
                                 <exclude>**/*Wiring*</exclude>
-                                <exclude>**/*Config*</exclude>
                                 <exclude>**/ValadirApplication*</exclude>
                             </excludes>
                             <rules>
@@ -352,12 +355,12 @@
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>${jacoco.coverage.minimum}</minimum>
+                                            <minimum>${jacoco.branch.minimum}</minimum>
                                         </limit>
                                         <limit>
                                             <counter>INSTRUCTION</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>${jacoco.coverage.minimum}</minimum>
+                                            <minimum>${jacoco.instruction.minimum}</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
