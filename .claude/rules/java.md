@@ -45,8 +45,17 @@
     the source itself.
 
 ## Transactions
-- Apply `@Transactional` at the **service layer** only — never on controllers or repository methods.
-- Use `@Transactional(readOnly = true)` for read-only operations.
+- **The transaction boundary is the driven adapter here, not the service.** The usual rule is the
+  service layer, and it cannot apply to this project: the application layer is framework-free by
+  construction (`domain_and_application_are_framework_free`), so the persistence adapter is the
+  innermost place `@Transactional` can live. It goes on a method that writes more than once, or on
+  one whose `@Modifying` query needs a transaction Spring Data does not open for it. Never on a
+  controller. An adapter IT runs with `propagation = NOT_SUPPORTED` so a missing annotation fails
+  there rather than passing on a transaction the test supplied.
+- Use `@Transactional(readOnly = true)` for a read-only operation the adapter composes itself. A
+  single query through a Spring Data repository already runs in one — `SimpleJpaRepository` is
+  annotated `@Transactional(readOnly = true)` at class level — so annotating every lookup restates
+  what the framework already guarantees.
 - Never call a `@Transactional` method from within the same class — Spring proxies will not intercept self-invocation.
 - Keep transactions short. Never perform external I/O (HTTP calls, file operations) inside a transaction.
 
