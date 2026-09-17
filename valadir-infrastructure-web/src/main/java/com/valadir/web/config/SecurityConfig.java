@@ -3,10 +3,10 @@ package com.valadir.web.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.exception.ErrorCodeResolver;
+import com.valadir.web.exception.ErrorResponseWriter;
 import com.valadir.web.exception.HttpStatusResolver;
 import com.valadir.web.exception.JwtAccessDeniedHandler;
 import com.valadir.web.exception.JwtAuthenticationEntryPoint;
-import com.valadir.web.exception.SecurityErrorResponseWriter;
 import com.valadir.web.filter.InfrastructureFailureFilter;
 import com.valadir.web.filter.MdcRequestFilter;
 import com.valadir.web.filter.MdcSecurityFilter;
@@ -68,21 +68,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityErrorResponseWriter securityErrorResponseWriter(HttpStatusResolver httpStatusResolver) {
+    ErrorResponseWriter errorResponseWriter(HttpStatusResolver httpStatusResolver) {
 
-        return new SecurityErrorResponseWriter(objectMapper, httpStatusResolver);
+        return new ErrorResponseWriter(objectMapper, httpStatusResolver);
     }
 
     @Bean
-    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(SecurityErrorResponseWriter securityErrorResponseWriter) {
+    JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(ErrorResponseWriter errorResponseWriter) {
 
-        return new JwtAuthenticationEntryPoint(securityErrorResponseWriter);
+        return new JwtAuthenticationEntryPoint(errorResponseWriter);
     }
 
     @Bean
-    JwtAccessDeniedHandler jwtAccessDeniedHandler(SecurityErrorResponseWriter securityErrorResponseWriter) {
+    JwtAccessDeniedHandler jwtAccessDeniedHandler(ErrorResponseWriter errorResponseWriter) {
 
-        return new JwtAccessDeniedHandler(securityErrorResponseWriter);
+        return new JwtAccessDeniedHandler(errorResponseWriter);
     }
 
     @Bean
@@ -110,7 +110,7 @@ public class SecurityConfig {
         JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
         JwtAccessDeniedHandler jwtAccessDeniedHandler,
         RateLimitSubjectResolver rateLimitSubjectResolver,
-        SecurityErrorResponseWriter securityErrorResponseWriter,
+        ErrorResponseWriter errorResponseWriter,
         HttpStatusResolver httpStatusResolver
     ) throws Exception {
 
@@ -119,7 +119,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new MdcRequestFilter(), SecurityContextHolderFilter.class)
             // After the MDC filter so an outage is logged with its request id, and before everything else so it wraps the JWT decoder and the rate limiter.
-            .addFilterAfter(new InfrastructureFailureFilter(securityErrorResponseWriter), MdcRequestFilter.class)
+            .addFilterAfter(new InfrastructureFailureFilter(errorResponseWriter), MdcRequestFilter.class)
             // Before the rate limiter: both read the account from the same SecurityContext, and the
             // other way round a 429 on /api/** is logged without the account it blocked.
             .addFilterAfter(new MdcSecurityFilter(), BearerTokenAuthenticationFilter.class)
@@ -127,7 +127,7 @@ public class SecurityConfig {
                                                 rateLimitProperties,
                                                 new RateLimitResponseWriter(objectMapper, httpStatusResolver),
                                                 rateLimitSubjectResolver,
-                                                securityErrorResponseWriter),
+                                                errorResponseWriter),
                             MdcSecurityFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, POST_PUBLIC_ROUTES).permitAll()

@@ -5,7 +5,7 @@ import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.web.dto.response.ErrorResponse;
 import com.valadir.web.exception.HttpStatusResolver;
-import com.valadir.web.exception.SecurityErrorResponseWriter;
+import com.valadir.web.exception.ErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ class InfrastructureFailureFilterTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final InfrastructureFailureFilter filter =
-        new InfrastructureFailureFilter(new SecurityErrorResponseWriter(OBJECT_MAPPER, new HttpStatusResolver()));
+        new InfrastructureFailureFilter(new ErrorResponseWriter(OBJECT_MAPPER, new HttpStatusResolver()));
     private final MockHttpServletRequest request = new MockHttpServletRequest();
     private final MockHttpServletResponse response = new MockHttpServletResponse();
 

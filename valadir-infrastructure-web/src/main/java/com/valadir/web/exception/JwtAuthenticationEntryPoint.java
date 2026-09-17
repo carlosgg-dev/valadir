@@ -14,9 +14,9 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class);
 
-    private final SecurityErrorResponseWriter responseWriter;
+    private final ErrorResponseWriter responseWriter;
 
-    public JwtAuthenticationEntryPoint(SecurityErrorResponseWriter responseWriter) {
+    public JwtAuthenticationEntryPoint(ErrorResponseWriter responseWriter) {
 
         this.responseWriter = responseWriter;
     }

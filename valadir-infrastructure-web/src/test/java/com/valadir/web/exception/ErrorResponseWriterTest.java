@@ -10,11 +10,11 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SecurityErrorResponseWriterTest {
+class ErrorResponseWriterTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(OBJECT_MAPPER, new HttpStatusResolver());
+    private final ErrorResponseWriter writer = new ErrorResponseWriter(OBJECT_MAPPER, new HttpStatusResolver());
 
     @Test
     void write_setsStatusContentTypeAndErrorCodeBody() throws Exception {

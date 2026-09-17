@@ -25,7 +25,7 @@ class JwtAuthenticationEntryPointTest {
     private AuthenticationException exception;
 
     @Mock
-    private SecurityErrorResponseWriter responseWriter;
+    private ErrorResponseWriter responseWriter;
 
     @InjectMocks
     private JwtAuthenticationEntryPoint entryPoint;

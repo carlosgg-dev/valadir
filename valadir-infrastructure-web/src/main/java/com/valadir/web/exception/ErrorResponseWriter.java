@@ -8,12 +8,12 @@ import org.springframework.http.MediaType;
 
 import java.io.IOException;
 
-public class SecurityErrorResponseWriter {
+public class ErrorResponseWriter {
 
     private final ObjectMapper objectMapper;
     private final HttpStatusResolver httpStatusResolver;
 
-    public SecurityErrorResponseWriter(ObjectMapper objectMapper, HttpStatusResolver httpStatusResolver) {
+    public ErrorResponseWriter(ObjectMapper objectMapper, HttpStatusResolver httpStatusResolver) {
 
         this.objectMapper = objectMapper;
         this.httpStatusResolver = httpStatusResolver;

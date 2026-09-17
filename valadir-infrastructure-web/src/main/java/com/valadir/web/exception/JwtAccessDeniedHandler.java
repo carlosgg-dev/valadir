@@ -14,9 +14,9 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAccessDeniedHandler.class);
 
-    private final SecurityErrorResponseWriter responseWriter;
+    private final ErrorResponseWriter responseWriter;
 
-    public JwtAccessDeniedHandler(SecurityErrorResponseWriter responseWriter) {
+    public JwtAccessDeniedHandler(ErrorResponseWriter responseWriter) {
 
         this.responseWriter = responseWriter;
     }

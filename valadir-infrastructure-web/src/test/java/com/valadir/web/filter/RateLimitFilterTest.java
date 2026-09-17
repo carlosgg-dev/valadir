@@ -8,7 +8,7 @@ import com.valadir.common.ratelimit.RateLimitStrategy;
 import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
-import com.valadir.web.exception.SecurityErrorResponseWriter;
+import com.valadir.web.exception.ErrorResponseWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,7 +65,7 @@ class RateLimitFilterTest {
     private RateLimitResponseWriter responseWriter;
 
     @Mock
-    private SecurityErrorResponseWriter errorResponseWriter;
+    private ErrorResponseWriter errorResponseWriter;
 
     @Captor
     private ArgumentCaptor<RateLimitResult> resultCaptor;

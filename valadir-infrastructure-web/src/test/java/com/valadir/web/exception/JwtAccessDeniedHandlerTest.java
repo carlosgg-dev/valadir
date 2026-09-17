@@ -25,7 +25,7 @@ class JwtAccessDeniedHandlerTest {
     private AccessDeniedException exception;
 
     @Mock
-    private SecurityErrorResponseWriter responseWriter;
+    private ErrorResponseWriter responseWriter;
 
     @InjectMocks
     private JwtAccessDeniedHandler handler;

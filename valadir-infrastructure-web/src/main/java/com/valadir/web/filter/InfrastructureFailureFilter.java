@@ -1,7 +1,7 @@
 package com.valadir.web.filter;
 
 import com.valadir.common.exception.InfrastructureException;
-import com.valadir.web.exception.SecurityErrorResponseWriter;
+import com.valadir.web.exception.ErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +24,9 @@ public class InfrastructureFailureFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(InfrastructureFailureFilter.class);
 
-    private final SecurityErrorResponseWriter responseWriter;
+    private final ErrorResponseWriter responseWriter;
 
-    public InfrastructureFailureFilter(SecurityErrorResponseWriter responseWriter) {
+    public InfrastructureFailureFilter(ErrorResponseWriter responseWriter) {
 
         this.responseWriter = responseWriter;
     }

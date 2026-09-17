@@ -6,7 +6,7 @@ import com.valadir.common.ratelimit.RateLimitStrategy;
 import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
-import com.valadir.web.exception.SecurityErrorResponseWriter;
+import com.valadir.web.exception.ErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +29,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimitProperties properties;
     private final RateLimitResponseWriter responseWriter;
     private final RateLimitSubjectResolver subjectResolver;
-    private final SecurityErrorResponseWriter errorResponseWriter;
+    private final ErrorResponseWriter errorResponseWriter;
     private final AntPathMatcher pathMatcher;
 
     public RateLimitFilter(
@@ -37,7 +37,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         RateLimitProperties properties,
         RateLimitResponseWriter responseWriter,
         RateLimitSubjectResolver subjectResolver,
-        SecurityErrorResponseWriter errorResponseWriter
+        ErrorResponseWriter errorResponseWriter
     ) {
 
         this.rateLimiter = rateLimiter;
