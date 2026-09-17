@@ -58,25 +58,14 @@ class RateLimitSubjectResolverTest {
         assertThat(subject).hasValue(new RateLimitSubject(RateLimitStrategy.IP, PATH, CLIENT_IP));
     }
 
+    // Nothing but the address the container reports reaches the subject. Reading the header would
+    // hand the caller its own bucket, and one fresh bucket for every value it cares to invent.
     @Test
-    void resolve_ipStrategy_withHeaderXForwardedForUsesFirstIpInChain() {
+    void resolve_ipStrategy_spoofedXForwardedFor_stillKeysOnTheClientIp() {
 
         var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
         request.addHeader("X-Forwarded-For", "203.0.113.5, 10.0.0.1, 192.168.1.1");
-
-        Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
-
-        assertThat(subject).hasValue(new RateLimitSubject(RateLimitStrategy.IP, PATH, "203.0.113.5"));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"", " "})
-    void resolve_ipStrategy_withBlankHeaderXForwardedForUsesClientIp(String header) {
-
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
-        MockHttpServletRequest request = buildRequest();
-        request.addHeader("X-Forwarded-For", header);
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
 

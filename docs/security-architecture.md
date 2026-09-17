@@ -473,6 +473,25 @@ for the change, but not for what the change costs, which is what this paragraph 
 for `TURNSTILE_SECRET`, whose guard is conditional on `enabled` and so stops covering it the day the CAPTCHA is
 switched off.
 
+### The client address
+
+Every `IP` rate-limit rule keys on `request.getRemoteAddr()` — the peer of the TCP connection, the one value on the
+request a caller cannot choose. `X-Forwarded-For` is read nowhere. Behind no proxy that is the client; behind one it is
+the proxy, and every caller shares a bucket.
+
+That is the trade, and it is deliberate: a shared bucket throttles honest traffic, while a trusted header throttles
+nobody. The header is written by whoever sends the request, so trusting it hands the caller its own key — every `IP`
+limit lifted by rotating a value, and a fresh `rate_limit:ip:…` pair per value, with a TTL of up to an hour, on the
+same Redis the limiter and the revocation check fail closed on. The evasion is the cheap half; filling that key space
+denies the service.
+
+**Putting a proxy in front therefore requires a change here, and one specific one.** The strategy that carries a
+trusted-proxy list is `server.forward-headers-strategy: NATIVE`, which installs Tomcat's `RemoteIpValve` and its
+`server.tomcat.remoteip.internal-proxies` allowlist, so only a hop matching the list may rewrite the address.
+`FRAMEWORK` is not an alternative: it installs Spring's `ForwardedHeaderFilter`, which honours the header with no
+allowlist at all and reinstates exactly the hole described above, one layer further out. The precondition either way is
+that the proxy is the **only** writer of the header — it must overwrite what arrives, never append to it.
+
 ## Known Behaviours
 
 Not defects, but things that are expensive to rediscover.

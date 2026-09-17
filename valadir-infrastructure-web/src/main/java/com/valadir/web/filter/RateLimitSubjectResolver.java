@@ -30,7 +30,9 @@ public class RateLimitSubjectResolver {
     public Optional<RateLimitSubject> resolve(HttpServletRequest request, RateLimitProperties.Rule rule) {
 
         return switch (rule.strategy()) {
-            case IP -> Optional.of(subjectOf(rule, resolveIp(request)));
+            // The address the container reports, never a header: a caller that picks its own
+            // value owns its own bucket, and mints a new one per request it wants unmetered.
+            case IP -> Optional.of(subjectOf(rule, request.getRemoteAddr()));
             case EMAIL -> extractEmail(request).map(email -> subjectOf(rule, email));
             case USER -> resolveAccountId().map(accountId -> subjectOf(rule, accountId));
         };
@@ -39,15 +41,6 @@ public class RateLimitSubjectResolver {
     private RateLimitSubject subjectOf(RateLimitProperties.Rule rule, String value) {
 
         return new RateLimitSubject(rule.strategy(), rule.path(), value);
-    }
-
-    private String resolveIp(HttpServletRequest request) {
-
-        String forwarded = request.getHeader("X-Forwarded-For");
-
-        return forwarded != null && !forwarded.isBlank()
-            ? forwarded.split(",")[0].trim()
-            : request.getRemoteAddr();
     }
 
     // Normalized the same way Email does: keying on the raw value would let

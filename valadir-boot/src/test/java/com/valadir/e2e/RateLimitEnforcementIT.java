@@ -5,7 +5,9 @@ import com.valadir.common.ratelimit.RateLimitStrategy;
 import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.security.redis.RedisKeySpace;
 import com.valadir.test.mother.PasswordMother;
+import com.valadir.web.config.ApiRoutes;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -50,6 +53,8 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
     private static final int EMAIL_CHANGE_COMPLETE_LIMIT = 5;
 
     private static final int CONCURRENT_LOGINS = LOGIN_IP_LIMIT + 5;
+
+    private static final String SPOOFED_IP = "203.0.113.5";
 
     @Test
     void register_repeatedForTheSameEmail_isBlockedByTheEmailRuleWithoutLosingTheBody() {
@@ -142,6 +147,22 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
 
         // The credentials were valid, so a missing session can only mean the block came first
         assertThat(sessionFingerprintsFor(accountIdFor(EMAIL))).hasSize(LOGIN_IP_LIMIT);
+    }
+
+    // The header is the caller's to write, so trusting it would put the key space in its hands:
+    // one fresh budget per value invented, and one Redis bucket per value on the same Redis the
+    // limiter fails closed on.
+    @Test
+    void login_burstReplayedBehindAFreshXForwardedFor_isStillBlocked() {
+
+        registerAndActivate(EMAIL, PASSWORD);
+        exhaustTheLoginIpLimit();
+
+        Response replayed = loginForwardedFrom(SPOOFED_IP);
+
+        replayed.then()
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value())
+            .body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
     }
 
     @Test
@@ -238,6 +259,27 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
         // No rule matches outside /api. The status is the security config's business; what matters
         // is that nothing was counted, and the base flushed Redis before the test.
         assertThat(redisTemplate.keys("*")).isEmpty();
+    }
+
+    // A step, so the same call drives the spoofed replay and would drive an allowed one
+    private Response loginForwardedFrom(String forwardedIp) {
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .header("X-Forwarded-For", forwardedIp)
+            .body(Map.of("email", EMAIL, "password", PASSWORD))
+            .when()
+            .post(ApiRoutes.Auth.Session.LOGIN_PATH);
+    }
+
+    // A broken precondition has to fail here, not surface as an unexplained 200 further down
+    private void exhaustTheLoginIpLimit() {
+
+        IntStream.rangeClosed(1, LOGIN_IP_LIMIT).forEach(attempt -> login(EMAIL, PASSWORD));
+
+        login(EMAIL, PASSWORD)
+            .then()
+            .statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
     }
 
     private String userBucketOf(String accountId) {
