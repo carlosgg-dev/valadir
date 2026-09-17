@@ -1,12 +1,14 @@
 package com.valadir.web.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.exception.InfrastructureException;
 import com.valadir.common.ratelimit.RateLimitResult;
-import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.common.ratelimit.RateLimitStrategy;
 import com.valadir.common.ratelimit.RateLimitSubject;
+import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
+import com.valadir.web.exception.SecurityErrorResponseWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +63,9 @@ class RateLimitFilterTest {
 
     @Mock
     private RateLimitResponseWriter responseWriter;
+
+    @Mock
+    private SecurityErrorResponseWriter errorResponseWriter;
 
     @Captor
     private ArgumentCaptor<RateLimitResult> resultCaptor;
@@ -179,6 +184,23 @@ class RateLimitFilterTest {
         assertThat(new String(bodyAfterFilter)).contains(EMAIL);
     }
 
+    @Test
+    void doFilter_emailStrategyWithAnOversizedBody_answersMalformedRequestAndStopsChain() throws Exception {
+
+        RateLimitFilter filter = buildFilter(true, List.of(EMAIL_RULE));
+        MockHttpServletRequest request = buildRequest(PATH_LOGIN);
+        request.setContent(new byte[CachedBodyRequestWrapper.MAX_BODY_BYTES + 1]);
+        request.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        var response = new MockHttpServletResponse();
+        var chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        then(errorResponseWriter).should().write(response, ErrorCode.MALFORMED_REQUEST);
+        then(responseWriter).shouldHaveNoInteractions();
+        assertThat(chain.getRequest()).isNull();
+    }
+
     @ParameterizedTest
     @MethodSource("mostRestrictiveResults")
     void doFilter_multipleAllowedRules_passesMostRestrictiveResultToWriteAllowedHeaders(
@@ -288,7 +310,7 @@ class RateLimitFilterTest {
 
     private RateLimitFilter buildFilter(boolean enabled, List<RateLimitProperties.Rule> rules) {
 
-        return new RateLimitFilter(rateLimiter, new RateLimitProperties(enabled, rules), responseWriter, subjectResolver);
+        return new RateLimitFilter(rateLimiter, new RateLimitProperties(enabled, rules), responseWriter, subjectResolver, errorResponseWriter);
     }
 
     private MockHttpServletRequest buildRequest(String path) {

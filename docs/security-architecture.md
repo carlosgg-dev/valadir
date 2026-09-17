@@ -506,6 +506,11 @@ Not defects, but things that are expensive to rediscover.
 - **Re-registering over a pending account orphans its OTP key.** `replace()` deletes the abandoned account's rows but
   not `auth:account_activation_otp:{oldAccountId}`, which lingers until its TTL holding an Argon2 hash. No account
   resolves to that id any more — do not read a stray key as a live code.
+- **Only an email-keyed route caps the size of its body.** `RateLimitFilter` buffers the body to read
+  the address out of it, before any limit has been consulted, so the wrapper refuses anything above
+  16 KiB with a 400 `MALFORMED_REQUEST` — on the declared `Content-Length` first, and on a bounded read
+  for a request that understates it. Everywhere else the body is streamed to Jackson and never
+  buffered whole, so there is nothing to cap at this layer.
 - **A rate-limited request still enters the window.** The sliding-window log `ZADD`s before deciding, so a client
   hammering past its limit keeps pushing its own reset forward. Intended.
 - **An empty `REDIS_PASSWORD` starts and then fails every request.** Lettuce connects lazily, so the empty password

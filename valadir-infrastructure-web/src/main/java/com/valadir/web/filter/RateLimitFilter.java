@@ -1,10 +1,12 @@
 package com.valadir.web.filter;
 
+import com.valadir.common.error.ErrorCode;
 import com.valadir.common.ratelimit.RateLimitResult;
 import com.valadir.common.ratelimit.RateLimitStrategy;
 import com.valadir.common.ratelimit.RateLimitSubject;
 import com.valadir.common.ratelimit.RateLimiter;
 import com.valadir.web.config.RateLimitProperties;
+import com.valadir.web.exception.SecurityErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,19 +29,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimitProperties properties;
     private final RateLimitResponseWriter responseWriter;
     private final RateLimitSubjectResolver subjectResolver;
+    private final SecurityErrorResponseWriter errorResponseWriter;
     private final AntPathMatcher pathMatcher;
 
     public RateLimitFilter(
         RateLimiter rateLimiter,
         RateLimitProperties properties,
         RateLimitResponseWriter responseWriter,
-        RateLimitSubjectResolver subjectResolver
+        RateLimitSubjectResolver subjectResolver,
+        SecurityErrorResponseWriter errorResponseWriter
     ) {
 
         this.rateLimiter = rateLimiter;
         this.properties = properties;
         this.responseWriter = responseWriter;
         this.subjectResolver = subjectResolver;
+        this.errorResponseWriter = errorResponseWriter;
         this.pathMatcher = new AntPathMatcher();
     }
 
@@ -56,7 +61,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        HttpServletRequest effectiveRequest = prepareRequest(request, matchingRules);
+        HttpServletRequest effectiveRequest;
+        try {
+            effectiveRequest = prepareRequest(request, matchingRules);
+        } catch (RequestBodyTooLargeException e) {
+            log.warn("Request body too large to buffer for rate limiting: path={}", request.getRequestURI());
+            errorResponseWriter.write(response, ErrorCode.MALFORMED_REQUEST);
+            return;
+        }
 
         if (isRateLimited(effectiveRequest, response, matchingRules)) {
             return;
