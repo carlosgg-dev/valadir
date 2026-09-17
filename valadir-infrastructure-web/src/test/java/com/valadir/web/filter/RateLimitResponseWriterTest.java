@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.Duration;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,6 +23,9 @@ class RateLimitResponseWriterTest {
 
     private static final int MAX_REQUESTS = 10;
     private static final Duration REMAINING_TTL = Duration.ofSeconds(30);
+
+    // Wide enough that a slow machine never fails, narrow enough that a wrong sign or unit does.
+    private static final long CLOCK_TOLERANCE_SECONDS = 5;
 
     private final RateLimitResponseWriter writer = new RateLimitResponseWriter(new ObjectMapper(), new HttpStatusResolver());
 
@@ -37,7 +41,11 @@ class RateLimitResponseWriterTest {
         assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
         assertThat(response.getHeader(HEADER_LIMIT)).isEqualTo("10");
         assertThat(response.getHeader(HEADER_REMAINING)).isEqualTo("0");
-        assertThat(response.getHeader(HEADER_RESET)).isNotNull();
+        // The epoch second the window frees up. Asserting presence alone would not notice the
+        // arithmetic drifting; this is the one place the number itself is pinned.
+        long expectedReset = Instant.now().getEpochSecond() + REMAINING_TTL.toSeconds();
+        assertThat(Long.parseLong(response.getHeader(HEADER_RESET)))
+            .isBetween(expectedReset - CLOCK_TOLERANCE_SECONDS, expectedReset + CLOCK_TOLERANCE_SECONDS);
         assertThat(response.getHeader(HEADER_RETRY_AFTER)).isEqualTo("30");
     }
 

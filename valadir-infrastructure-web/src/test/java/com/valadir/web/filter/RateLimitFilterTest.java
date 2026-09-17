@@ -91,6 +91,8 @@ class RateLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         then(rateLimiter).should(never()).consume(anyString(), anyInt(), any());
+        // Not even resolved: a rule declared for another path must never be evaluated for this one.
+        then(keyResolver).shouldHaveNoInteractions();
         then(responseWriter).shouldHaveNoInteractions();
         assertThat(chain.getRequest()).isNotNull();
     }
@@ -111,7 +113,8 @@ class RateLimitFilterTest {
 
         then(responseWriter).should().writeAllowedRequestHeaders(response, allowedResult);
         then(responseWriter).should(never()).writeBlockedResponse(any(), any());
-        assertThat(chain.getRequest()).isNotNull();
+        // Untouched: no rule keys by email here, so buffering the body would buy nothing.
+        assertThat(chain.getRequest()).isSameAs(request);
     }
 
     @Test
@@ -166,7 +169,9 @@ class RateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        assertThat(chain.getRequest()).isNotNull();
+        assertThat(chain.getRequest())
+            .isNotNull()
+            .isInstanceOf(CachedBodyRequestWrapper.class);
         // Body must still be readable by the controller (cached wrapper was passed down)
         byte[] bodyAfterFilter = chain.getRequest().getInputStream().readAllBytes();
         assertThat(new String(bodyAfterFilter)).contains(EMAIL);
