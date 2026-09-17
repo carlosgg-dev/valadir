@@ -2,8 +2,8 @@
     <img src="assets/logo.svg" alt="Valadir Auth System logo" width="600">
 </div>
 
-A production-ready base for modern applications built with Spring Boot, following Hexagonal Architecture principles.
-This project is designed to be highly decoupled, maintainable, and easily pluggable into different environments.
+A Spring Boot authentication service built on Hexagonal Architecture: the auth flows are complete, their failure
+policy is documented, and the test suite enforces both on every build.
 
 ## Features
 
