@@ -67,14 +67,19 @@ Tests are split by Maven phase, so the inner loop never needs Docker:
 # Testcontainers Postgres, Redis + Mailpit. Requires Docker to be running.
 ./mvnw verify
 
-# Mutation coverage on the modules that carry the business logic (no Docker).
-./mvnw -Pmutation -am -pl valadir-domain,valadir-application test
+# Mutation coverage on the business logic and on the pure logic of the adapters (no Docker).
+./mvnw -Pmutation -am -pl valadir-common,valadir-domain,valadir-application,valadir-infrastructure-security,valadir-infrastructure-notifications,valadir-infrastructure-web test
 ```
 
 Coverage is attributed by test type via two JaCoCo exec files and two gates: a strict **unit gate**
-(`domain`/`application`/`common`, 100% at the `test` phase, unit coverage only) and a **union gate**
-(`infrastructure-*`/`boot`, 90% at the `verify` phase). The unit gate cannot be satisfied by integration
+(`domain`/`application`/`common`, at the `test` phase, unit coverage only) and a **union gate**
+(`infrastructure-*`/`boot`, at the `verify` phase). The unit gate cannot be satisfied by integration
 tests, so a business-logic gap can never be masked by an E2E.
+
+Both gates demand 100% of branches and instructions; only the composition roots (`*Wiring`) and the
+entry point are exempt, because every method in them is a `new` with no decision of its own.
+`infrastructure-security` is the single exception at 99% of instructions, for a `NoSuchAlgorithmException`
+catch that no JVM reaches.
 
 ## License
 
