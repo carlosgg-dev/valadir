@@ -404,6 +404,25 @@ decoder — the natural instinct, since that is what `decode` declares — would
 it into an `AuthenticationServiceException` and answer the same **401 `AUTHENTICATION_REQUIRED`**, hiding a Redis outage
 behind an ordinary authentication failure.
 
+### What the logs identify
+
+The boundary above is about the response. Inside, the logs answer the same question about the subject of a request, and
+the answer is one identifier: **`accountId`, carried by the MDC**. `MdcRequestFilter` seeds it as `-`,
+`MdcSecurityFilter` fills it from the JWT on an authenticated request, and eight application services overwrite it the
+moment they resolve an account — `LoginService` and `CompletePasswordResetService` included, so an anonymous flow also
+logs under an account from the point where one exists. `MdcPropagatingTaskDecorator` carries the map into the
+notification pool, so an async send logs under the request that triggered it.
+
+**The address is therefore never a log argument.** It is not that it leaks something the `accountId` hides — both point
+at the same person for anyone holding the database. It is that one of them is the contact detail itself, reproduced on
+every retry of the noisiest paths (a failed SMTP send, an uncleared attempt counter), and the other is an opaque key
+that resolves to the address only for someone who can already query it. Seven adapters used to log the address next to
+an `accountId` the MDC was already printing; none does now.
+
+One place has no account to name: `RateLimitFilter` runs before any use case, so under an `EMAIL` rule the address is
+the only identifier it holds — which is exactly why it logs none. A 429 states the strategy and the rule path, saying
+what was limited without naming who, and the request id ties it to the rest of the request.
+
 ## Configuration Integrity
 
 Every guarantee above is a number in `application.yml` — the deadlines, the breaker thresholds, the lockout tiers, the

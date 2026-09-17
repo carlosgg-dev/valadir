@@ -49,7 +49,7 @@ public class AccountLockedNotifierJavaMailAdapter implements AccountLockedNotifi
         } catch (MailException e) {
             // Best-effort: a notification failure must never turn a login failure into a 500 nor add latency to the request.
             // Log and continue (unlike the activation adapter, where the failure is meaningful to the caller).
-            log.warn("Failed to send account-locked notification to {}", email.value(), e);
+            log.warn("Failed to send account-locked notification", e);
         }
     }
 }

@@ -36,7 +36,7 @@ public class EmailChangedNotifierJavaMailAdapter implements EmailChangedNotifier
             mailSender.send(email, content);
         } catch (MailException e) {
             // Best-effort: the change is already applied, so a lost alert must neither fail it nor add latency to it
-            log.warn("Failed to send email-changed notification to {}", email.value(), e);
+            log.warn("Failed to send email-changed notification to the previous address", e);
         }
     }
 }

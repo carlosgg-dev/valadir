@@ -108,7 +108,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 RateLimitResult result = rateLimiter.consume(subject.get(), rule.maxRequests(), rule.window());
 
                 if (!result.allowed()) {
-                    log.warn("Rate limit exceeded: strategy={} subject={}", rule.strategy(), subject.get().value());
+                    log.warn("Rate limit exceeded: strategy={} rule={}", rule.strategy(), rule.path());
                     responseWriter.writeBlockedResponse(response, result);
                     return true;
                 }

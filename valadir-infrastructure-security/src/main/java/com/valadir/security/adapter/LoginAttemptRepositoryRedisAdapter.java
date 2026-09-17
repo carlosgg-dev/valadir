@@ -88,7 +88,7 @@ public class LoginAttemptRepositoryRedisAdapter implements LoginAttemptRepositor
             // The only failure of the three that is safe to swallow: a counter left uncleared makes the
             // next attempt more restrictive, never less. Denying a login that already proved its
             // credentials would add nothing.
-            log.warn("Redis unavailable — attempt counter not cleared for {}", email.value(), e);
+            log.warn("Redis unavailable — attempt counter not cleared", e);
         }
     }
 

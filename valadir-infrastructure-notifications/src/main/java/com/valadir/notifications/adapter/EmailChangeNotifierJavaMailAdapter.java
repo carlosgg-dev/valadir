@@ -46,7 +46,7 @@ public class EmailChangeNotifierJavaMailAdapter implements EmailChangeNotifier {
         try {
             mailSender.send(notification.email(), content);
         } catch (MailException e) {
-            log.error("Failed to send email change code to {}", notification.email().value(), e);
+            log.error("Failed to send email change code to the new address", e);
             throw new InfrastructureException("Mail server unavailable", e);
         }
     }

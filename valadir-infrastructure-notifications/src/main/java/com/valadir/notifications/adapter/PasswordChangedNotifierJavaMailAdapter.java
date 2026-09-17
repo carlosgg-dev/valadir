@@ -36,7 +36,7 @@ public class PasswordChangedNotifierJavaMailAdapter implements PasswordChangedNo
             mailSender.send(email, content);
         } catch (MailException e) {
             // Best-effort: the change is already applied, so a lost alert must neither fail it nor add latency to it
-            log.warn("Failed to send password-changed notification to {}", email.value(), e);
+            log.warn("Failed to send password-changed notification", e);
         }
     }
 }

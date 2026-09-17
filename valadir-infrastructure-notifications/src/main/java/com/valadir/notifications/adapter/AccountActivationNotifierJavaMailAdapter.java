@@ -46,7 +46,7 @@ public class AccountActivationNotifierJavaMailAdapter implements AccountActivati
         try {
             mailSender.send(notification.email(), content);
         } catch (MailException e) {
-            log.error("Failed to send activation code to {}", notification.email().value(), e);
+            log.error("Failed to send activation code", e);
             throw new InfrastructureException("Mail server unavailable", e);
         }
     }

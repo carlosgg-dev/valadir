@@ -46,7 +46,7 @@ public class PasswordResetNotifierJavaMailAdapter implements PasswordResetNotifi
         try {
             mailSender.send(notification.email(), content);
         } catch (MailException e) {
-            log.error("Failed to send password reset code to {}", notification.email().value(), e);
+            log.error("Failed to send password reset code", e);
             throw new InfrastructureException("Mail server unavailable", e);
         }
     }
