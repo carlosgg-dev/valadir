@@ -17,9 +17,9 @@ import com.valadir.domain.model.HashedOtp;
 import com.valadir.domain.model.PlainOtp;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.OtpMother;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,15 +51,26 @@ class VerifyPasswordResetOtpServiceTest {
     @Mock
     private PasswordResetVerificationTokenRepository passwordResetVerificationTokenRepository;
 
-    @Mock
-    private PasswordResetConfig passwordResetConfig;
-
-    @InjectMocks
     private VerifyPasswordResetOtpService service;
 
     private static final PlainOtp PLAIN_OTP = OtpMother.plain();
     private static final HashedOtp HASHED_OTP = OtpMother.hashed();
     private static final Duration VERIFICATION_TTL = Duration.ofMinutes(10);
+
+    // Never the verification token TTL: a service reading the wrong accessor would otherwise still pass.
+    private static final Duration OTP_TTL = Duration.ofMinutes(15);
+
+    @BeforeEach
+    void setUp() {
+
+        service = new VerifyPasswordResetOtpService(
+            accountRepository,
+            otpRepository,
+            otpHasher,
+            passwordResetVerificationTokenRepository,
+            new PasswordResetConfig(OTP_TTL, VERIFICATION_TTL)
+        );
+    }
 
     // Without the email, completing the reset could not tell that the account has moved to another address since
     @Test
@@ -72,7 +83,6 @@ class VerifyPasswordResetOtpServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
-        given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
 
         PasswordResetOtpVerificationResult result = service.verify(command);
 
@@ -146,7 +156,6 @@ class VerifyPasswordResetOtpServiceTest {
         given(accountRepository.findByEmail(email)).willReturn(Optional.of(account));
         given(otpRepository.find(account.getId())).willReturn(Optional.of(HASHED_OTP));
         given(otpHasher.matches(PLAIN_OTP, HASHED_OTP)).willReturn(true);
-        given(passwordResetConfig.verificationTokenTtl()).willReturn(VERIFICATION_TTL);
 
         willThrow(InfrastructureException.class).given(otpRepository).delete(account.getId());
 

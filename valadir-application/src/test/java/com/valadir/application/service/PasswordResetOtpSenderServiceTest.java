@@ -11,11 +11,11 @@ import com.valadir.domain.model.Language;
 import com.valadir.domain.model.PlainOtp;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.OtpMother;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,6 +36,11 @@ class PasswordResetOtpSenderServiceTest {
         .withLanguage(LANGUAGE)
         .build();
 
+    private static final Duration OTP_TTL = Duration.ofMinutes(10);
+
+    // Never the OTP TTL: a service reading the wrong accessor would otherwise still pass.
+    private static final Duration VERIFICATION_TOKEN_TTL = Duration.ofMinutes(5);
+
     @Mock
     private PasswordResetNotifier passwordResetNotifier;
 
@@ -45,32 +50,37 @@ class PasswordResetOtpSenderServiceTest {
     @Mock
     private OtpHasher otpHasher;
 
-    @Mock
-    private PasswordResetConfig passwordResetConfig;
-
-    @InjectMocks
-    private PasswordResetOtpSenderService passwordResetOtpSenderService;
-
     @Captor
     private ArgumentCaptor<PlainOtp> plainOtpCaptor;
+
+    private PasswordResetOtpSenderService passwordResetOtpSenderService;
+
+    @BeforeEach
+    void setUp() {
+
+        passwordResetOtpSenderService = new PasswordResetOtpSenderService(
+            passwordResetNotifier,
+            otpRepository,
+            otpHasher,
+            new PasswordResetConfig(OTP_TTL, VERIFICATION_TOKEN_TTL)
+        );
+    }
 
     @Test
     void send_hashesOtpPersistsAndSendsEmail() {
 
         var hashedOtp = OtpMother.hashed();
-        var otpTtl = Duration.ofMinutes(10);
 
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(hashedOtp);
-        given(passwordResetConfig.otpTtl()).willReturn(otpTtl);
 
         passwordResetOtpSenderService.send(ACCOUNT);
 
         then(otpHasher).should().hash(plainOtpCaptor.capture());
         var capturedOtp = plainOtpCaptor.getValue();
 
-        then(otpRepository).should().save(ACCOUNT.getId(), hashedOtp, otpTtl);
+        then(otpRepository).should().save(ACCOUNT.getId(), hashedOtp, OTP_TTL);
         // The same otpTtl on both: the expiry announced to the reader is the one actually enforced.
-        var notification = new OtpNotification(ACCOUNT.getEmail(), capturedOtp, otpTtl, LANGUAGE);
+        var notification = new OtpNotification(ACCOUNT.getEmail(), capturedOtp, OTP_TTL, LANGUAGE);
         then(passwordResetNotifier).should().sendResetCode(notification);
     }
 }

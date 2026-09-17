@@ -10,11 +10,11 @@ import com.valadir.domain.model.Language;
 import com.valadir.domain.model.PlainOtp;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.OtpMother;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,6 +34,8 @@ class AccountActivationOtpSenderServiceTest {
         .withLanguage(ACCOUNT_LANGUAGE)
         .build();
 
+    private static final Duration OTP_TTL = Duration.ofSeconds(900);
+
     @Mock
     private AccountActivationNotifier accountActivationNotifier;
 
@@ -43,31 +45,36 @@ class AccountActivationOtpSenderServiceTest {
     @Mock
     private OtpHasher otpHasher;
 
-    @Mock
-    private AccountActivationConfig accountActivationConfig;
-
-    @InjectMocks
-    private AccountActivationOtpSenderService accountActivationOtpSenderService;
-
     @Captor
     private ArgumentCaptor<PlainOtp> plainOtpCaptor;
+
+    private AccountActivationOtpSenderService accountActivationOtpSenderService;
+
+    @BeforeEach
+    void setUp() {
+
+        accountActivationOtpSenderService = new AccountActivationOtpSenderService(
+            accountActivationNotifier,
+            otpRepository,
+            otpHasher,
+            new AccountActivationConfig(OTP_TTL)
+        );
+    }
 
     @Test
     void send_hashesOtpPersistsAndSendsEmail() {
 
         var hashedOtp = OtpMother.hashed();
-        var otpTtl = Duration.ofSeconds(900);
 
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(hashedOtp);
-        given(accountActivationConfig.otpTtl()).willReturn(otpTtl);
 
         accountActivationOtpSenderService.send(ACCOUNT);
 
         then(otpHasher).should().hash(plainOtpCaptor.capture());
         var capturedOtp = plainOtpCaptor.getValue();
 
-        then(otpRepository).should().save(ACCOUNT.getId(), hashedOtp, otpTtl);
-        var notification = new OtpNotification(ACCOUNT.getEmail(), capturedOtp, otpTtl, ACCOUNT_LANGUAGE);
+        then(otpRepository).should().save(ACCOUNT.getId(), hashedOtp, OTP_TTL);
+        var notification = new OtpNotification(ACCOUNT.getEmail(), capturedOtp, OTP_TTL, ACCOUNT_LANGUAGE);
         then(accountActivationNotifier).should().sendActivationCode(notification);
     }
 }

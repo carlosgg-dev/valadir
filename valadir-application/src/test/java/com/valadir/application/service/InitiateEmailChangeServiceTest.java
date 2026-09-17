@@ -22,12 +22,12 @@ import com.valadir.domain.model.RawPassword;
 import com.valadir.test.mother.AccountMother;
 import com.valadir.test.mother.OtpMother;
 import com.valadir.test.mother.PasswordMother;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -83,17 +83,27 @@ class InitiateEmailChangeServiceTest {
     @Mock
     private EmailChangeNotifier emailChangeNotifier;
 
-    @Mock
-    private EmailChangeConfig emailChangeConfig;
-
-    @InjectMocks
-    private InitiateEmailChangeService service;
-
     @Captor
     private ArgumentCaptor<PlainOtp> plainOtpCaptor;
 
     @Captor
     private ArgumentCaptor<OtpNotification> notificationCaptor;
+
+    private InitiateEmailChangeService service;
+
+    @BeforeEach
+    void setUp() {
+
+        service = new InitiateEmailChangeService(
+            accountRepository,
+            accountReauthenticator,
+            emailHolderResolver,
+            otpHasher,
+            emailChangeRequestRepository,
+            emailChangeNotifier,
+            new EmailChangeConfig(OTP_TTL)
+        );
+    }
 
     // The code is random, so the one hashed into the request is captured and must be the one mailed.
     @Test
@@ -101,7 +111,6 @@ class InitiateEmailChangeServiceTest {
 
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(emailHolderResolver.replaceableHolderFor(NEW_EMAIL)).willReturn(Optional.empty());
-        given(emailChangeConfig.otpTtl()).willReturn(OTP_TTL);
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(HASHED_OTP);
 
         service.initiate(COMMAND);
@@ -123,7 +132,6 @@ class InitiateEmailChangeServiceTest {
 
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(emailHolderResolver.replaceableHolderFor(NEW_EMAIL)).willReturn(Optional.of(AccountId.generate()));
-        given(emailChangeConfig.otpTtl()).willReturn(OTP_TTL);
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(HASHED_OTP);
 
         service.initiate(COMMAND);
@@ -197,7 +205,6 @@ class InitiateEmailChangeServiceTest {
 
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(emailHolderResolver.replaceableHolderFor(NEW_EMAIL)).willReturn(Optional.empty());
-        given(emailChangeConfig.otpTtl()).willReturn(OTP_TTL);
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(HASHED_OTP);
         willThrow(INFRA_ERROR).given(emailChangeRequestRepository)
             .save(ACCOUNT.getId(), new EmailChangeRequest(NEW_EMAIL, HASHED_OTP), OTP_TTL);
@@ -215,7 +222,6 @@ class InitiateEmailChangeServiceTest {
 
         given(accountRepository.findById(ACCOUNT.getId())).willReturn(Optional.of(ACCOUNT));
         given(emailHolderResolver.replaceableHolderFor(NEW_EMAIL)).willReturn(Optional.empty());
-        given(emailChangeConfig.otpTtl()).willReturn(OTP_TTL);
         given(otpHasher.hash(any(PlainOtp.class))).willReturn(HASHED_OTP);
         willThrow(INFRA_ERROR).given(emailChangeNotifier).sendConfirmationCode(any(OtpNotification.class));
 
