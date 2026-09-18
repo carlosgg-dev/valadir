@@ -1,28 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180">
   <style>
+    /* Theme-agnostic tones: GitHub's mobile webview does not propagate the app theme
+       to prefers-color-scheme, so the logo never relies on it. */
     .title {
       font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'DejaVu Sans Mono', monospace;
       font-size: 13px;
+      fill: #7d8590;
+      text-anchor: middle;
     }
     .subtitle {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       font-size: 14px;
       font-weight: 600;
-      fill: #57606a;
+      fill: #6e7781;
       text-anchor: middle;
     }
-    @media (prefers-color-scheme: dark) {
-      .title { fill: #adbac7; }
-      .subtitle { fill: #768390; }
-    }
   </style>
-  <text class="title" x="50%" y="40" xml:space="preserve">
-    <tspan x="95" dy="1.2em">██╗   ██╗ █████╗ ██╗      █████╗ ██████╗ ██╗██████╗ </tspan>
-    <tspan x="95" dy="1.2em">██║   ██║██╔══██╗██║     ██╔══██╗██╔══██╗██║██╔══██╗</tspan>
-    <tspan x="95" dy="1.2em">██║   ██║███████║██║     ███████║██║  ██║██║██████╔╝</tspan>
-    <tspan x="95" dy="1.2em">╚██╗ ██╔╝██╔══██║██║     ██╔══██║██║  ██║██║██╔══██╗</tspan>
-    <tspan x="95" dy="1.2em"> ╚████╔╝ ██║  ██║███████╗██║  ██║██████╔╝██║██║  ██║</tspan>
-    <tspan x="95" dy="1.2em">  ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝</tspan>
+  <text class="title" y="40" xml:space="preserve">
+    <tspan x="50%" dy="1.2em">██╗   ██╗ █████╗ ██╗      █████╗ ██████╗ ██╗██████╗ </tspan>
+    <tspan x="50%" dy="1.2em">██║   ██║██╔══██╗██║     ██╔══██╗██╔══██╗██║██╔══██╗</tspan>
+    <tspan x="50%" dy="1.2em">██║   ██║███████║██║     ███████║██║  ██║██║██████╔╝</tspan>
+    <tspan x="50%" dy="1.2em">╚██╗ ██╔╝██╔══██║██║     ██╔══██║██║  ██║██║██╔══██╗</tspan>
+    <tspan x="50%" dy="1.2em"> ╚████╔╝ ██║  ██║███████╗██║  ██║██████╔╝██║██║  ██║</tspan>
+    <tspan x="50%" dy="1.2em">  ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝</tspan>
   </text>
   <text x="50%" y="165" class="subtitle">:: AUTH SYSTEM ::</text>
 </svg>

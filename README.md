@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center">
     <img src="assets/logo.svg" alt="Valadir Auth System logo" width="600">
 </div>
 
