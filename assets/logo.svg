@@ -7,13 +7,12 @@
       font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'DejaVu Sans Mono', monospace;
       font-size: 13px;
       fill: #7d8590;
-      text-anchor: middle;
     }
     .subtitle {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       font-size: 14px;
       font-weight: 600;
-      fill: #6e7781;
+      fill: #7d8590;
       text-anchor: middle;
     }
     @media (prefers-color-scheme: light) {
@@ -25,13 +24,13 @@
       .subtitle { fill: #8d96a0; }
     }
   </style>
-  <text class="title" y="40" xml:space="preserve">
-    <tspan x="50%" dy="1.2em">██╗   ██╗ █████╗ ██╗      █████╗ ██████╗ ██╗██████╗ </tspan>
-    <tspan x="50%" dy="1.2em">██║   ██║██╔══██╗██║     ██╔══██╗██╔══██╗██║██╔══██╗</tspan>
-    <tspan x="50%" dy="1.2em">██║   ██║███████║██║     ███████║██║  ██║██║██████╔╝</tspan>
-    <tspan x="50%" dy="1.2em">╚██╗ ██╔╝██╔══██║██║     ██╔══██║██║  ██║██║██╔══██╗</tspan>
-    <tspan x="50%" dy="1.2em"> ╚████╔╝ ██║  ██║███████╗██║  ██║██████╔╝██║██║  ██║</tspan>
-    <tspan x="50%" dy="1.2em">  ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝</tspan>
+  <text class="title" x="50%" y="40" xml:space="preserve">
+    <tspan x="95" dy="1.2em">██╗   ██╗ █████╗ ██╗      █████╗ ██████╗ ██╗██████╗ </tspan>
+    <tspan x="95" dy="1.2em">██║   ██║██╔══██╗██║     ██╔══██╗██╔══██╗██║██╔══██╗</tspan>
+    <tspan x="95" dy="1.2em">██║   ██║███████║██║     ███████║██║  ██║██║██████╔╝</tspan>
+    <tspan x="95" dy="1.2em">╚██╗ ██╔╝██╔══██║██║     ██╔══██║██║  ██║██║██╔══██╗</tspan>
+    <tspan x="95" dy="1.2em"> ╚████╔╝ ██║  ██║███████╗██║  ██║██████╔╝██║██║  ██║</tspan>
+    <tspan x="95" dy="1.2em">  ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝</tspan>
   </text>
   <text x="50%" y="165" class="subtitle">:: AUTH SYSTEM ::</text>
 </svg>
