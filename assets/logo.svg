@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180">
   <style>
-    /* Theme-agnostic tones: GitHub's mobile webview does not propagate the app theme
-       to prefers-color-scheme, so the logo never relies on it. */
+    /* The default fill is a tone legible over both backgrounds: GitHub's mobile
+       webview does not propagate the app theme, so no query applies there. The
+       queries below raise the contrast wherever they do apply. */
     .title {
       font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'DejaVu Sans Mono', monospace;
       font-size: 13px;
@@ -14,6 +15,14 @@
       font-weight: 600;
       fill: #6e7781;
       text-anchor: middle;
+    }
+    @media (prefers-color-scheme: light) {
+      .title { fill: #1f2328; }
+      .subtitle { fill: #59636e; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .title { fill: #e6edf3; }
+      .subtitle { fill: #8d96a0; }
     }
   </style>
   <text class="title" y="40" xml:space="preserve">
