@@ -13,8 +13,10 @@ Authentication is based on two tokens with different roles:
   its SHA-256 fingerprint, never the token: read access to Redis — a dump, a backup, a replica — yields no usable
   credential. The same applies to the password reset verification token.
 
-The asymmetric key pair allows other services to verify access tokens using only the public key, without access to the
-signing key.
+The asymmetric key pair lets a second service verify an access token with the public key alone, without the signing key.
+Verifying is not scoping: the claims are `jti`, `sub`, `role`, `iat` and `exp` — no `iss`, no `aud` — so a signature check
+accepts every token we issue, whoever it was issued for. Both claims belong with the consumer that needs them, and with
+the validators that refuse a token missing them: issued without validation they would read as a guarantee nothing enforces.
 
 ## Redis Usage
 
