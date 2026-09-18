@@ -13,6 +13,10 @@ public record LoginLockoutProperties(
 
     public LoginLockoutProperties {
 
+        if (thresholds == null || thresholds.isEmpty()) {
+            throw new IllegalArgumentException("auth.lockout.thresholds must declare at least one threshold");
+        }
+
         thresholds = List.copyOf(thresholds);
     }
 
