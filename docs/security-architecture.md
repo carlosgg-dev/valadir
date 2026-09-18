@@ -522,6 +522,12 @@ Not defects, but things that are expensive to rediscover.
   would lock the owner out of the account they had just recovered — following the very advice the lockout email gives
   them. The counter is cleared with the password and never before the verification token resolves: clearing earlier
   would hand anyone a way to lift a lockout they never proved ownership of.
+- **Proving the password at a re-authentication door does not clear the attempt counter.** Login clears because the
+  login it throttles succeeded, and the other flows clear because what the failures were counted against is gone: the
+  password was replaced, the account deleted, the address moved. Initiating an email change leaves the same password
+  guarding the same account at the same address, so nothing counted has gone stale. Clearing on every successful
+  re-authentication would also turn the clears in password change and deletion into dead writes, each still carrying a
+  reason of its own.
 - **Re-registering over a pending account orphans its OTP key.** `replace()` deletes the abandoned account's rows but
   not `auth:account_activation_otp:{oldAccountId}`, which lingers until its TTL holding an Argon2 hash. No account
   resolves to that id any more — do not read a stray key as a live code.
