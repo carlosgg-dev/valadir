@@ -16,7 +16,7 @@ public final class RedisKeySpace {
     private static final String RATE_LIMIT_SPACE_PREFIX = "rate_limit:";
 
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
-    private static final Pattern SURROUNDING_UNDERSCORES = Pattern.compile("^_+|_+$");
+    private static final Pattern SURROUNDING_UNDERSCORES = Pattern.compile("(?:^_+)|(?:_+$)");
 
     private RedisKeySpace() {
 
