@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
  * Caches the request body so that it can be read multiple times.
  * Required when a filter reads the body before the controller does.
  */
-class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
+final class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
 
     // The body is buffered before any limit has been consulted, so the cap is what bounds the heap
     // an unmetered request may claim. Every buffered route carries a handful of short JSON fields.
