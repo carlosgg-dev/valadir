@@ -23,6 +23,14 @@ class PlainOtpTest {
         assertThat(plainOtp.value()).isEqualTo("123456");
     }
 
+    @Test
+    void constructor_leadingZero_storesValue() {
+
+        // The other half of what generate() promises: a code it can now emit must be one this accepts back
+        var plainOtp = new PlainOtp("012345");
+        assertThat(plainOtp.value()).isEqualTo("012345");
+    }
+
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "   "})
@@ -65,15 +73,6 @@ class PlainOtpTest {
     }
 
     @Test
-    void generate_returnsValueInRange() {
-
-        Stream.generate(PlainOtp::generate)
-            .limit(100)
-            .map(otp -> Integer.parseInt(otp.value()))
-            .forEach(value -> assertThat(value).isBetween(100_000, 999_999));
-    }
-
-    @Test
     void generate_calledMultipleTimes_producesUniqueValues() {
 
         Set<String> codes = Stream.generate(PlainOtp::generate)
@@ -87,7 +86,10 @@ class PlainOtpTest {
     @Test
     void generate_returnsExactlySixDigits() {
 
-        assertThat(PlainOtp.generate().value()).matches("\\d{6}");
+        // Every draw, not one: padding a number shorter than six digits is where this would break
+        Stream.generate(PlainOtp::generate)
+            .limit(200)
+            .forEach(otp -> assertThat(otp.value()).matches("\\d{6}"));
     }
 
 }
