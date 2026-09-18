@@ -56,12 +56,12 @@ public class Account {
 
     public boolean isActive() {
 
-        return AccountStatus.ACTIVE.equals(status);
+        return status == AccountStatus.ACTIVE;
     }
 
     public boolean isPendingActivation() {
 
-        return AccountStatus.PENDING_ACTIVATION.equals(status);
+        return status == AccountStatus.PENDING_ACTIVATION;
     }
 
     public Account changeLanguage(Language language) {
