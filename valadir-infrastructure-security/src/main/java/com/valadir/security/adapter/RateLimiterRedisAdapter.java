@@ -13,11 +13,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
-@SuppressWarnings("rawtypes")
 public class RateLimiterRedisAdapter implements RateLimiter {
 
     private final RedisOperations<String, String> redisOperations;
     private final RedisCircuitGuard circuitGuard;
+    // RedisScript is typed by a class literal and List<Object>.class cannot be written,
+    // so the raw type is the only argument available here.
+    @SuppressWarnings("rawtypes")
     private final RedisScript<List> rateLimitScript;
 
     public RateLimiterRedisAdapter(RedisOperations<String, String> redisOperations, RedisCircuitGuard circuitGuard) {
