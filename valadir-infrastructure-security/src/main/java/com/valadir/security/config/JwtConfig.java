@@ -11,10 +11,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import java.text.ParseException;
+import java.time.Duration;
 
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
@@ -34,6 +36,10 @@ class JwtConfig {
         var jwkSource = new ImmutableJWKSet<>(new JWKSet(publicKey));
         var processor = new DefaultJWTProcessor<>();
         processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.ES256, jwkSource));
-        return new NimbusJwtDecoder(processor);
+
+        var decoder = new NimbusJwtDecoder(processor);
+        // The default minute of clock skew outlives the keys that revoke a token, which expire at exp.
+        decoder.setJwtValidator(new JwtTimestampValidator(Duration.ZERO));
+        return decoder;
     }
 }

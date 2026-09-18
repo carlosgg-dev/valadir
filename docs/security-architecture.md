@@ -85,6 +85,11 @@ the account is compromised. `invalidate_account_tokens.lua` deletes the refresh 
 `auth:token_cutoff:{accountId}` in one atomic call, so both halves of "this session is over" land together; every access
 token of that account whose `iat` is at or before the cutoff is then refused on its next request.
 
+Both revocation keys expire with the token they cover, which only holds if the token itself dies at its `exp`.
+Spring Security's default timestamp validator tolerates a minute of clock skew, and that minute lands exactly where
+neither key is left: a logged-out token would authenticate again between `exp` and `exp + 60s`. `JwtConfig` therefore
+pins the validator to no skew — one process mints and verifies these tokens, so there is no second clock to tolerate.
+
 The cutoff revokes by time rather than by identity, so it needs no registry of live `jti` and no write on the token
 issue path. Its cost is resolution: `iat` travels in whole seconds, so a token minted within the same second as the
 revocation cannot be proven newer than the cutoff and is refused. The tie is resolved closed — a sign-in that lands in
