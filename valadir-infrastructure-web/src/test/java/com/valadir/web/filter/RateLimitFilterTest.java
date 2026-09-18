@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -52,8 +53,8 @@ class RateLimitFilterTest {
     private static final RateLimitSubject IP_SUBJECT = new RateLimitSubject(RateLimitStrategy.IP, PATH_LOGIN, CLIENT_IP);
     private static final RateLimitSubject EMAIL_SUBJECT = new RateLimitSubject(RateLimitStrategy.EMAIL, PATH_LOGIN, EMAIL);
 
-    private static final RateLimitProperties.Rule IP_RULE = new RateLimitProperties.Rule(PATH_LOGIN, RateLimitStrategy.IP, 10, WINDOW);
-    private static final RateLimitProperties.Rule EMAIL_RULE = new RateLimitProperties.Rule(PATH_LOGIN, RateLimitStrategy.EMAIL, 5, EMAIL_WINDOW);
+    private static final RateLimitProperties.Rule IP_RULE = new RateLimitProperties.Rule(PATH_LOGIN, HttpMethod.POST, RateLimitStrategy.IP, 10, WINDOW);
+    private static final RateLimitProperties.Rule EMAIL_RULE = new RateLimitProperties.Rule(PATH_LOGIN, HttpMethod.POST, RateLimitStrategy.EMAIL, 5, EMAIL_WINDOW);
 
     @Mock
     private RateLimiter rateLimiter;
@@ -144,9 +145,41 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void doFilter_methodTheRuleDoesNotGuard_passesThroughWithoutConsuming() throws Exception {
+
+        RateLimitFilter filter = buildFilter(true, List.of(IP_RULE));
+        MockHttpServletRequest request = buildRequest(HttpMethod.GET.name(), PATH_LOGIN);
+        var response = new MockHttpServletResponse();
+        var chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        then(rateLimiter).should(never()).consume(any(), anyInt(), any());
+        then(responseWriter).shouldHaveNoInteractions();
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @Test
+    void doFilter_ruleWithoutAMethod_appliesToAnyMethod() throws Exception {
+
+        var anyMethodRule = new RateLimitProperties.Rule(PATH_LOGIN, null, RateLimitStrategy.IP, 10, WINDOW);
+        given(subjectResolver.resolve(any(HttpServletRequest.class), eq(anyMethodRule))).willReturn(Optional.of(IP_SUBJECT));
+        given(rateLimiter.consume(IP_SUBJECT, 10, WINDOW)).willReturn(new RateLimitResult(true, 1L, 10, WINDOW));
+
+        RateLimitFilter filter = buildFilter(true, List.of(anyMethodRule));
+        MockHttpServletRequest request = buildRequest(HttpMethod.GET.name(), PATH_LOGIN);
+        var response = new MockHttpServletResponse();
+        var chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        then(rateLimiter).should().consume(IP_SUBJECT, 10, WINDOW);
+    }
+
+    @Test
     void doFilter_unresolvedSubject_skipsRuleAndDoesNotWriteHeaders() throws Exception {
 
-        var userRule = new RateLimitProperties.Rule(PATH_LOGIN, RateLimitStrategy.USER, 10, WINDOW);
+        var userRule = new RateLimitProperties.Rule(PATH_LOGIN, HttpMethod.POST, RateLimitStrategy.USER, 10, WINDOW);
         given(subjectResolver.resolve(any(HttpServletRequest.class), eq(userRule))).willReturn(Optional.empty());
 
         RateLimitFilter filter = buildFilter(true, List.of(userRule));
@@ -315,7 +348,12 @@ class RateLimitFilterTest {
 
     private MockHttpServletRequest buildRequest(String path) {
 
-        var request = new MockHttpServletRequest();
+        return buildRequest(HttpMethod.POST.name(), path);
+    }
+
+    private MockHttpServletRequest buildRequest(String method, String path) {
+
+        var request = new MockHttpServletRequest(method, path);
         request.setRequestURI(path);
         return request;
     }

@@ -4,6 +4,7 @@ import com.valadir.config.LoginLockoutProperties.ThresholdProperties;
 import com.valadir.web.config.RateLimitProperties;
 import com.valadir.web.config.RateLimitProperties.Rule;
 import com.valadir.common.ratelimit.RateLimitStrategy;
+import org.springframework.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -66,28 +67,29 @@ class ProductionConfigurationTest {
 
         // Ordered, because RateLimitFilter evaluates in order and stops at the first rule that denies.
         assertThat(rateLimit.rules()).containsExactly(
-            new Rule("/api/auth/login", RateLimitStrategy.IP, 10, ONE_MINUTE),
+            new Rule("/api/auth/login", HttpMethod.POST, RateLimitStrategy.IP, 10, ONE_MINUTE),
 
-            new Rule("/api/auth/register", RateLimitStrategy.IP, 5, ONE_HOUR),
-            new Rule("/api/auth/register", RateLimitStrategy.EMAIL, 3, ONE_HOUR),
+            new Rule("/api/auth/register", HttpMethod.POST, RateLimitStrategy.IP, 5, ONE_HOUR),
+            new Rule("/api/auth/register", HttpMethod.POST, RateLimitStrategy.EMAIL, 3, ONE_HOUR),
 
-            new Rule("/api/auth/account-activation", RateLimitStrategy.IP, 10, ONE_MINUTE),
-            new Rule("/api/auth/account-activation", RateLimitStrategy.EMAIL, 5, OTP_TTL),
-            new Rule("/api/auth/account-activation/resend", RateLimitStrategy.IP, 5, ONE_HOUR),
-            new Rule("/api/auth/account-activation/resend", RateLimitStrategy.EMAIL, 3, ONE_HOUR),
+            new Rule("/api/auth/account-activation", HttpMethod.POST, RateLimitStrategy.IP, 10, ONE_MINUTE),
+            new Rule("/api/auth/account-activation", HttpMethod.POST, RateLimitStrategy.EMAIL, 5, OTP_TTL),
+            new Rule("/api/auth/account-activation/resend", HttpMethod.POST, RateLimitStrategy.IP, 5, ONE_HOUR),
+            new Rule("/api/auth/account-activation/resend", HttpMethod.POST, RateLimitStrategy.EMAIL, 3, ONE_HOUR),
 
-            new Rule("/api/auth/password-reset/initiate", RateLimitStrategy.IP, 5, ONE_HOUR),
-            new Rule("/api/auth/password-reset/initiate", RateLimitStrategy.EMAIL, 3, ONE_HOUR),
-            new Rule("/api/auth/password-reset/verify", RateLimitStrategy.IP, 10, OTP_TTL),
-            new Rule("/api/auth/password-reset/verify", RateLimitStrategy.EMAIL, 5, OTP_TTL),
-            new Rule("/api/auth/password-reset/complete", RateLimitStrategy.IP, 5, OTP_TTL),
+            new Rule("/api/auth/password-reset/initiate", HttpMethod.POST, RateLimitStrategy.IP, 5, ONE_HOUR),
+            new Rule("/api/auth/password-reset/initiate", HttpMethod.POST, RateLimitStrategy.EMAIL, 3, ONE_HOUR),
+            new Rule("/api/auth/password-reset/verify", HttpMethod.POST, RateLimitStrategy.IP, 10, OTP_TTL),
+            new Rule("/api/auth/password-reset/verify", HttpMethod.POST, RateLimitStrategy.EMAIL, 5, OTP_TTL),
+            new Rule("/api/auth/password-reset/complete", HttpMethod.POST, RateLimitStrategy.IP, 5, OTP_TTL),
 
-            new Rule("/api/auth/refresh", RateLimitStrategy.IP, 30, ONE_MINUTE),
+            new Rule("/api/auth/refresh", HttpMethod.POST, RateLimitStrategy.IP, 30, ONE_MINUTE),
 
-            new Rule("/api/auth/account/email-change/initiate", RateLimitStrategy.USER, 3, ONE_HOUR),
-            new Rule("/api/auth/account/email-change/complete", RateLimitStrategy.USER, 5, OTP_TTL),
+            new Rule("/api/auth/account/email-change/initiate", HttpMethod.POST, RateLimitStrategy.USER, 3, ONE_HOUR),
+            new Rule("/api/auth/account/email-change/complete", HttpMethod.POST, RateLimitStrategy.USER, 5, OTP_TTL),
 
-            new Rule("/api/**", RateLimitStrategy.USER, 100, ONE_MINUTE)
+            // No method: the per-user budget covers the whole API, the profile GET and PUT included.
+            new Rule("/api/**", null, RateLimitStrategy.USER, 100, ONE_MINUTE)
         );
     }
 

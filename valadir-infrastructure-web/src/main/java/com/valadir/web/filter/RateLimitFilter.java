@@ -55,7 +55,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         @NonNull FilterChain chain
     ) throws ServletException, IOException {
 
-        List<RateLimitProperties.Rule> matchingRules = matchingRules(request.getRequestURI());
+        List<RateLimitProperties.Rule> matchingRules = matchingRules(request);
         if (!properties.enabled() || matchingRules.isEmpty()) {
             chain.doFilter(request, response);
             return;
@@ -77,10 +77,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(effectiveRequest, response);
     }
 
-    private List<RateLimitProperties.Rule> matchingRules(String path) {
+    // The method is part of the match: a rule guards an endpoint, and a request the endpoint does
+    // not answer never reaches a use case, so charging it spends the budget of whoever shares the IP.
+    private List<RateLimitProperties.Rule> matchingRules(HttpServletRequest request) {
 
         return properties.rules().stream()
-            .filter(rule -> pathMatcher.match(rule.path(), path))
+            .filter(rule -> pathMatcher.match(rule.path(), request.getRequestURI()))
+            .filter(rule -> rule.appliesTo(request.getMethod()))
             .toList();
     }
 

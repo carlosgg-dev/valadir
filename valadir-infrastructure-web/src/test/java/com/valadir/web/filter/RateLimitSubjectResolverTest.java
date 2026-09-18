@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -50,7 +51,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_ipStrategy_returnsSubjectCarryingTheClientIpAndTheRulePath() {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -63,7 +64,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_ipStrategy_spoofedXForwardedFor_stillKeysOnTheClientIp() {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.IP, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
         request.addHeader("X-Forwarded-For", "203.0.113.5, 10.0.0.1, 192.168.1.1");
 
@@ -75,7 +76,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_emailStrategy_withEmailReturnsSubjectCarryingTheAddress() throws Exception {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequestWithBody(Map.of("email", EMAIL, "password", "secret"));
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -94,7 +95,7 @@ class RateLimitSubjectResolverTest {
     })
     void resolve_emailStrategy_normalizesTheEmailIntoASingleSubject(String email) throws Exception {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequestWithBody(Map.of("email", email, "password", "secret"));
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -109,7 +110,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_emailStrategy_theSameLetterSpelledTwoWays_resolvesToTheStoredForm() throws Exception {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequestWithBody(Map.of("email", "pen\u0303a@espan\u0303a.com", "password", "secret"));
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -120,7 +121,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_emailStrategy_missingEmailInBodyReturnsEmpty() throws Exception {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequestWithBody(Map.of("password", "secret"));
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -132,7 +133,7 @@ class RateLimitSubjectResolverTest {
     @ValueSource(strings = {"", " "})
     void resolve_emailStrategy_blankEmailReturnsEmpty(String email) throws Exception {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequestWithBody(Map.of("email", email, "password", "secret"));
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -143,7 +144,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_emailStrategy_invalidJsonReturnsEmpty() {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.EMAIL, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
         request.setContent("not-json".getBytes());
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -157,7 +158,7 @@ class RateLimitSubjectResolverTest {
     void resolve_userStrategy_authenticatedReturnsSubjectCarryingTheAccountId() {
 
         authenticate();
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -168,7 +169,7 @@ class RateLimitSubjectResolverTest {
     @Test
     void resolve_userStrategy_unauthenticatedReturnsEmpty() {
 
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);
@@ -180,7 +181,7 @@ class RateLimitSubjectResolverTest {
     void resolve_userStrategy_nonJwtAuthenticationReturnsEmpty() {
 
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(ACCOUNT_ID, null));
-        var rule = new RateLimitProperties.Rule(PATH, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
+        var rule = new RateLimitProperties.Rule(PATH, HttpMethod.POST, RateLimitStrategy.USER, MAX_REQUESTS, WINDOW);
         MockHttpServletRequest request = buildRequest();
 
         Optional<RateLimitSubject> subject = resolver.resolve(request, rule);

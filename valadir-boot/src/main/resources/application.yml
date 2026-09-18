@@ -131,70 +131,83 @@ rate-limit:
     # lockout (RATE_LIMIT_EXCEEDED instead of ACCOUNT_TEMPORARILY_LOCKED), freezing
     # the attempt counter and making the 10/15 thresholds unreachable.
     - path: /api/auth/login
+      method: POST
       strategy: IP
       max-requests: 10
       window: 60s
 
     # --- register: email enumeration via EMAIL_ALREADY_EXISTS ---
     - path: /api/auth/register
+      method: POST
       strategy: IP
       max-requests: 5
       window: 1h
     - path: /api/auth/register
+      method: POST
       strategy: EMAIL
       max-requests: 3
       window: 1h
 
     # --- account-activation: OTP brute-force + account enumeration via INVALID_ACCOUNT_ACTIVATION_OTP ---
     - path: /api/auth/account-activation
+      method: POST
       strategy: IP
       max-requests: 10
       window: 60s
     - path: /api/auth/account-activation
+      method: POST
       strategy: EMAIL
       max-requests: 5
       window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- account-activation/resend: email spam ---
     - path: /api/auth/account-activation/resend
+      method: POST
       strategy: IP
       max-requests: 5
       window: 1h
     - path: /api/auth/account-activation/resend
+      method: POST
       strategy: EMAIL
       max-requests: 3
       window: 1h
 
     # --- password-reset/initiate: account enumeration + OTP spam ---
     - path: /api/auth/password-reset/initiate
+      method: POST
       strategy: IP
       max-requests: 5
       window: 1h
     - path: /api/auth/password-reset/initiate
+      method: POST
       strategy: EMAIL
       max-requests: 3
       window: 1h
 
     # --- password-reset/verify: OTP brute-force ---
     - path: /api/auth/password-reset/verify
+      method: POST
       strategy: IP
       max-requests: 10
       window: 15m  # matches OTP TTL
     # The IP rule alone caps nothing per target: rotating addresses buys unlimited guesses
     # against one email, and six digits do not survive that. Mirrors the account-activation pair.
     - path: /api/auth/password-reset/verify
+      method: POST
       strategy: EMAIL
       max-requests: 5
       window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- password-reset/complete: reset token abuse ---
     - path: /api/auth/password-reset/complete
+      method: POST
       strategy: IP
       max-requests: 5
       window: 15m
 
     # --- refresh: token replay abuse ---
     - path: /api/auth/refresh
+      method: POST
       strategy: IP
       max-requests: 30
       window: 60s
@@ -202,17 +215,20 @@ rate-limit:
     # authenticated endpoints
     # --- account/email-change/initiate: OTP spam to arbitrary addresses ---
     - path: /api/auth/account/email-change/initiate
+      method: POST
       strategy: USER
       max-requests: 3
       window: 1h
 
     # --- account/email-change/complete: OTP brute-force ---
     - path: /api/auth/account/email-change/complete
+      method: POST
       strategy: USER
       max-requests: 5
       window: 15m  # matches OTP TTL — window resets when OTP expires
 
     # --- authenticated endpoints: per-user global limit ---
+    # No method: this is the budget for the whole API, whatever the verb.
     - path: /api/**
       strategy: USER
       max-requests: 100
