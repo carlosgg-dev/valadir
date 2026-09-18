@@ -11,10 +11,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PasswordSecurityService {
 
-    private static final Pattern TERM_SEPARATOR = Pattern.compile("[\\s._-]+");
+    // `+` among them so a plus-addressed local part does not hide behind its tag as one long term
+    private static final Pattern TERM_SEPARATOR = Pattern.compile("[\\s._+-]+");
     private static final int MIN_TERM_LENGTH = 4;
 
     public void validatePassword(RawPassword password, Email email, User user) {
@@ -22,13 +24,14 @@ public class PasswordSecurityService {
         String pwd = comparableFormOf(password.value());
         boolean containsEmail = pwd.contains(comparableFormOf(email.value()));
 
-        Set<String> nameTerms = user.personalData().stream()
+        Set<String> personalTerms = Stream.concat(user.personalData().stream(), Stream.of(email.localPart()))
             .map(PasswordSecurityService::comparableFormOf)
             .flatMap(TERM_SEPARATOR::splitAsStream)
             .filter(term -> term.length() >= MIN_TERM_LENGTH)
             .collect(Collectors.toSet());
 
-        if (containsEmail || nameTerms.stream().anyMatch(pwd::contains)) {
+        // The whole address stays its own check: a local part below the threshold contributes no term
+        if (containsEmail || personalTerms.stream().anyMatch(pwd::contains)) {
             throw new DomainException("Password cannot contain your personal data", ErrorCode.INSECURE_PASSWORD);
         }
     }

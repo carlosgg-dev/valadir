@@ -252,6 +252,19 @@ class EmailTest {
         assertThat(email).isEqualTo(new Email("user@domain.com"));
     }
 
+    @Test
+    void localPart_addressCarryingDotsOnBothSides_returnsEverythingBeforeTheAt() {
+
+        assertThat(Email.from("bruce.wayne+news@mail.email.com").localPart()).isEqualTo("bruce.wayne+news");
+    }
+
+    @Test
+    void localPart_addressNotYetNormalized_returnsTheNormalizedForm() {
+
+        // Reads the canonical value, not what was typed: a caller comparing against it must not have to normalize again
+        assertThat(Email.from("  BRUCE.Wayne@Email.com  ").localPart()).isEqualTo("bruce.wayne");
+    }
+
     // Seven labels of thirteen ideographs encode to 31 ASCII characters each: the domain encodes to 228 plus the ASCII label
     private static String buildInternationalizedDomain(int asciiLabelLength) {
 

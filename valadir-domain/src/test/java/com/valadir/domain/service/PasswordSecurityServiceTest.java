@@ -23,6 +23,10 @@ class PasswordSecurityServiceTest {
 
     private static final String EMAIL = "brucewayne@email.com";
 
+    // The email cases below pair it with a name that shares nothing with the address: with an
+    // overlapping name the name rule answers first and the case proves nothing about the address.
+    private static final String UNRELATED_FULL_NAME = "Clark Kent";
+
     // Case folding is locale dependent: in this one an uppercase I folds to a dotless "ı" instead
     // of "i", so a term lowercased with it no longer matches its Locale.ROOT form.
     private static final Locale LOCALE_WITH_DIFFERENT_CASE_FOLDING = Locale.forLanguageTag("tr");
@@ -53,12 +57,38 @@ class PasswordSecurityServiceTest {
         assertInsecurePassword("Jack@2026", EMAIL, "Jack", "Batman");
     }
 
-    // ── Email ──
+    // ── Email (checked per word of the local part, plus the whole address) ──
 
     @Test
-    void validatePassword_passwordContainsEmail_throwsDomainException() {
+    void validatePassword_passwordContainsLocalPart_throwsDomainException() {
 
-        assertInsecurePassword("bruce.wayne@email.com1A", "bruce.wayne@email.com", "Bruce Wayne", "Batman");
+        assertInsecurePassword("brucewayne!A1", EMAIL, UNRELATED_FULL_NAME, "Batman");
+    }
+
+    // `+` belongs here and not only among the name separators: plus-addressing is what a real address
+    // carries, and without it the tag welds the identity into one term nothing matches
+    @ParameterizedTest
+    @ValueSource(strings = {".", "-", "_", "+"})
+    void validatePassword_localPartWordsSeparatedBySymbol_throwsDomainException(String separator) {
+
+        String email = "bruce" + separator + "wayne@email.com";
+        assertInsecurePassword("Bruce@2026", email, UNRELATED_FULL_NAME, "Batman");
+        assertInsecurePassword("Wayne@2026", email, UNRELATED_FULL_NAME, "Batman");
+    }
+
+    @Test
+    void validatePassword_localPartBelowMinLength_passes() {
+
+        // "ana" has 3 chars (< MIN_TERM_LENGTH 4): the address contributes no term, exactly as a short name does not
+        assertSecurePassword("Ana@Secure9!", "ana@email.com", UNRELATED_FULL_NAME, "Batman");
+    }
+
+    @Test
+    void validatePassword_passwordContainsWholeAddressOfAShortLocalPart_throwsDomainException() {
+
+        // The one shape only the whole-address check can answer: "ana" is below the threshold, so no
+        // term is left to match and the name shares nothing with the address
+        assertInsecurePassword("ana@email.com1A", "ana@email.com", UNRELATED_FULL_NAME, "Batman");
     }
 
     // ── Full name (checked per word) ──

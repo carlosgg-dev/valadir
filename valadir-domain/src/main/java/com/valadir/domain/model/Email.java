@@ -40,6 +40,12 @@ public record Email(String value) {
         return new Email(value);
     }
 
+    // Exactly one @ is the constructor's guarantee, so the split needs no check of its own
+    public String localPart() {
+
+        return value.substring(0, value.indexOf('@'));
+    }
+
     private static String normalize(String value) {
 
         return value == null
