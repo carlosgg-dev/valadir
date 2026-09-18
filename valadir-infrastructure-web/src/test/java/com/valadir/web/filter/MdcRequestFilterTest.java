@@ -8,6 +8,8 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -15,6 +17,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -25,6 +28,7 @@ class MdcRequestFilterTest {
     private static final String EXTERNAL_REQUEST_ID = "external-request-id";
     private static final String REQUEST_METHOD = "POST";
     private static final String REQUEST_PATH = "/api/auth/login";
+    private static final int REQUEST_ID_LENGTH_CAP = 64;
 
     private final MdcRequestFilter filter = new MdcRequestFilter();
     private final MockHttpServletRequest request = new MockHttpServletRequest(REQUEST_METHOD, REQUEST_PATH);
@@ -66,9 +70,22 @@ class MdcRequestFilterTest {
     }
 
     @Test
-    void doFilter_blankHeader_generatesUuidRequestIdInstead() throws Exception {
+    void doFilter_headerAtTheLengthCap_isHonoured() throws Exception {
 
-        request.addHeader(REQUEST_ID_HEADER, " ");
+        var longestAcceptedId = "a".repeat(REQUEST_ID_LENGTH_CAP);
+        request.addHeader(REQUEST_ID_HEADER, longestAcceptedId);
+
+        filter.doFilter(request, response, capturingChain);
+
+        assertThat(mdcDuringChain).containsEntry(MdcKeys.REQUEST_ID, longestAcceptedId);
+        assertThat(response.getHeader(REQUEST_ID_HEADER)).isEqualTo(longestAcceptedId);
+    }
+
+    @ParameterizedTest
+    @MethodSource("rejectedRequestIds")
+    void doFilter_headerOutsideTheAcceptedForm_generatesUuidRequestIdInstead(String header) throws Exception {
+
+        request.addHeader(REQUEST_ID_HEADER, header);
 
         filter.doFilter(request, response, capturingChain);
 
@@ -135,6 +152,23 @@ class MdcRequestFilterTest {
             .isThrownBy(() -> filter.doFilter(request, response, failingChain));
 
         assertThat(MDC.get(MdcKeys.REQUEST_ID)).isNull();
+    }
+
+    /**
+     * Each of these reaches the log line interpolated if the header is taken as it arrives: the
+     * first two forge a line of their own, the third bloats every line of the request, and the
+     * fourth closes the bracket the converter opened and writes past it.
+     */
+    private static Stream<String> rejectedRequestIds() {
+
+        return Stream.of(
+            "forged\nrequestId=someone-else",
+            "forged\rrequestId=someone-else",
+            "a".repeat(REQUEST_ID_LENGTH_CAP + 1),
+            "id] WARN logged by nobody [requestId=x",
+            "",
+            " "
+        );
     }
 
     /**

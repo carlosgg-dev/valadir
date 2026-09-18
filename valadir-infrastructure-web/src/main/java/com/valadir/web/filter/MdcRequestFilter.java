@@ -14,10 +14,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class MdcRequestFilter extends OncePerRequestFilter {
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
+    private static final Pattern ACCEPTED_REQUEST_ID = Pattern.compile("[A-Za-z0-9._-]{1,64}");
     private static final String CAPTURED_CONTEXT = MdcRequestFilter.class.getName() + ".capturedContext";
 
     /**
@@ -64,8 +66,10 @@ public class MdcRequestFilter extends OncePerRequestFilter {
 
     private void openContext(HttpServletRequest request, HttpServletResponse response) {
 
+        // A header outside the accepted form is treated as absent, never sanitised into something
+        // the client did not send.
         String requestId = Optional.ofNullable(request.getHeader(REQUEST_ID_HEADER))
-            .filter(id -> !id.isBlank())
+            .filter(id -> ACCEPTED_REQUEST_ID.matcher(id).matches())
             .orElseGet(() -> UUID.randomUUID().toString());
 
         MDC.put(MdcKeys.REQUEST_ID, requestId);
