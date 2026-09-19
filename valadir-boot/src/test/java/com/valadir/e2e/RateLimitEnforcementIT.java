@@ -141,7 +141,7 @@ class RateLimitEnforcementIT extends AbstractAuthE2EIT {
             .body("code", equalTo(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()))
             .body("errors", nullValue());
 
-        assertThat(blocked.contentType()).startsWith(MediaType.APPLICATION_JSON_VALUE);
+        assertThat(blocked.contentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
         assertThat(numericHeader(blocked, REMAINING_HEADER)).isZero();
         assertThat(numericHeader(blocked, HttpHeaders.RETRY_AFTER)).isBetween(1L, LOGIN_IP_WINDOW.toSeconds());
 

@@ -23,6 +23,8 @@ public class ErrorResponseWriter {
 
         response.setStatus(httpStatusResolver.resolve(errorCode).value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getWriter(), new ErrorResponse(errorCode.getCode()));
+        // Through the stream, not the writer: the writer appends the container's default charset,
+        // and JSON is UTF-8 by definition.
+        objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(errorCode.getCode()));
     }
 }

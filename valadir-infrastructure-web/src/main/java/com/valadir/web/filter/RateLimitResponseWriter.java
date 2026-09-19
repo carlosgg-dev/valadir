@@ -34,7 +34,8 @@ public class RateLimitResponseWriter {
         response.setHeader(HEADER_REMAINING, "0");
         response.setHeader(HEADER_RESET, String.valueOf(resetEpochSeconds(result)));
         response.setHeader(HEADER_RETRY_AFTER, String.valueOf(result.remainingTtl().toSeconds()));
-        objectMapper.writeValue(response.getWriter(), new ErrorResponse(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
+        // Through the stream, not the writer: the writer appends the container's default charset.
+        objectMapper.writeValue(response.getOutputStream(), new ErrorResponse(ErrorCode.RATE_LIMIT_EXCEEDED.getCode()));
     }
 
     public void writeAllowedRequestHeaders(HttpServletResponse response, RateLimitResult result) {
